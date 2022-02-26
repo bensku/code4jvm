@@ -8,6 +8,7 @@ import org.objectweb.asm.Type;
 import fi.benjami.code4jvm.call.InstanceCallTarget;
 import fi.benjami.code4jvm.call.Linkage;
 import fi.benjami.code4jvm.call.MethodLookup;
+import fi.benjami.code4jvm.internal.CastValue;
 import fi.benjami.code4jvm.statement.Bytecode;
 
 import static org.objectweb.asm.Opcodes.*;
@@ -19,6 +20,14 @@ public interface Value {
 	Optional<Block> parentBlock();
 	
 	Optional<String> name();
+	
+	default Value cast(Type to) {
+		return CastValue.cast(this, to);
+	}
+	
+	default Value asType(Type to) {
+		return CastValue.fakeCast(null, to);
+	}
 	
 	default Expression getField(Type fieldType, String name) {
 		return block -> {

@@ -13,6 +13,8 @@ import fi.benjami.code4jvm.Constant;
 import fi.benjami.code4jvm.Expression;
 import fi.benjami.code4jvm.Value;
 import fi.benjami.code4jvm.internal.LocalVar;
+import fi.benjami.code4jvm.internal.SlotAllocator;
+import fi.benjami.code4jvm.internal.CastValue;
 import fi.benjami.code4jvm.internal.CompileContext;
 
 public class Bytecode implements Expression {
@@ -52,16 +54,23 @@ public class Bytecode implements Expression {
 		var mv = ctx.asm();
 		var slotAllocator = ctx.slotAllocator();
 		for (int i = 0; i < inputs.size(); i++) {
-			var input = inputs.get(i);
-			if (input instanceof Constant constant) {
-				mv.visitLdcInsn(constant.value());
-			} else if (input instanceof LocalVar localVar) {				
-				if (localVar.needsSlot) {
-					mv.visitVarInsn(localVar.type().getOpcode(ILOAD), slotAllocator.get(localVar));
-				} // else: already on stack
-			}
+			emitInput(mv, slotAllocator, inputs.get(i));
 		}
 		emitter.accept(ctx.asm()); // Emit user bytecode
+	}
+	
+	private void emitInput(MethodVisitor mv, SlotAllocator slotAllocator, Value input) {
+		if (input instanceof Constant constant) {
+			mv.visitLdcInsn(constant.value());
+		} else if (input instanceof LocalVar localVar) {				
+			if (localVar.needsSlot) {
+				mv.visitVarInsn(localVar.type().getOpcode(ILOAD), slotAllocator.get(localVar));
+			} // else: already on stack
+		} else if (input instanceof CastValue cast) {
+			// Recursively emit the original, then the required cast
+			emitInput(mv, slotAllocator, cast.original());
+			cast.emitCast(mv);
+		}
 	}
 	
 	public void discardOutput(CompileContext ctx) {

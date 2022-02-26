@@ -27,7 +27,11 @@ public class Scope {
 		
 		// Mark the rest to require local variable slot
 		for (int i = loadedCount; i < inputs.size(); i++) {
-			if (inputs.get(i) instanceof LocalVar localVar) {				
+			var value = inputs.get(i);
+			if (value instanceof CastValue cast) {
+				value = cast.original(); // Original COULD be LocalVar
+			}
+			if (value instanceof LocalVar localVar) {
 				localVar.needsSlot = true;
 			}
 		}

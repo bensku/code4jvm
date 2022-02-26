@@ -1,5 +1,7 @@
 package fi.benjami.code4jvm.internal;
 
+
+import java.util.List;
 import java.util.Optional;
 
 import org.objectweb.asm.Type;
@@ -8,6 +10,10 @@ import fi.benjami.code4jvm.Block;
 import fi.benjami.code4jvm.Statement;
 import fi.benjami.code4jvm.Value;
 import fi.benjami.code4jvm.Variable;
+import fi.benjami.code4jvm.statement.Bytecode;
+import fi.benjami.code4jvm.util.TypeCheck;
+
+import static org.objectweb.asm.Opcodes.*;
 
 public class LocalVar implements Variable {
 
@@ -54,9 +60,18 @@ public class LocalVar implements Variable {
 
 	@Override
 	public Statement set(Value value) {
-		// TODO Auto-generated method stub
-		return null;
+		TypeCheck.mustEqual(this, value);
+		return block -> {
+			block.add(Bytecode.run(Type.VOID_TYPE, List.of(value), mv -> {
+				if (assignedSlot != -1) {					
+					mv.visitVarInsn(type.getOpcode(ISTORE), assignedSlot);
+				} // else: nothing seems to read this variable, so stores to it don't matter
+			}));
+		};
 	}
 	
-	
+	@Override
+	public String toString() {
+		return "LocalVar{" + type + " " + assignedSlot + "}";
+	}
 }

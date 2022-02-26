@@ -43,4 +43,5 @@ public class ClassTest {
 		@SuppressWarnings("unused") // MethodHandles API doesn't like void return type
 		var result = lookup.findConstructor(lookup.lookupClass(), MethodType.methodType(void.class)).invoke();
 	}
+	
 }

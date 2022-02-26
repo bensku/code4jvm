@@ -16,13 +16,9 @@ import fi.benjami.code4jvm.statement.Return;
 public class MethodTest {
 	
 	private static final MethodHandles.Lookup LOOKUP = MethodHandles.lookup();
-	
-	private Object newInstance(MethodHandles.Lookup lookup) throws Throwable {
-		return lookup.findConstructor(lookup.lookupClass(), MethodType.methodType(void.class)).invoke();
-	}
 
 	@Test
-	public void emptyMethod() throws Throwable {
+	public void empty() throws Throwable {
 		var def = ClassDef.create("fi.benjami.code4jvm.test.EmptyMethod", Access.PUBLIC);
 		def.addEmptyConstructor(Access.PUBLIC);
 		
@@ -31,11 +27,11 @@ public class MethodTest {
 		
 		var lookup = LOOKUP.defineHiddenClass(def.compile(), true);
 		lookup.findVirtual(lookup.lookupClass(), "doNothing", MethodType.methodType(void.class))
-				.invoke(newInstance(lookup));
+				.invoke(TestUtils.newInstance(lookup));
 	}
 	
 	@Test
-	public void returningMethod() throws Throwable {
+	public void returning() throws Throwable {
 		var def = ClassDef.create("fi.benjami.code4jvm.test.ReturningMethod", Access.PUBLIC);
 		def.addEmptyConstructor(Access.PUBLIC);
 		
@@ -44,11 +40,28 @@ public class MethodTest {
 		def.addMethod(Type.getType(String.class), "returnString", Access.PUBLIC).add(Return.value(Constant.of("hello")));
 		
 		var lookup = LOOKUP.defineHiddenClass(def.compile(), true);
+		var instance = TestUtils.newInstance(lookup);
 		assertEquals(1337, (int) lookup.findVirtual(lookup.lookupClass(), "returnInt", MethodType.methodType(int.class))
-				.invoke(newInstance(lookup)));
+				.invoke(instance));
 		assertEquals(42, (long) lookup.findVirtual(lookup.lookupClass(), "returnLong", MethodType.methodType(long.class))
-				.invoke(newInstance(lookup)));
+				.invoke(instance));
 		assertEquals("hello", (String) lookup.findVirtual(lookup.lookupClass(), "returnString", MethodType.methodType(String.class))
-				.invoke(newInstance(lookup)));
+				.invoke(instance));
+	}
+	
+	@Test
+	public void withArguments() throws Throwable {
+		var def = ClassDef.create("fi.benjami.code4jvm.test.WithArguments", Access.PUBLIC);
+		def.addEmptyConstructor(Access.PUBLIC);
+		
+		var method = def.addMethod(Type.getType(Object.class), "returnArg", Access.PUBLIC);
+		var arg = method.arg(Type.getType(Object.class));
+		method.add(Return.value(arg));
+		
+		var lookup = LOOKUP.defineHiddenClass(def.compile(), true);
+		var obj = new Object();
+		assertEquals(obj, lookup.findVirtual(lookup.lookupClass(),
+				"returnArg", MethodType.methodType(Object.class, Object.class))
+				.invoke(TestUtils.newInstance(lookup), obj));
 	}
 }
