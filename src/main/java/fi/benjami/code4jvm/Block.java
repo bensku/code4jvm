@@ -10,6 +10,7 @@ import fi.benjami.code4jvm.internal.BlockNode;
 import fi.benjami.code4jvm.internal.CodeNode;
 import fi.benjami.code4jvm.internal.CompileContext;
 import fi.benjami.code4jvm.internal.LocalVar;
+import fi.benjami.code4jvm.internal.NeedsBlockLabels;
 import fi.benjami.code4jvm.internal.Node;
 import fi.benjami.code4jvm.internal.Scope;
 import fi.benjami.code4jvm.statement.Bytecode;
@@ -82,6 +83,21 @@ public class Block {
 	}
 	
 	public void add(Statement stmt) {
+		if (stmt instanceof NeedsBlockLabels labelConsumer) {
+			// Note that the jump (or whatever else) could lead to another block!
+			var block = labelConsumer.targetBlock();
+			var start = block.startLabel != null ? block.startLabel : new Label();
+			var end = block.endLabel != null ? block.endLabel : new Label();
+			var needs = labelConsumer.setLabels(start, end);
+			
+			// Make sure that the needed labels are actually given to ASM
+			if ((needs & NeedsBlockLabels.NEED_START) != 0) {
+				block.startLabel = start;
+			}
+			if ((needs & NeedsBlockLabels.NEED_END) != 0) {
+				block.endLabel = end;
+			}
+		}
 		stmt.emitVoid(this);
 	}
 	
@@ -104,34 +120,6 @@ public class Block {
 		nodes.add(new BlockNode(block));
 		// Reset scope, stack will be gone after the newly added block
 		scope.reset();
-	}
-	
-	// TODO conditional jumps
-	
-	private static Label jumpTarget(Block block, Jump jump) {
-		return switch (jump) {
-		case TO_START -> {
-			if (block.startLabel == null) {
-				block.startLabel = new Label();
-			}
-			yield block.startLabel;
-		}
-		case TO_END -> {
-			if (block.endLabel == null) {
-				block.endLabel = new Label();
-			}
-			yield block.endLabel;
-		}
-		};
-	}
-	
-	public void addJump(Block target, Jump jump) {
-		var label = jumpTarget(target, jump);
-		
-		add(Bytecode.run(Type.VOID_TYPE, List.of(), mv -> {
-			// TODO validate that the jump target is legal
-			mv.visitJumpInsn(Opcodes.GOTO, label);
-		}));
 	}
 	
 	void emitBytecode(CompileContext ctx) {

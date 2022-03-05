@@ -6,6 +6,10 @@ import org.objectweb.asm.Type;
 
 public class Constant implements Value {
 	
+	public static Constant of(boolean value) {
+		return new Constant(value, Type.BOOLEAN_TYPE);
+	}
+	
 	public static Constant of(int value) {
 		return new Constant(value, Type.INT_TYPE);
 	}

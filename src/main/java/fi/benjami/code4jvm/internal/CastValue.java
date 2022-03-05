@@ -7,6 +7,7 @@ import org.objectweb.asm.Type;
 
 import fi.benjami.code4jvm.Block;
 import fi.benjami.code4jvm.Value;
+import fi.benjami.code4jvm.util.TypeUtils;
 
 import static org.objectweb.asm.Opcodes.*;
 
@@ -58,7 +59,7 @@ public class CastValue implements Value {
 			cast |= convertToInt(from);
 		} else if (to.equals(Type.LONG_TYPE)) {
 			from = unboxType(from);
-			if (isIntLike(from)) {
+			if (TypeUtils.isIntLike(from)) {
 				cast |= INT_LONG;
 			} else if (from.equals(Type.FLOAT_TYPE)) {
 				cast |= FLOAT_LONG;
@@ -67,7 +68,7 @@ public class CastValue implements Value {
 			}
 		} else if (to.equals(Type.FLOAT_TYPE)) {
 			from = unboxType(from);
-			if (isIntLike(from)) {
+			if (TypeUtils.isIntLike(from)) {
 				cast |= INT_FLOAT;
 			} else if (from.equals(Type.LONG_TYPE)) {
 				cast |= LONG_FLOAT;
@@ -76,7 +77,7 @@ public class CastValue implements Value {
 			}
 		} else if (to.equals(Type.DOUBLE_TYPE)) {
 			from = unboxType(from);
-			if (isIntLike(from)) {
+			if (TypeUtils.isIntLike(from)) {
 				cast |= INT_DOUBLE;
 			} else if (from.equals(Type.LONG_TYPE)) {
 				cast |= LONG_DOUBLE;
@@ -104,12 +105,8 @@ public class CastValue implements Value {
 		return new CastValue(original, to, 0);
 	}
 	
-	private static boolean isIntLike(Type type) {
-		return type.equals(Type.BYTE_TYPE) || type.equals(Type.SHORT_TYPE) || type.equals(Type.CHAR_TYPE) || type.equals(Type.INT_TYPE);
-	}
-	
 	private static int convertToInt(Type from) {
-		if (isIntLike(from)) {
+		if (TypeUtils.isIntLike(from)) {
 			// JVM treats all integer types except longs as ints (except in arrays)
 			// The casts from ints to smaller types exist only for truncation
 			return 0;
