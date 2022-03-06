@@ -4,12 +4,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
+import java.util.function.Supplier;
 
 import org.junit.jupiter.api.Test;
 import org.objectweb.asm.Type;
 
 import fi.benjami.code4jvm.ClassDef;
 import fi.benjami.code4jvm.Constant;
+import fi.benjami.code4jvm.Types;
 import fi.benjami.code4jvm.flag.Access;
 import fi.benjami.code4jvm.statement.Return;
 
@@ -63,5 +65,24 @@ public class MethodTest {
 		assertEquals(obj, lookup.findVirtual(lookup.lookupClass(),
 				"returnArg", MethodType.methodType(Object.class, Object.class))
 				.invoke(TestUtils.newInstance(lookup), obj));
+	}
+	
+	public record Constructable(
+			String value
+	) {}
+	
+	@Test
+	public void constructor() throws Throwable {
+		var def = ClassDef.create("fi.benjami.code4jvm.test.WithArguments", Access.PUBLIC);
+		def.interfaces(Type.getType(Supplier.class));
+		def.addEmptyConstructor(Access.PUBLIC);
+		
+		var method = def.addMethod(Type.getType(Object.class), "get", Access.PUBLIC);
+		var obj = method.add(Types.newInstance(Type.getType(Constructable.class), Constant.of("ok"))).value();
+		method.add(Return.value(obj));
+		
+		var lookup = LOOKUP.defineHiddenClass(def.compile(), true);
+		var instance = (Supplier<?>) TestUtils.newInstance(lookup);
+		assertEquals(new Constructable("ok"), instance.get());
 	}
 }

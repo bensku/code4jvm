@@ -29,6 +29,14 @@ public interface Value {
 		return CastValue.fakeCast(null, to);
 	}
 	
+	default Expression copy() {
+		return block -> {
+			// Load to stack and keep it there
+			// Block and Bytecode handle slot allocation
+			return block.add(Bytecode.run(type(), List.of(this), mv -> {})).value();
+		};
+	}
+	
 	default Expression getField(Type fieldType, String name) {
 		return block -> {
 			return block.add(Bytecode.run(fieldType, List.of(this), mv -> {

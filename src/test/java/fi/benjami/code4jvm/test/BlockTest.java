@@ -3,6 +3,7 @@ package fi.benjami.code4jvm.test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.lang.invoke.MethodHandles;
+import java.util.function.IntSupplier;
 import java.util.function.Supplier;
 
 import org.junit.jupiter.api.Test;
@@ -13,6 +14,7 @@ import fi.benjami.code4jvm.ClassDef;
 import fi.benjami.code4jvm.Condition;
 import fi.benjami.code4jvm.Constant;
 import fi.benjami.code4jvm.flag.Access;
+import fi.benjami.code4jvm.statement.Arithmetic;
 import fi.benjami.code4jvm.statement.Jump;
 import fi.benjami.code4jvm.statement.Return;
 
@@ -71,6 +73,26 @@ public class BlockTest {
 		var lookup = LOOKUP.defineHiddenClass(def.compile(), true);
 		var instance = (Supplier<?>) TestUtils.newInstance(lookup);
 		assertEquals("ok", instance.get());
+	}
+	
+	@Test
+	public void simpleLoop() throws Throwable {
+		var def = ClassDef.create("fi.benjami.code4jvm.test.SimpleLoop", Access.PUBLIC);
+		def.addEmptyConstructor(Access.PUBLIC);
+		def.interfaces(Type.getType(IntSupplier.class));
+		
+		var method = def.addMethod(Type.getType(int.class), "getAsInt", Access.PUBLIC);
+		var counter = method.add(Constant.of(0).copy()).variable("counter");
+		var loop = Block.create();
+		var next = loop.add(Arithmetic.add(counter, Constant.of(1))).value();
+		loop.add(counter.set(next));
+		loop.add(Jump.to(loop, Jump.Target.START, Condition.lessThan(counter, Constant.of(100))));
+		method.add(loop);
+		method.add(Return.value(counter));
+		
+		var lookup = LOOKUP.defineHiddenClass(def.compile(), true);
+		var instance = (IntSupplier) TestUtils.newInstance(lookup);
+		assertEquals(100, instance.getAsInt());
 	}
 	
 }

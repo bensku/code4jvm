@@ -3,8 +3,6 @@ package fi.benjami.code4jvm;
 import java.util.ArrayList;
 import java.util.List;
 import org.objectweb.asm.Label;
-import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.Type;
 
 import fi.benjami.code4jvm.internal.BlockNode;
 import fi.benjami.code4jvm.internal.CodeNode;

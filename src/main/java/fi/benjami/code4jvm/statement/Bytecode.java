@@ -53,8 +53,8 @@ public class Bytecode implements Expression {
 		// - Inputs that are in right place on stack, but need to be stored as local variables
 		var mv = ctx.asm();
 		var slotAllocator = ctx.slotAllocator();
-		for (int i = 0; i < inputs.size(); i++) {
-			emitInput(mv, slotAllocator, inputs.get(i));
+		for (var input : inputs) {
+			emitInput(mv, slotAllocator, input);
 		}
 		emitter.accept(ctx.asm()); // Emit user bytecode
 	}
@@ -62,7 +62,7 @@ public class Bytecode implements Expression {
 	private void emitInput(MethodVisitor mv, SlotAllocator slotAllocator, Value input) {
 		if (input instanceof Constant constant) {
 			mv.visitLdcInsn(constant.value());
-		} else if (input instanceof LocalVar localVar) {				
+		} else if (input instanceof LocalVar localVar) {
 			if (localVar.needsSlot) {
 				mv.visitVarInsn(localVar.type().getOpcode(ILOAD), slotAllocator.get(localVar));
 			} // else: already on stack

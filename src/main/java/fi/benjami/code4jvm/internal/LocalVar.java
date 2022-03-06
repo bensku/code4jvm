@@ -63,7 +63,8 @@ public class LocalVar implements Variable {
 		TypeCheck.mustEqual(this, value);
 		return block -> {
 			block.add(Bytecode.run(Type.VOID_TYPE, List.of(value), mv -> {
-				if (assignedSlot != -1) {					
+				if (needsSlot) {
+					assert assignedSlot != -1 : "set(Value) on untracked variable " + toString();
 					mv.visitVarInsn(type.getOpcode(ISTORE), assignedSlot);
 				} // else: nothing seems to read this variable, so stores to it don't matter
 			}));
@@ -72,6 +73,6 @@ public class LocalVar implements Variable {
 	
 	@Override
 	public String toString() {
-		return "LocalVar{" + type + " " + assignedSlot + "}";
+		return "LocalVar{" + type + " " + assignedSlot + (name != null ? " " + name : "") + "}";
 	}
 }
