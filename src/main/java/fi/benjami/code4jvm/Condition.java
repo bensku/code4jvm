@@ -26,23 +26,27 @@ public class Condition {
 	}
 	
 	public static Condition equal(Value lhs, Value rhs) {
-		TypeCheck.mustEqual(lhs, rhs);
+		TypeCheck.mustBeSameSort(lhs, rhs);
 		return new Condition(Type.EQUAL, Type.NOT_EQUAL, lhs, rhs);
 	}
 	
 	public static Condition greaterThan(Value lhs, Value rhs) {
+		TypeCheck.mustEqual(lhs, rhs);
 		return new Condition(Type.GREATER_THAN, Type.LESS_OR_EQUAL, lhs, rhs);
 	}
 	
 	public static Condition lessThan(Value lhs, Value rhs) {
+		TypeCheck.mustEqual(lhs, rhs);
 		return new Condition(Type.LESS_THAN, Type.GREATER_OR_EQUAL, lhs, rhs);
 	}
 	
 	public static Condition greaterOrEqual(Value lhs, Value rhs) {
+		TypeCheck.mustEqual(lhs, rhs);
 		return new Condition(Type.GREATER_OR_EQUAL, Type.LESS_THAN, lhs, rhs);
 	}
 	
 	public static Condition lessOrEqual(Value lhs, Value rhs) {
+		TypeCheck.mustEqual(lhs, rhs);
 		return new Condition(Type.LESS_OR_EQUAL, Type.GREATER_THAN, lhs, rhs);
 	}
 	

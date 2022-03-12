@@ -70,22 +70,22 @@ public class Jump implements Statement, NeedsBlockLabels {
 				case EQUAL -> {
 					if (isObject) {
 						objectsEquals(mv);
-						mv.visitJumpInsn(IFEQ, label);
+						mv.visitJumpInsn(IFNE, label);
 					} else if (intLike) {
 						mv.visitJumpInsn(IF_ICMPEQ, label);
 					} else {
-						mv.visitInsn(type.getOpcode(ISUB)); // Zero if values are equal
+						mv.visitInsn(primitiveCompare(type, true));
 						mv.visitJumpInsn(IFEQ, label);
 					}
 				}
 				case NOT_EQUAL -> {
 					if (isObject) {
 						objectsEquals(mv);
-						mv.visitJumpInsn(IFNE, label);
+						mv.visitJumpInsn(IFEQ, label);
 					} else if (intLike) {
 						mv.visitJumpInsn(IF_ICMPNE, label);
 					} else {
-						mv.visitInsn(type.getOpcode(ISUB));
+						mv.visitInsn(primitiveCompare(type, true));
 						mv.visitJumpInsn(IFNE, label);
 					}
 				}
@@ -101,7 +101,7 @@ public class Jump implements Statement, NeedsBlockLabels {
 					} else if (intLike) {
 						mv.visitJumpInsn(IF_ICMPGT, label);
 					} else {
-						mv.visitInsn(type.getOpcode(ISUB));
+						mv.visitInsn(primitiveCompare(type, true));
 						mv.visitJumpInsn(IFGT, label);
 					}
 				}
@@ -112,7 +112,7 @@ public class Jump implements Statement, NeedsBlockLabels {
 					} else if (intLike) {
 						mv.visitJumpInsn(IF_ICMPGE, label);
 					} else {
-						mv.visitInsn(type.getOpcode(ISUB));
+						mv.visitInsn(primitiveCompare(type, true));
 						mv.visitJumpInsn(IFGE, label);
 					}
 				}
@@ -123,7 +123,7 @@ public class Jump implements Statement, NeedsBlockLabels {
 					} else if (intLike) {
 						mv.visitJumpInsn(IF_ICMPLT, label);
 					} else {
-						mv.visitInsn(type.getOpcode(ISUB));
+						mv.visitInsn(primitiveCompare(type, false));
 						mv.visitJumpInsn(IFLT, label);
 					}
 				}
@@ -134,7 +134,7 @@ public class Jump implements Statement, NeedsBlockLabels {
 					} else if (intLike) {
 						mv.visitJumpInsn(IF_ICMPLE, label);
 					} else {
-						mv.visitInsn(type.getOpcode(ISUB));
+						mv.visitInsn(primitiveCompare(type, false));
 						mv.visitJumpInsn(IFLE, label);
 					}
 				}
@@ -149,6 +149,17 @@ public class Jump implements Statement, NeedsBlockLabels {
 				mv.visitJumpInsn(GOTO, label);
 			}));
 		}
+	}
+	
+	private int primitiveCompare(Type type, boolean negativeNan) {
+		if (type.equals(Type.LONG_TYPE)) {
+			return LCMP;
+		} else if (type.equals(Type.FLOAT_TYPE)) {
+			return negativeNan ? FCMPL : FCMPG;
+		} else if (type.equals(Type.DOUBLE_TYPE)) {
+			return negativeNan ? DCMPL : DCMPG;
+		}
+		throw new AssertionError();
 	}
 	
 	private static final String EQUALS_DESCRIPTOR = Type.getMethodDescriptor(Type.BOOLEAN_TYPE,

@@ -6,6 +6,7 @@ import java.util.List;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
+import org.objectweb.asm.util.CheckMethodAdapter;
 
 import fi.benjami.code4jvm.call.MethodLookup;
 import fi.benjami.code4jvm.call.StaticCallTarget;
@@ -39,6 +40,7 @@ public class Method extends Block {
 			// this is passed in slot 0
 			// It is NOT present in method signature, so avoid calling arg()
 			this.self = new LocalVar(parentClass, this);
+			self.initialized = true; // this is always initialized
 			argsAllocator.get(self);
 		}
 		
@@ -78,6 +80,7 @@ public class Method extends Block {
 	
 	public Value arg(Type type, String name) {
 		var localVar = new LocalVar(type, this);
+		localVar.initialized = true; // Arguments are always initialized (but can be null)
 		localVar.name(name);
 		argsAllocator.get(localVar);
 		args.add(localVar);
@@ -88,10 +91,13 @@ public class Method extends Block {
 		return arg(type, null);
 	}
 	
-	void compile(ClassVisitor cv) {
+	void compile(ClassVisitor cv, CompileOptions opts) {
 		var argTypes = args.stream().map(Value::type).toArray(Type[]::new);
 		var mv = cv.visitMethod(access, name,
 				Type.getMethodDescriptor(returnType, argTypes), null, null);
+		if (opts.asmChecks()) {
+			mv = new CheckMethodAdapter(mv);
+		}
 		
 		// Start allocating other values after this references + args
 		var ctx = new CompileContext(mv, new SlotAllocator(argsAllocator));
@@ -101,6 +107,6 @@ public class Method extends Block {
 		mv.visitCode();
 		emitBytecode(ctx);
 		mv.visitEnd();
-		mv.visitMaxs(-1, -1);
+		mv.visitMaxs(0, 0);
 	}
 }

@@ -9,11 +9,18 @@ import fi.benjami.code4jvm.call.InstanceCallTarget;
 import fi.benjami.code4jvm.call.Linkage;
 import fi.benjami.code4jvm.call.MethodLookup;
 import fi.benjami.code4jvm.internal.CastValue;
+import fi.benjami.code4jvm.internal.LocalVar;
 import fi.benjami.code4jvm.statement.Bytecode;
 
 import static org.objectweb.asm.Opcodes.*;
 
 public interface Value {
+	
+	static Expression uninitialized(Type type) {
+		return block -> {
+			return block.add(Bytecode.stub(type, List.of(LocalVar.EMPTY_MARKER))).value();
+		};
+	}
 
 	Type type();
 	
@@ -26,14 +33,14 @@ public interface Value {
 	}
 	
 	default Value asType(Type to) {
-		return CastValue.fakeCast(null, to);
+		return CastValue.fakeCast(this, to);
 	}
 	
 	default Expression copy() {
 		return block -> {
 			// Load to stack and keep it there
 			// Block and Bytecode handle slot allocation
-			return block.add(Bytecode.run(type(), List.of(this), mv -> {})).value();
+			return block.add(Bytecode.stub(type(), List.of(this))).value();
 		};
 	}
 	

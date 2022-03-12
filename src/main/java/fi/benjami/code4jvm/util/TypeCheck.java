@@ -8,12 +8,22 @@ public class TypeCheck {
 
 	public static void mustEqual(Type a, Type b) {
 		if (!a.equals(b)) {
-			throw new IllegalArgumentException("expected types " + a + " and " + b + " to be same; did you forget to cast?");
+			throw new IllegalArgumentException("expected types " + a + " and " + b + " to be same");
 		}
 	}
 	
 	public static void mustEqual(Value a, Value b) {
 		mustEqual(a.type(), b.type());
+	}
+	
+	public static void mustBeSameSort(Type a, Type b) {
+		if (a.getSort() != b.getSort()) {
+			throw new IllegalArgumentException("expected types " + a + " and " + b + " to be same or both objects");
+		}
+	}
+	
+	public static void mustBeSameSort(Value a, Value b) {
+		mustBeSameSort(a.type(), b.type());
 	}
 	
 	public static void mustBeObject(Type type) {

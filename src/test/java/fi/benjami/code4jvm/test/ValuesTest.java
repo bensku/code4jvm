@@ -6,12 +6,15 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import org.junit.jupiter.api.Test;
 import org.objectweb.asm.Type;
 
 import fi.benjami.code4jvm.ClassDef;
+import fi.benjami.code4jvm.Constant;
 import fi.benjami.code4jvm.Method;
+import fi.benjami.code4jvm.Value;
 import fi.benjami.code4jvm.flag.Access;
 import fi.benjami.code4jvm.statement.Return;
 
@@ -158,5 +161,35 @@ public class ValuesTest {
 		var arg = method.arg(from);
 		method.add(Return.value(arg.cast(to)));
 		return method;
+	}
+	
+	@Test
+	public void uninitialized() throws Throwable {
+		var def = ClassDef.create("fi.benjami.code4jvm.test.EmptyValue", Access.PUBLIC);
+		def.interfaces(Type.getType(Supplier.class));
+		def.addEmptyConstructor(Access.PUBLIC);
+		
+		var method = def.addMethod(Type.getType(Object.class), "get", Access.PUBLIC);
+		var value = method.add(Value.uninitialized(Type.getType(String.class))).variable();
+		method.add(value.set(Constant.of("ok")));
+		method.add(Return.value(value));
+		
+		var lookup = LOOKUP.defineHiddenClass(def.compile(), true);
+		var instance = (Supplier<?>) TestUtils.newInstance(lookup);
+		assertEquals("ok", instance.get());
+	}
+	
+	@Test
+	public void uninitializedError() throws Throwable {
+		var def = ClassDef.create("fi.benjami.code4jvm.test.EmptyValueError", Access.PUBLIC);
+		def.interfaces(Type.getType(Supplier.class));
+		def.addEmptyConstructor(Access.PUBLIC);
+		
+		var method = def.addMethod(Type.getType(Object.class), "get", Access.PUBLIC);
+		var value = method.add(Value.uninitialized(Type.getType(String.class))).variable();
+		value.set(Constant.of("ok")); // Note the missing method.add(...)!
+		method.add(Return.value(value));
+		
+		assertThrows(IllegalStateException.class, () -> def.compile());
 	}
 }

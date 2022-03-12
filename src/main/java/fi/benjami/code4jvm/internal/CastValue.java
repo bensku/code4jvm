@@ -34,6 +34,9 @@ public class CastValue implements Value {
 	private static final Type OBJECT_TYPE = Type.getType(Object.class);
 	
 	public static Value cast(Value original, Type to) {
+		assert original != null;
+		assert to != null;
+		
 		// Check if cast is actually needed
 		var from = original.type();
 		if (from.equals(to)) {

@@ -5,12 +5,14 @@ import java.util.Arrays;
 import org.objectweb.asm.Type;
 
 import fi.benjami.code4jvm.call.InitCallTarget;
+import fi.benjami.code4jvm.util.TypeCheck;
 
 public class Types {
 	
 	private Types() {}
 
 	public static InitCallTarget getConstructor(Type type, Type... argTypes) {
+		TypeCheck.mustBeObject(type);
 		return new InitCallTarget(type, argTypes);
 	}
 	

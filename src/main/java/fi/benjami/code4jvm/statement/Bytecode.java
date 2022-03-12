@@ -23,6 +23,10 @@ public class Bytecode implements Expression {
 		return new Bytecode(outputType, inputs, emitter);
 	}
 	
+	public static Bytecode stub(Type outputType, List<Value> inputs) {
+		return new Bytecode(outputType, inputs, null);
+	}
+	
 	private final Type outputType;
 	private final List<Value> inputs;
 	private final Consumer<MethodVisitor> emitter;
@@ -56,13 +60,18 @@ public class Bytecode implements Expression {
 		for (var input : inputs) {
 			emitInput(mv, slotAllocator, input);
 		}
-		emitter.accept(ctx.asm()); // Emit user bytecode
+		if (emitter != null) {			
+			emitter.accept(ctx.asm()); // Emit user bytecode
+		}
 	}
 	
 	private void emitInput(MethodVisitor mv, SlotAllocator slotAllocator, Value input) {
 		if (input instanceof Constant constant) {
 			mv.visitLdcInsn(constant.value());
-		} else if (input instanceof LocalVar localVar) {
+		} else if (input instanceof LocalVar localVar && localVar != LocalVar.EMPTY_MARKER) {
+			if (!localVar.initialized) {
+				throw new IllegalStateException("uninitialized value: " + localVar);
+			}
 			if (localVar.needsSlot) {
 				mv.visitVarInsn(localVar.type().getOpcode(ILOAD), slotAllocator.get(localVar));
 			} // else: already on stack
@@ -70,6 +79,8 @@ public class Bytecode implements Expression {
 			// Recursively emit the original, then the required cast
 			emitInput(mv, slotAllocator, cast.original());
 			cast.emitCast(mv);
+		} else {
+			throw new AssertionError("unknown input: " + input);
 		}
 	}
 	
@@ -85,7 +96,13 @@ public class Bytecode implements Expression {
 	
 	public void storeOutput(CompileContext ctx, LocalVar localVar) {
 		if (localVar.needsSlot) {
-			ctx.asm().visitVarInsn(localVar.type().getOpcode(ISTORE), ctx.slotAllocator().get(localVar));
+			var slot = ctx.slotAllocator().get(localVar);
+			// Special handling for uninitialized values that should NOT be stored
+			if (inputs.size() == 1 && inputs.get(0) == LocalVar.EMPTY_MARKER) {
+				return;
+			}
+			ctx.asm().visitVarInsn(localVar.type().getOpcode(ISTORE), slot);
 		}
+		localVar.initialized = true;
 	}
 }

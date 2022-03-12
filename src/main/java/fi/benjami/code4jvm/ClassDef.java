@@ -7,6 +7,7 @@ import java.util.List;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
+import org.objectweb.asm.util.CheckClassAdapter;
 
 import fi.benjami.code4jvm.flag.MethodFlag;
 import fi.benjami.code4jvm.statement.Return;
@@ -84,8 +85,11 @@ public class ClassDef {
 		return method;
 	}
 	
-	public byte[] compile() {
-		var cv = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
+	public byte[] compile(CompileOptions opts) {
+		var writer = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
+		// Enable ASM checks if user has requested them
+		// But don't enable data flow checks, can't use them with COMPUTE_FRAMES
+		var cv = opts.asmChecks() ? new CheckClassAdapter(writer, false) : writer;
 		var superName = superClass != null ? superClass.getInternalName() : "java/lang/Object";
 		var interfaceNames = interfaces != null ? 
 				Arrays.stream(interfaces).map(Type::getInternalName).toArray(String[]::new)
@@ -94,11 +98,15 @@ public class ClassDef {
 		cv.visit(Opcodes.V17, access, name.replace('.', '/'), null, superName, interfaceNames);
 		
 		for (var method : methods) {
-			method.compile(cv);
+			method.compile(cv, opts);
 		}
 		
 		cv.visitEnd();
-		return cv.toByteArray();
+		return writer.toByteArray();
+	}
+	
+	public byte[] compile() {
+		return compile(CompileOptions.DEFAULT);
 	}
 
 }
