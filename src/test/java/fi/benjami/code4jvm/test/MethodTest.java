@@ -7,11 +7,10 @@ import java.lang.invoke.MethodType;
 import java.util.function.Supplier;
 
 import org.junit.jupiter.api.Test;
-import org.objectweb.asm.Type;
 
 import fi.benjami.code4jvm.ClassDef;
 import fi.benjami.code4jvm.Constant;
-import fi.benjami.code4jvm.Types;
+import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.flag.Access;
 import fi.benjami.code4jvm.statement.Return;
 
@@ -24,7 +23,7 @@ public class MethodTest {
 		var def = ClassDef.create("fi.benjami.code4jvm.test.EmptyMethod", Access.PUBLIC);
 		def.addEmptyConstructor(Access.PUBLIC);
 		
-		var method = def.addMethod(Type.VOID_TYPE, "doNothing", Access.PUBLIC);
+		var method = def.addMethod(Type.VOID, "doNothing", Access.PUBLIC);
 		method.add(Return.nothing());
 		
 		var lookup = LOOKUP.defineHiddenClass(def.compile(), true);
@@ -37,9 +36,9 @@ public class MethodTest {
 		var def = ClassDef.create("fi.benjami.code4jvm.test.ReturningMethod", Access.PUBLIC);
 		def.addEmptyConstructor(Access.PUBLIC);
 		
-		def.addMethod(Type.INT_TYPE, "returnInt", Access.PUBLIC).add(Return.value(Constant.of(1337)));
-		def.addMethod(Type.LONG_TYPE, "returnLong", Access.PUBLIC).add(Return.value(Constant.of(42L)));
-		def.addMethod(Type.getType(String.class), "returnString", Access.PUBLIC).add(Return.value(Constant.of("hello")));
+		def.addMethod(Type.INT, "returnInt", Access.PUBLIC).add(Return.value(Constant.of(1337)));
+		def.addMethod(Type.LONG, "returnLong", Access.PUBLIC).add(Return.value(Constant.of(42L)));
+		def.addMethod(Type.of(String.class), "returnString", Access.PUBLIC).add(Return.value(Constant.of("hello")));
 		
 		var lookup = LOOKUP.defineHiddenClass(def.compile(), true);
 		var instance = TestUtils.newInstance(lookup);
@@ -56,8 +55,8 @@ public class MethodTest {
 		var def = ClassDef.create("fi.benjami.code4jvm.test.WithArguments", Access.PUBLIC);
 		def.addEmptyConstructor(Access.PUBLIC);
 		
-		var method = def.addMethod(Type.getType(Object.class), "returnArg", Access.PUBLIC);
-		var arg = method.arg(Type.getType(Object.class));
+		var method = def.addMethod(Type.of(Object.class), "returnArg", Access.PUBLIC);
+		var arg = method.arg(Type.of(Object.class));
 		method.add(Return.value(arg));
 		
 		var lookup = LOOKUP.defineHiddenClass(def.compile(), true);
@@ -74,11 +73,11 @@ public class MethodTest {
 	@Test
 	public void constructor() throws Throwable {
 		var def = ClassDef.create("fi.benjami.code4jvm.test.WithArguments", Access.PUBLIC);
-		def.interfaces(Type.getType(Supplier.class));
+		def.interfaces(Type.of(Supplier.class));
 		def.addEmptyConstructor(Access.PUBLIC);
 		
-		var method = def.addMethod(Type.getType(Object.class), "get", Access.PUBLIC);
-		var obj = method.add(Types.newInstance(Type.getType(Constructable.class), Constant.of("ok"))).value();
+		var method = def.addMethod(Type.of(Object.class), "get", Access.PUBLIC);
+		var obj = method.add(Type.of(Constructable.class).newInstance(Constant.of("ok"))).value();
 		method.add(Return.value(obj));
 		
 		var lookup = LOOKUP.defineHiddenClass(def.compile(), true);

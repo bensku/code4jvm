@@ -4,11 +4,11 @@ import java.util.List;
 
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Type;
 
 import fi.benjami.code4jvm.Block;
 import fi.benjami.code4jvm.Condition;
 import fi.benjami.code4jvm.Statement;
+import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.internal.NeedsBlockLabels;
 import fi.benjami.code4jvm.util.TypeUtils;
 
@@ -56,9 +56,9 @@ public class Jump implements Statement, NeedsBlockLabels {
 	public void emitVoid(Block block) {
 		if (condition != null) {
 			var type = condition.values()[0].type();
-			var isObject = type.getSort() == Type.OBJECT;
+			var isObject = type.isObject();
 			var intLike = TypeUtils.isIntLike(type);
-			block.add(Bytecode.run(Type.VOID_TYPE, List.of(condition.values()), mv -> {
+			block.add(Bytecode.run(Type.VOID, List.of(condition.values()), mv -> {
 				switch (condition.type()) {
 				case REF_EQUAL -> mv.visitJumpInsn(IF_ACMPEQ, label);
 				case REF_NOT_EQUAL -> mv.visitJumpInsn(IF_ACMPNE, label);
@@ -145,31 +145,30 @@ public class Jump implements Statement, NeedsBlockLabels {
 				}				
 			}));
 		} else {			
-			block.add(Bytecode.run(Type.VOID_TYPE, List.of(), mv -> {
+			block.add(Bytecode.run(Type.VOID, List.of(), mv -> {
 				mv.visitJumpInsn(GOTO, label);
 			}));
 		}
 	}
 	
 	private int primitiveCompare(Type type, boolean negativeNan) {
-		if (type.equals(Type.LONG_TYPE)) {
+		if (type.equals(Type.LONG)) {
 			return LCMP;
-		} else if (type.equals(Type.FLOAT_TYPE)) {
+		} else if (type.equals(Type.FLOAT)) {
 			return negativeNan ? FCMPL : FCMPG;
-		} else if (type.equals(Type.DOUBLE_TYPE)) {
+		} else if (type.equals(Type.DOUBLE)) {
 			return negativeNan ? DCMPL : DCMPG;
 		}
 		throw new AssertionError();
 	}
 	
-	private static final String EQUALS_DESCRIPTOR = Type.getMethodDescriptor(Type.BOOLEAN_TYPE,
-			Type.getType(Object.class), Type.getType(Object.class));
+	private static final String EQUALS_DESCRIPTOR = TypeUtils.methodDescriptor(Type.BOOLEAN, Type.OBJECT, Type.OBJECT);
 	
 	private void objectsEquals(MethodVisitor mv) {
 		mv.visitMethodInsn(INVOKESTATIC, "java/util/Objects", "equals", EQUALS_DESCRIPTOR, false);
 	}
 	
-	private static final String COMPARE_DESCRIPTOR = Type.getMethodDescriptor(Type.INT_TYPE, Type.getType(Object.class));
+	private static final String COMPARE_DESCRIPTOR = TypeUtils.methodDescriptor(Type.INT, Type.of(Object.class));
 	
 	private void comparableCompare(MethodVisitor mv) {
 		mv.visitMethodInsn(INVOKEINTERFACE, "java/lang/Comparable", "compareTo", COMPARE_DESCRIPTOR, true);

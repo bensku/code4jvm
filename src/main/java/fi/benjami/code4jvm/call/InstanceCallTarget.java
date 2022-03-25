@@ -1,14 +1,13 @@
 package fi.benjami.code4jvm.call;
 
-
 import java.util.ArrayList;
 import java.util.Arrays;
 
-import org.objectweb.asm.Type;
-
 import fi.benjami.code4jvm.Expression;
+import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.Value;
 import fi.benjami.code4jvm.statement.Bytecode;
+import fi.benjami.code4jvm.util.TypeUtils;
 
 import static org.objectweb.asm.Opcodes.*;
 
@@ -18,7 +17,7 @@ public class InstanceCallTarget extends CallTarget {
 	private final boolean ownerIsInterface;
 	private final Linkage linkage;
 
-	InstanceCallTarget(Type owner, Value instance, boolean ownerIsInterface, Linkage linkage, Type returnType, String name, Type[] argTypes) {
+	public InstanceCallTarget(Type owner, Value instance, boolean ownerIsInterface, Linkage linkage, Type returnType, String name, Type[] argTypes) {
 		super(owner, ownerIsInterface, returnType, name, argTypes);
 		this.instance = instance;
 		this.ownerIsInterface = ownerIsInterface;
@@ -54,8 +53,8 @@ public class InstanceCallTarget extends CallTarget {
 		
 		return block -> {
 			return block.add(Bytecode.run(returnType(), inputs, mv -> {
-				mv.visitMethodInsn(opcode, owner().getInternalName(), name(),
-						Type.getMethodDescriptor(returnType(), argTypes()), ownerIsInterface);
+				mv.visitMethodInsn(opcode, owner().internalName(), name(),
+						TypeUtils.methodDescriptor(returnType(), argTypes()), ownerIsInterface);
 			})).value();
 		};
 	}

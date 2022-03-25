@@ -6,11 +6,11 @@ import java.util.List;
 import java.util.function.Consumer;
 
 import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Type;
 
 import fi.benjami.code4jvm.Block;
 import fi.benjami.code4jvm.Constant;
 import fi.benjami.code4jvm.Expression;
+import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.Value;
 import fi.benjami.code4jvm.internal.LocalVar;
 import fi.benjami.code4jvm.internal.SlotAllocator;
@@ -68,7 +68,10 @@ public class Bytecode implements Expression {
 	private void emitInput(MethodVisitor mv, SlotAllocator slotAllocator, Value input) {
 		if (input instanceof Constant constant) {
 			mv.visitLdcInsn(constant.value());
-		} else if (input instanceof LocalVar localVar && localVar != LocalVar.EMPTY_MARKER) {
+		} else if (input instanceof LocalVar localVar) {
+			if (localVar == LocalVar.EMPTY_MARKER) {
+				return; // Ignore and skip unknown input assert
+			}
 			if (!localVar.initialized) {
 				throw new IllegalStateException("uninitialized value: " + localVar);
 			}
@@ -85,9 +88,9 @@ public class Bytecode implements Expression {
 	}
 	
 	public void discardOutput(CompileContext ctx) {
-		if (outputType == Type.VOID_TYPE) {
+		if (outputType == Type.VOID) {
 			// No need to pop anything
-		} else if (outputType == Type.LONG_TYPE || outputType == Type.DOUBLE_TYPE) {
+		} else if (outputType == Type.LONG || outputType == Type.DOUBLE) {
 			ctx.asm().visitInsn(POP2);
 		} else {			
 			ctx.asm().visitInsn(POP);

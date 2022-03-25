@@ -6,7 +6,6 @@ import java.util.List;
 
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.Type;
 import org.objectweb.asm.util.CheckClassAdapter;
 
 import fi.benjami.code4jvm.flag.MethodFlag;
@@ -36,7 +35,7 @@ public class ClassDef {
 	private ClassDef(int access, String name) {
 		this.access = access;
 		this.name = name;
-		this.type = Type.getObjectType(name.replace('.', '/'));
+		this.type = Type.of(name, (access & Opcodes.ACC_INTERFACE) != 0);
 		this.methods = new ArrayList<>();
 	}
 	
@@ -46,7 +45,7 @@ public class ClassDef {
 	
 	public void superClass(Type type) {
 		if (superClass != null) {
-			throw new IllegalStateException("already extends " + type.getClassName());
+			throw new IllegalStateException("already extends " + superClass);
 		}
 		superClass = type;
 	}
@@ -67,13 +66,13 @@ public class ClassDef {
 	}
 	
 	public Method.Instance addConstructor(Access access, MethodFlag... flags) {
-		return addMethod(Type.VOID_TYPE, "<init>", access, flags);
+		return addMethod(Type.VOID, "<init>", access, flags);
 	}
 	
 	public void addEmptyConstructor(Access access) {
-		var superType = superClass != null ? superClass : Type.getType(Object.class);
+		var superType = superClass != null ? superClass : Type.OBJECT;
 		var constructor = addConstructor(access);
-		constructor.add(constructor.self().specialLookup(superType, false).call(Type.VOID_TYPE, "<init>"));
+		constructor.add(constructor.self().callSpecial(superType, Type.VOID, "<init>"));
 		constructor.add(Return.nothing());
 	}
 	
@@ -90,9 +89,9 @@ public class ClassDef {
 		// Enable ASM checks if user has requested them
 		// But don't enable data flow checks, can't use them with COMPUTE_FRAMES
 		var cv = opts.asmChecks() ? new CheckClassAdapter(writer, false) : writer;
-		var superName = superClass != null ? superClass.getInternalName() : "java/lang/Object";
+		var superName = superClass != null ? superClass.internalName() : "java/lang/Object";
 		var interfaceNames = interfaces != null ? 
-				Arrays.stream(interfaces).map(Type::getInternalName).toArray(String[]::new)
+				Arrays.stream(interfaces).map(Type::internalName).toArray(String[]::new)
 				: null;
 		// TODO customizable Java version (needs more than just this flag, though)
 		cv.visit(Opcodes.V17, access, name.replace('.', '/'), null, superName, interfaceNames);

@@ -4,9 +4,9 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 
 import org.junit.jupiter.api.Test;
-import org.objectweb.asm.Type;
 
 import fi.benjami.code4jvm.ClassDef;
+import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.flag.Access;
 import fi.benjami.code4jvm.statement.Return;
 
@@ -27,8 +27,8 @@ public class ClassTest {
 	@Test
 	public void extendingClass() throws IllegalAccessException {
 		var def = ClassDef.create("fi.benjami.code4jvm.test.ExtendingClass", Access.PUBLIC);
-		def.superClass(Type.getType(TestClass.class));
-		def.interfaces(Type.getType(TestInterface1.class), Type.getType(TestInterface2.class));
+		def.superClass(Type.of(TestClass.class));
+		def.interfaces(Type.of(TestInterface1.class), Type.of(TestInterface2.class));
 		LOOKUP.defineHiddenClass(def.compile(), true);
 	}
 	
@@ -36,7 +36,7 @@ public class ClassTest {
 	public void withConstructor() throws Throwable {
 		var def = ClassDef.create("fi.benjami.code4jvm.test.WithConstructor", Access.PUBLIC);
 		var constructor = def.addConstructor(Access.PUBLIC);
-		constructor.add(constructor.self().specialLookup(Type.getType(Object.class), false).call(Type.VOID_TYPE, "<init>"));
+		constructor.add(constructor.self().callSpecial(Type.OBJECT, Type.VOID, "<init>"));
 		constructor.add(Return.nothing());
 		
 		var lookup = LOOKUP.defineHiddenClass(def.compile(), true);

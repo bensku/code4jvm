@@ -7,12 +7,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.lang.invoke.MethodHandles;
 
 import org.junit.jupiter.api.Test;
-import org.objectweb.asm.Type;
 
 import fi.benjami.code4jvm.Block;
 import fi.benjami.code4jvm.ClassDef;
 import fi.benjami.code4jvm.Condition;
 import fi.benjami.code4jvm.Constant;
+import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.flag.Access;
 import fi.benjami.code4jvm.statement.Jump;
 import fi.benjami.code4jvm.statement.Return;
@@ -30,16 +30,16 @@ public class ConditionTest {
 	public void booleans() throws Throwable {
 		var def = ClassDef.create("fi.benjami.code4jvm.test.Booleans", Access.PUBLIC);
 		def.addEmptyConstructor(Access.PUBLIC);
-		def.interfaces(Type.getType(BooleanChecker.class));
+		def.interfaces(Type.of(BooleanChecker.class));
 		
 		{			
-			var method = def.addMethod(Type.BOOLEAN_TYPE, "isTrue", Access.PUBLIC);
-			var arg = method.arg(Type.BOOLEAN_TYPE);
+			var method = def.addMethod(Type.BOOLEAN, "isTrue", Access.PUBLIC);
+			var arg = method.arg(Type.BOOLEAN);
 			setupJump(method, Condition.isTrue(arg));
 		}
 		{
-			var method = def.addMethod(Type.BOOLEAN_TYPE, "isFalse", Access.PUBLIC);
-			var arg = method.arg(Type.BOOLEAN_TYPE);
+			var method = def.addMethod(Type.BOOLEAN, "isFalse", Access.PUBLIC);
+			var arg = method.arg(Type.BOOLEAN);
 			setupJump(method, Condition.isFalse(arg));
 		}
 		
@@ -63,18 +63,18 @@ public class ConditionTest {
 		
 		var def = ClassDef.create("fi.benjami.code4jvm.test.RefEquality", Access.PUBLIC);
 		def.addEmptyConstructor(Access.PUBLIC);
-		def.interfaces(Type.getType(ObjectEqualChecker.class));
+		def.interfaces(Type.of(ObjectEqualChecker.class));
 		
 		{			
-			var method = def.addMethod(Type.BOOLEAN_TYPE, "equal", Access.PUBLIC);
-			var a = method.arg(Type.getType(Object.class));
-			var b = method.arg(Type.getType(Object.class));
+			var method = def.addMethod(Type.BOOLEAN, "equal", Access.PUBLIC);
+			var a = method.arg(Type.OBJECT);
+			var b = method.arg(Type.OBJECT);
 			setupJump(method, Condition.refEqual(a, b));
 		}
 		{
-			var method = def.addMethod(Type.BOOLEAN_TYPE, "notEqual", Access.PUBLIC);
-			var a = method.arg(Type.getType(Object.class));
-			var b = method.arg(Type.getType(Object.class));
+			var method = def.addMethod(Type.BOOLEAN, "notEqual", Access.PUBLIC);
+			var a = method.arg(Type.OBJECT);
+			var b = method.arg(Type.OBJECT);
 			setupJump(method, Condition.refEqual(a, b).not());
 		}
 		
@@ -95,18 +95,18 @@ public class ConditionTest {
 	public void objectEquality() throws Throwable {
 		var def = ClassDef.create("fi.benjami.code4jvm.test.ObjectEquality", Access.PUBLIC);
 		def.addEmptyConstructor(Access.PUBLIC);
-		def.interfaces(Type.getType(ObjectEqualChecker.class));
+		def.interfaces(Type.of(ObjectEqualChecker.class));
 		
 		{			
-			var method = def.addMethod(Type.BOOLEAN_TYPE, "equal", Access.PUBLIC);
-			var a = method.arg(Type.getType(Object.class));
-			var b = method.arg(Type.getType(Object.class));
+			var method = def.addMethod(Type.BOOLEAN, "equal", Access.PUBLIC);
+			var a = method.arg(Type.OBJECT);
+			var b = method.arg(Type.OBJECT);
 			setupJump(method, Condition.equal(a, b));
 		}
 		{
-			var method = def.addMethod(Type.BOOLEAN_TYPE, "notEqual", Access.PUBLIC);
-			var a = method.arg(Type.getType(Object.class));
-			var b = method.arg(Type.getType(Object.class));
+			var method = def.addMethod(Type.BOOLEAN, "notEqual", Access.PUBLIC);
+			var a = method.arg(Type.OBJECT);
+			var b = method.arg(Type.OBJECT);
 			setupJump(method, Condition.equal(a, b).not());
 		}
 		
@@ -143,30 +143,30 @@ public class ConditionTest {
 	public void objectComparisons() throws Throwable {
 		var def = ClassDef.create("fi.benjami.code4jvm.test.ObjectComparisons", Access.PUBLIC);
 		def.addEmptyConstructor(Access.PUBLIC);
-		def.interfaces(Type.getType(ObjectCompareChecker.class));
+		def.interfaces(Type.of(ObjectCompareChecker.class));
 		
 		{			
-			var method = def.addMethod(Type.BOOLEAN_TYPE, "lessThan", Access.PUBLIC);
-			var a = method.arg(Type.getType(CompTest.class));
-			var b = method.arg(Type.getType(CompTest.class));
+			var method = def.addMethod(Type.BOOLEAN, "lessThan", Access.PUBLIC);
+			var a = method.arg(Type.of(CompTest.class));
+			var b = method.arg(Type.of(CompTest.class));
 			setupJump(method, Condition.lessThan(a, b));
 		}
 		{			
-			var method = def.addMethod(Type.BOOLEAN_TYPE, "lessOrEq", Access.PUBLIC);
-			var a = method.arg(Type.getType(CompTest.class));
-			var b = method.arg(Type.getType(CompTest.class));
+			var method = def.addMethod(Type.BOOLEAN, "lessOrEq", Access.PUBLIC);
+			var a = method.arg(Type.of(CompTest.class));
+			var b = method.arg(Type.of(CompTest.class));
 			setupJump(method, Condition.lessOrEqual(a, b));
 		}
 		{			
-			var method = def.addMethod(Type.BOOLEAN_TYPE, "greaterThan", Access.PUBLIC);
-			var a = method.arg(Type.getType(CompTest.class));
-			var b = method.arg(Type.getType(CompTest.class));
+			var method = def.addMethod(Type.BOOLEAN, "greaterThan", Access.PUBLIC);
+			var a = method.arg(Type.of(CompTest.class));
+			var b = method.arg(Type.of(CompTest.class));
 			setupJump(method, Condition.greaterThan(a, b));
 		}
 		{			
-			var method = def.addMethod(Type.BOOLEAN_TYPE, "greaterOrEq", Access.PUBLIC);
-			var a = method.arg(Type.getType(CompTest.class));
-			var b = method.arg(Type.getType(CompTest.class));
+			var method = def.addMethod(Type.BOOLEAN, "greaterOrEq", Access.PUBLIC);
+			var a = method.arg(Type.of(CompTest.class));
+			var b = method.arg(Type.of(CompTest.class));
 			setupJump(method, Condition.greaterOrEqual(a, b));
 		}
 		
@@ -200,18 +200,18 @@ public class ConditionTest {
 		// Our code path is same for boolean, byte, short, char and int
 		var def = ClassDef.create("fi.benjami.code4jvm.test.IntEquality", Access.PUBLIC);
 		def.addEmptyConstructor(Access.PUBLIC);
-		def.interfaces(Type.getType(IntEqualChecker.class));
+		def.interfaces(Type.of(IntEqualChecker.class));
 		
 		{			
-			var method = def.addMethod(Type.BOOLEAN_TYPE, "equal", Access.PUBLIC);
-			var a = method.arg(Type.INT_TYPE);
-			var b = method.arg(Type.INT_TYPE);
+			var method = def.addMethod(Type.BOOLEAN, "equal", Access.PUBLIC);
+			var a = method.arg(Type.INT);
+			var b = method.arg(Type.INT);
 			setupJump(method, Condition.equal(a, b));
 		}
 		{
-			var method = def.addMethod(Type.BOOLEAN_TYPE, "notEqual", Access.PUBLIC);
-			var a = method.arg(Type.INT_TYPE);
-			var b = method.arg(Type.INT_TYPE);
+			var method = def.addMethod(Type.BOOLEAN, "notEqual", Access.PUBLIC);
+			var a = method.arg(Type.INT);
+			var b = method.arg(Type.INT);
 			setupJump(method, Condition.equal(a, b).not());
 		}
 		
@@ -242,30 +242,30 @@ public class ConditionTest {
 		// Our code path is same for boolean, byte, short, char and int
 		var def = ClassDef.create("fi.benjami.code4jvm.test.IntComparisons", Access.PUBLIC);
 		def.addEmptyConstructor(Access.PUBLIC);
-		def.interfaces(Type.getType(IntCompareChecker.class));
+		def.interfaces(Type.of(IntCompareChecker.class));
 		
 		{			
-			var method = def.addMethod(Type.BOOLEAN_TYPE, "lessThan", Access.PUBLIC);
-			var a = method.arg(Type.INT_TYPE);
-			var b = method.arg(Type.INT_TYPE);
+			var method = def.addMethod(Type.BOOLEAN, "lessThan", Access.PUBLIC);
+			var a = method.arg(Type.INT);
+			var b = method.arg(Type.INT);
 			setupJump(method, Condition.lessThan(a, b));
 		}
 		{			
-			var method = def.addMethod(Type.BOOLEAN_TYPE, "lessOrEq", Access.PUBLIC);
-			var a = method.arg(Type.INT_TYPE);
-			var b = method.arg(Type.INT_TYPE);
+			var method = def.addMethod(Type.BOOLEAN, "lessOrEq", Access.PUBLIC);
+			var a = method.arg(Type.INT);
+			var b = method.arg(Type.INT);
 			setupJump(method, Condition.lessOrEqual(a, b));
 		}
 		{			
-			var method = def.addMethod(Type.BOOLEAN_TYPE, "greaterThan", Access.PUBLIC);
-			var a = method.arg(Type.INT_TYPE);
-			var b = method.arg(Type.INT_TYPE);
+			var method = def.addMethod(Type.BOOLEAN, "greaterThan", Access.PUBLIC);
+			var a = method.arg(Type.INT);
+			var b = method.arg(Type.INT);
 			setupJump(method, Condition.greaterThan(a, b));
 		}
 		{			
-			var method = def.addMethod(Type.BOOLEAN_TYPE, "greaterOrEq", Access.PUBLIC);
-			var a = method.arg(Type.INT_TYPE);
-			var b = method.arg(Type.INT_TYPE);
+			var method = def.addMethod(Type.BOOLEAN, "greaterOrEq", Access.PUBLIC);
+			var a = method.arg(Type.INT);
+			var b = method.arg(Type.INT);
 			setupJump(method, Condition.greaterOrEqual(a, b));
 		}
 		
@@ -298,18 +298,18 @@ public class ConditionTest {
 		// Long shares most of the code path with float and double
 		var def = ClassDef.create("fi.benjami.code4jvm.test.LongEquality", Access.PUBLIC);
 		def.addEmptyConstructor(Access.PUBLIC);
-		def.interfaces(Type.getType(LongEqualChecker.class));
+		def.interfaces(Type.of(LongEqualChecker.class));
 		
 		{			
-			var method = def.addMethod(Type.BOOLEAN_TYPE, "equal", Access.PUBLIC);
-			var a = method.arg(Type.LONG_TYPE);
-			var b = method.arg(Type.LONG_TYPE);
+			var method = def.addMethod(Type.BOOLEAN, "equal", Access.PUBLIC);
+			var a = method.arg(Type.LONG);
+			var b = method.arg(Type.LONG);
 			setupJump(method, Condition.equal(a, b));
 		}
 		{
-			var method = def.addMethod(Type.BOOLEAN_TYPE, "notEqual", Access.PUBLIC);
-			var a = method.arg(Type.LONG_TYPE);
-			var b = method.arg(Type.LONG_TYPE);
+			var method = def.addMethod(Type.BOOLEAN, "notEqual", Access.PUBLIC);
+			var a = method.arg(Type.LONG);
+			var b = method.arg(Type.LONG);
 			setupJump(method, Condition.equal(a, b).not());
 		}
 		
@@ -342,30 +342,30 @@ public class ConditionTest {
 		// Long shares most of the code path with float and double
 		var def = ClassDef.create("fi.benjami.code4jvm.test.LongComparisons", Access.PUBLIC);
 		def.addEmptyConstructor(Access.PUBLIC);
-		def.interfaces(Type.getType(LongCompareChecker.class));
+		def.interfaces(Type.of(LongCompareChecker.class));
 		
 		{			
-			var method = def.addMethod(Type.BOOLEAN_TYPE, "lessThan", Access.PUBLIC);
-			var a = method.arg(Type.LONG_TYPE);
-			var b = method.arg(Type.LONG_TYPE);
+			var method = def.addMethod(Type.BOOLEAN, "lessThan", Access.PUBLIC);
+			var a = method.arg(Type.LONG);
+			var b = method.arg(Type.LONG);
 			setupJump(method, Condition.lessThan(a, b));
 		}
 		{			
-			var method = def.addMethod(Type.BOOLEAN_TYPE, "lessOrEq", Access.PUBLIC);
-			var a = method.arg(Type.LONG_TYPE);
-			var b = method.arg(Type.LONG_TYPE);
+			var method = def.addMethod(Type.BOOLEAN, "lessOrEq", Access.PUBLIC);
+			var a = method.arg(Type.LONG);
+			var b = method.arg(Type.LONG);
 			setupJump(method, Condition.lessOrEqual(a, b));
 		}
 		{			
-			var method = def.addMethod(Type.BOOLEAN_TYPE, "greaterThan", Access.PUBLIC);
-			var a = method.arg(Type.LONG_TYPE);
-			var b = method.arg(Type.LONG_TYPE);
+			var method = def.addMethod(Type.BOOLEAN, "greaterThan", Access.PUBLIC);
+			var a = method.arg(Type.LONG);
+			var b = method.arg(Type.LONG);
 			setupJump(method, Condition.greaterThan(a, b));
 		}
 		{			
-			var method = def.addMethod(Type.BOOLEAN_TYPE, "greaterOrEq", Access.PUBLIC);
-			var a = method.arg(Type.LONG_TYPE);
-			var b = method.arg(Type.LONG_TYPE);
+			var method = def.addMethod(Type.BOOLEAN, "greaterOrEq", Access.PUBLIC);
+			var a = method.arg(Type.LONG);
+			var b = method.arg(Type.LONG);
 			setupJump(method, Condition.greaterOrEqual(a, b));
 		}
 		

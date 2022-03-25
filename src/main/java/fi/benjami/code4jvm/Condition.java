@@ -56,12 +56,12 @@ public class Condition {
 	}
 	
 	public static Condition isTrue(Value value) {
-		TypeCheck.mustBe(value, org.objectweb.asm.Type.BOOLEAN_TYPE);
+		TypeCheck.mustBe(value, fi.benjami.code4jvm.Type.BOOLEAN);
 		return new Condition(Type.TRUE, Type.FALSE, value);
 	}
 	
 	public static Condition isFalse(Value value) {
-		TypeCheck.mustBe(value, org.objectweb.asm.Type.BOOLEAN_TYPE);
+		TypeCheck.mustBe(value, fi.benjami.code4jvm.Type.BOOLEAN);
 		return new Condition(Type.FALSE, Type.TRUE, value);
 	}
 		

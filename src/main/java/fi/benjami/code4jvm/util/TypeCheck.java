@@ -1,7 +1,6 @@
 package fi.benjami.code4jvm.util;
 
-import org.objectweb.asm.Type;
-
+import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.Value;
 
 public class TypeCheck {
@@ -17,7 +16,7 @@ public class TypeCheck {
 	}
 	
 	public static void mustBeSameSort(Type a, Type b) {
-		if (a.getSort() != b.getSort()) {
+		if (a.isPrimitive() != b.isPrimitive()) {
 			throw new IllegalArgumentException("expected types " + a + " and " + b + " to be same or both objects");
 		}
 	}
@@ -27,7 +26,7 @@ public class TypeCheck {
 	}
 	
 	public static void mustBeObject(Type type) {
-		if (type.getSort() != Type.OBJECT) {
+		if (type.isPrimitive()) {
 			throw new IllegalArgumentException("expected object type, got primitive " + type);
 		}
 	}
@@ -44,6 +43,12 @@ public class TypeCheck {
 	
 	public static void mustBe(Value value, Type expected) {
 		mustBe(value.type(), expected);
+	}
+	
+	public static void mustBeMethodOwner(Type type) {
+		if (type.isPrimitive() || type.isArray()) {
+			throw new IllegalArgumentException("type " + type + " cannot possible contain methods");
+		}
 	}
 
 }

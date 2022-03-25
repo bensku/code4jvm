@@ -5,22 +5,16 @@ import java.util.List;
 
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.Type;
 import org.objectweb.asm.util.CheckMethodAdapter;
 
-import fi.benjami.code4jvm.call.MethodLookup;
-import fi.benjami.code4jvm.call.StaticCallTarget;
 import fi.benjami.code4jvm.flag.Access;
 import fi.benjami.code4jvm.flag.MethodFlag;
 import fi.benjami.code4jvm.internal.CompileContext;
 import fi.benjami.code4jvm.internal.LocalVar;
 import fi.benjami.code4jvm.internal.SlotAllocator;
+import fi.benjami.code4jvm.util.TypeUtils;
 
 public class Method extends Block {
-	
-	public static MethodLookup<StaticCallTarget> staticLookup(Type owner, boolean ownerIsInterface) {
-		return MethodLookup.ofStatic(owner, ownerIsInterface);
-	}
 	
 	public static class Static extends Method {
 		Static(Type returnType, String name) {
@@ -94,7 +88,7 @@ public class Method extends Block {
 	void compile(ClassVisitor cv, CompileOptions opts) {
 		var argTypes = args.stream().map(Value::type).toArray(Type[]::new);
 		var mv = cv.visitMethod(access, name,
-				Type.getMethodDescriptor(returnType, argTypes), null, null);
+				TypeUtils.methodDescriptor(returnType, argTypes), null, null);
 		if (opts.asmChecks()) {
 			mv = new CheckMethodAdapter(mv);
 		}

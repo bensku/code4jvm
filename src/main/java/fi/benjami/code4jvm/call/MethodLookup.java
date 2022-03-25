@@ -2,9 +2,8 @@ package fi.benjami.code4jvm.call;
 
 import java.util.Arrays;
 
-import org.objectweb.asm.Type;
-
 import fi.benjami.code4jvm.Expression;
+import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.Value;
 
 public interface MethodLookup<T extends CallTarget> {

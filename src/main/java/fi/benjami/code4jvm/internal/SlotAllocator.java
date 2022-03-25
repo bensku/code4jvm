@@ -1,6 +1,6 @@
 package fi.benjami.code4jvm.internal;
 
-import org.objectweb.asm.Type;
+import fi.benjami.code4jvm.Type;
 
 public class SlotAllocator {
 
@@ -18,7 +18,7 @@ public class SlotAllocator {
 			slot = nextSlot;
 			localVar.assignedSlot = slot;
 			var type = localVar.type();
-			if (type == Type.LONG_TYPE || type == Type.DOUBLE_TYPE) {
+			if (type == Type.LONG || type == Type.DOUBLE) {
 				nextSlot += 2;
 			} else {
 				nextSlot += 1;

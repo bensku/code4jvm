@@ -9,11 +9,11 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import org.junit.jupiter.api.Test;
-import org.objectweb.asm.Type;
 
 import fi.benjami.code4jvm.ClassDef;
 import fi.benjami.code4jvm.Constant;
 import fi.benjami.code4jvm.Method;
+import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.Value;
 import fi.benjami.code4jvm.flag.Access;
 import fi.benjami.code4jvm.statement.Return;
@@ -36,17 +36,17 @@ public class ValuesTest {
 		var def = ClassDef.create("fi.benjami.code4jvm.test.SimpleValues", Access.PUBLIC);
 		def.addEmptyConstructor(Access.PUBLIC);
 		
-		var method = def.addMethod(Type.INT_TYPE, "test", Access.PUBLIC);
+		var method = def.addMethod(Type.INT, "test", Access.PUBLIC);
 		// Declare arguments
-		var provider = method.arg(Type.getType(ValueProvider.class));
-		var consumer = method.arg(Type.getType(Consumer.class));
+		var provider = method.arg(Type.of(ValueProvider.class));
+		var consumer = method.arg(Type.of(Consumer.class));
 		
 		// Call methods on first argument
-		var hello = method.add(provider.virtualLookup(false).call(Type.getType(String.class), "hello")).value();
-		var number = method.add(provider.virtualLookup(false).call(Type.INT_TYPE, "number")).value();
+		var hello = method.add(provider.callVirtual(Type.of(String.class), "hello")).value();
+		var number = method.add(provider.callVirtual(Type.INT, "number")).value();
 		
 		// Call the second argument with the string we've got
-		method.add(consumer.virtualLookup(true).call(Type.VOID_TYPE, "accept", hello.cast(Type.getType(Object.class))));
+		method.add(consumer.callVirtual(Type.VOID, "accept", hello.cast(Type.of(Object.class))));
 		method.add(Return.value(number)); // Return the number we got
 				
 		// Set up the callback used as second argument
@@ -83,27 +83,27 @@ public class ValuesTest {
 	@Test
 	public void primitiveCasts() throws Throwable {
 		var def = ClassDef.create("fi.benjami.code4jvm.test.PrimitiveCasts", Access.PUBLIC);
-		def.interfaces(Type.getType(PrimitiveCasts.class));
+		def.interfaces(Type.of(PrimitiveCasts.class));
 		def.addEmptyConstructor(Access.PUBLIC);
 		
-		castTester(def, "int2Byte", Type.INT_TYPE, Type.BYTE_TYPE);
-		castTester(def, "byte2Int", Type.BYTE_TYPE, Type.INT_TYPE);
+		castTester(def, "int2Byte", Type.INT, Type.BYTE);
+		castTester(def, "byte2Int", Type.BYTE, Type.INT);
 		
-		castTester(def, "long2Int", Type.LONG_TYPE, Type.INT_TYPE);
-		castTester(def, "float2Int", Type.FLOAT_TYPE, Type.INT_TYPE);
-		castTester(def, "double2Int", Type.DOUBLE_TYPE, Type.INT_TYPE);
+		castTester(def, "long2Int", Type.LONG, Type.INT);
+		castTester(def, "float2Int", Type.FLOAT, Type.INT);
+		castTester(def, "double2Int", Type.DOUBLE, Type.INT);
 		
-		castTester(def, "int2Long", Type.INT_TYPE, Type.LONG_TYPE);
-		castTester(def, "float2Long", Type.FLOAT_TYPE, Type.LONG_TYPE);
-		castTester(def, "double2Long", Type.DOUBLE_TYPE, Type.LONG_TYPE);
+		castTester(def, "int2Long", Type.INT, Type.LONG);
+		castTester(def, "float2Long", Type.FLOAT, Type.LONG);
+		castTester(def, "double2Long", Type.DOUBLE, Type.LONG);
 		
-		castTester(def, "int2Float", Type.INT_TYPE, Type.FLOAT_TYPE);
-		castTester(def, "long2Float", Type.LONG_TYPE, Type.FLOAT_TYPE);
-		castTester(def, "double2Float", Type.DOUBLE_TYPE, Type.FLOAT_TYPE);
+		castTester(def, "int2Float", Type.INT, Type.FLOAT);
+		castTester(def, "long2Float", Type.LONG, Type.FLOAT);
+		castTester(def, "double2Float", Type.DOUBLE, Type.FLOAT);
 		
-		castTester(def, "int2Double", Type.INT_TYPE, Type.DOUBLE_TYPE);
-		castTester(def, "long2Double", Type.LONG_TYPE, Type.DOUBLE_TYPE);
-		castTester(def, "float2Double", Type.FLOAT_TYPE, Type.DOUBLE_TYPE);
+		castTester(def, "int2Double", Type.INT, Type.DOUBLE);
+		castTester(def, "long2Double", Type.LONG, Type.DOUBLE);
+		castTester(def, "float2Double", Type.FLOAT, Type.DOUBLE);
 		
 		var lookup = LOOKUP.defineHiddenClass(def.compile(), true);
 		// JVM verifier should catch missing casts etc.
@@ -143,11 +143,11 @@ public class ValuesTest {
 	@Test
 	public void objectCasts() throws Throwable {
 		var def = ClassDef.create("fi.benjami.code4jvm.test.ObjectCasts", Access.PUBLIC);
-		def.interfaces(Type.getType(ObjectCasts.class));
+		def.interfaces(Type.of(ObjectCasts.class));
 		def.addEmptyConstructor(Access.PUBLIC);
 		
-		castTester(def, "string2Object", Type.getType(String.class), Type.getType(Object.class));
-		castTester(def, "object2String", Type.getType(Object.class), Type.getType(String.class));
+		castTester(def, "string2Object", Type.of(String.class), Type.of(Object.class));
+		castTester(def, "object2String", Type.of(Object.class), Type.of(String.class));
 		
 		var lookup = LOOKUP.defineHiddenClass(def.compile(), true);
 		var instance = (ObjectCasts) TestUtils.newInstance(lookup);
@@ -166,11 +166,11 @@ public class ValuesTest {
 	@Test
 	public void uninitialized() throws Throwable {
 		var def = ClassDef.create("fi.benjami.code4jvm.test.EmptyValue", Access.PUBLIC);
-		def.interfaces(Type.getType(Supplier.class));
+		def.interfaces(Type.of(Supplier.class));
 		def.addEmptyConstructor(Access.PUBLIC);
 		
-		var method = def.addMethod(Type.getType(Object.class), "get", Access.PUBLIC);
-		var value = method.add(Value.uninitialized(Type.getType(String.class))).variable();
+		var method = def.addMethod(Type.of(Object.class), "get", Access.PUBLIC);
+		var value = method.add(Value.uninitialized(Type.of(String.class))).variable();
 		method.add(value.set(Constant.of("ok")));
 		method.add(Return.value(value));
 		
@@ -182,11 +182,11 @@ public class ValuesTest {
 	@Test
 	public void uninitializedError() throws Throwable {
 		var def = ClassDef.create("fi.benjami.code4jvm.test.EmptyValueError", Access.PUBLIC);
-		def.interfaces(Type.getType(Supplier.class));
+		def.interfaces(Type.of(Supplier.class));
 		def.addEmptyConstructor(Access.PUBLIC);
 		
-		var method = def.addMethod(Type.getType(Object.class), "get", Access.PUBLIC);
-		var value = method.add(Value.uninitialized(Type.getType(String.class))).variable();
+		var method = def.addMethod(Type.of(Object.class), "get", Access.PUBLIC);
+		var value = method.add(Value.uninitialized(Type.of(String.class))).variable();
 		value.set(Constant.of("ok")); // Note the missing method.add(...)!
 		method.add(Return.value(value));
 		

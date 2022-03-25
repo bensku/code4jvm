@@ -1,8 +1,7 @@
 package fi.benjami.code4jvm.call;
 
-import org.objectweb.asm.Type;
-
 import fi.benjami.code4jvm.Expression;
+import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.Value;
 
 public abstract class CallTarget {

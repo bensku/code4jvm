@@ -3,14 +3,14 @@ package fi.benjami.code4jvm.internal;
 import java.util.List;
 import java.util.Optional;
 
-import org.objectweb.asm.Type;
-
 import fi.benjami.code4jvm.Block;
 import fi.benjami.code4jvm.Statement;
+import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.Value;
 import fi.benjami.code4jvm.Variable;
 import fi.benjami.code4jvm.statement.Bytecode;
 import fi.benjami.code4jvm.util.TypeCheck;
+import fi.benjami.code4jvm.util.TypeUtils;
 
 import static org.objectweb.asm.Opcodes.*;
 
@@ -88,7 +88,7 @@ public class LocalVar implements Variable {
 	public Statement set(Value value) {
 		TypeCheck.mustEqual(this, value);
 		return block -> {
-			block.add(Bytecode.run(Type.VOID_TYPE, List.of(value), mv -> {
+			block.add(Bytecode.run(Type.VOID, List.of(value), mv -> {
 				if (needsSlot) {
 					assert assignedSlot != -1 : "set(Value) on untracked variable " + toString();
 					mv.visitVarInsn(type.getOpcode(ISTORE), assignedSlot);

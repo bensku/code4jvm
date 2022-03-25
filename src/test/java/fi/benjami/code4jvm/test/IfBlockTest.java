@@ -8,12 +8,12 @@ import java.nio.file.Path;
 import java.util.function.Function;
 
 import org.junit.jupiter.api.Test;
-import org.objectweb.asm.Type;
 
 import fi.benjami.code4jvm.ClassDef;
 import fi.benjami.code4jvm.CompileOptions;
 import fi.benjami.code4jvm.Condition;
 import fi.benjami.code4jvm.Constant;
+import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.flag.Access;
 import fi.benjami.code4jvm.statement.Return;
 import fi.benjami.code4jvm.structure.IfBlock;
@@ -26,10 +26,10 @@ public class IfBlockTest {
 	public void simpleIf() throws Throwable {
 		var def = ClassDef.create("fi.benjami.code4jvm.test.SimpleIf", Access.PUBLIC);
 		def.addEmptyConstructor(Access.PUBLIC);
-		def.interfaces(Type.getType(Function.class));
+		def.interfaces(Type.of(Function.class));
 		
-		var method = def.addMethod(Type.getType(Object.class), "apply", Access.PUBLIC);
-		var arg = method.arg(Type.getType(Object.class));
+		var method = def.addMethod(Type.OBJECT, "apply", Access.PUBLIC);
+		var arg = method.arg(Type.OBJECT);
 		method.add(IfBlock.with(Condition.equal(arg, Constant.of("ok")))
 				.then(block -> {
 					block.add(Return.value(Constant.of("success")));
@@ -48,10 +48,10 @@ public class IfBlockTest {
 	public void ifElse() throws Throwable {
 		var def = ClassDef.create("fi.benjami.code4jvm.test.IfElse", Access.PUBLIC);
 		def.addEmptyConstructor(Access.PUBLIC);
-		def.interfaces(Type.getType(Function.class));
+		def.interfaces(Type.of(Function.class));
 		
-		var method = def.addMethod(Type.getType(Object.class), "apply", Access.PUBLIC);
-		var arg = method.arg(Type.getType(Object.class));
+		var method = def.addMethod(Type.OBJECT, "apply", Access.PUBLIC);
+		var arg = method.arg(Type.OBJECT);
 		method.add(IfBlock.with(Condition.equal(arg, Constant.of("ok")))
 				.then(block -> {
 					block.add(Return.value(Constant.of("success")));
@@ -73,10 +73,10 @@ public class IfBlockTest {
 	public void complexIf() throws Throwable {
 		var def = ClassDef.create("fi.benjami.code4jvm.test.ComplexIf", Access.PUBLIC);
 		def.addEmptyConstructor(Access.PUBLIC);
-		def.interfaces(Type.getType(Function.class));
+		def.interfaces(Type.of(Function.class));
 		
-		var method = def.addMethod(Type.getType(Object.class), "apply", Access.PUBLIC);
-		var arg = method.arg(Type.getType(Object.class));
+		var method = def.addMethod(Type.OBJECT, "apply", Access.PUBLIC);
+		var arg = method.arg(Type.OBJECT);
 		method.add(IfBlock.with(Condition.equal(arg, Constant.of("ok")))
 				.then(block -> {
 					block.add(Return.value(Constant.of("success")));

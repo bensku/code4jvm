@@ -4,11 +4,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import org.objectweb.asm.Type;
-
 import fi.benjami.code4jvm.Expression;
+import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.Value;
 import fi.benjami.code4jvm.statement.Bytecode;
+import fi.benjami.code4jvm.util.TypeUtils;
 
 import static org.objectweb.asm.Opcodes.*;
 
@@ -21,7 +21,7 @@ public class InitCallTarget extends CallTarget {
 	@Override
 	public Expression call(Value... args) {
 		return block -> {
-			var ownerName = owner().getInternalName();
+			var ownerName = owner().internalName();
 			
 			// Create new object and leave two references of it to stack
 			var instance = block.add(Bytecode.run(returnType(), List.of(), mv -> {
@@ -37,7 +37,7 @@ public class InitCallTarget extends CallTarget {
 			// Call constructor to consume one reference to object and all arguments
 			block.add(Bytecode.run(returnType(), inputs, mv -> {
 				mv.visitMethodInsn(INVOKESPECIAL, ownerName, "<init>",
-						Type.getMethodDescriptor(Type.VOID_TYPE, argTypes()), false);
+						TypeUtils.methodDescriptor(Type.VOID, argTypes()), false);
 			}));
 			
 			// Return the other reference to the object, now initialized
