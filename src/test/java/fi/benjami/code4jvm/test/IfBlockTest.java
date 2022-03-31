@@ -14,6 +14,7 @@ import fi.benjami.code4jvm.CompileOptions;
 import fi.benjami.code4jvm.Condition;
 import fi.benjami.code4jvm.Constant;
 import fi.benjami.code4jvm.Type;
+import fi.benjami.code4jvm.Value;
 import fi.benjami.code4jvm.flag.Access;
 import fi.benjami.code4jvm.statement.Return;
 import fi.benjami.code4jvm.structure.IfBlock;
@@ -30,8 +31,8 @@ public class IfBlockTest {
 		
 		var method = def.addMethod(Type.OBJECT, "apply", Access.PUBLIC);
 		var arg = method.arg(Type.OBJECT);
-		method.add(IfBlock.with(Condition.equal(arg, Constant.of("ok")))
-				.then(block -> {
+		method.add(new IfBlock()
+				.branch(Condition.equal(arg, Constant.of("ok")), block -> {
 					block.add(Return.value(Constant.of("success")));
 				}));
 		method.add(Return.value(Constant.of("fail")));
@@ -52,10 +53,10 @@ public class IfBlockTest {
 		
 		var method = def.addMethod(Type.OBJECT, "apply", Access.PUBLIC);
 		var arg = method.arg(Type.OBJECT);
-		method.add(IfBlock.with(Condition.equal(arg, Constant.of("ok")))
-				.then(block -> {
+		method.add(new IfBlock()
+				.branch(Condition.equal(arg, Constant.of("ok")), block -> {
 					block.add(Return.value(Constant.of("success")));
-				}).orElse(block -> {
+				}).fallback(block -> {
 					block.add(Return.value(Constant.of("else")));
 				}));
 		method.add(Return.value(Constant.of("fail")));
@@ -77,12 +78,12 @@ public class IfBlockTest {
 		
 		var method = def.addMethod(Type.OBJECT, "apply", Access.PUBLIC);
 		var arg = method.arg(Type.OBJECT);
-		method.add(IfBlock.with(Condition.equal(arg, Constant.of("ok")))
-				.then(block -> {
+		method.add(new IfBlock()
+				.branch(Condition.equal(arg, Constant.of("ok")), block -> {
 					block.add(Return.value(Constant.of("success")));
-				}).elseIf(Condition.equal(arg, Constant.of("alt")), block -> {
+				}).branch(Condition.equal(arg, Constant.of("alt")), block -> {
 					block.add(Return.value(Constant.of("elif")));
-				}).orElse(block -> {
+				}).fallback(block -> {
 					block.add(Return.value(Constant.of("else")));
 				}));
 		method.add(Return.value(Constant.of("fail")));
@@ -94,5 +95,54 @@ public class IfBlockTest {
 		assertEquals("elif", instance.apply("alt"));
 		assertEquals("else", instance.apply("foo"));
 		assertEquals("else", instance.apply(null));
+	}
+	
+	@Test
+	public void onlyElse() throws Throwable {
+		var def = ClassDef.create("fi.benjami.code4jvm.test.OnlyElse", Access.PUBLIC);
+		def.addEmptyConstructor(Access.PUBLIC);
+		def.interfaces(Type.of(Function.class));
+		
+		var method = def.addMethod(Type.OBJECT, "apply", Access.PUBLIC);
+		method.arg(Type.OBJECT);
+		method.add(new IfBlock()
+				.fallback(block -> {
+					block.add(Return.value(Constant.of("success")));
+				}));
+		method.add(Return.value(Constant.of("fail")));
+		
+		var lookup = LOOKUP.defineHiddenClass(def.compile(new CompileOptions(true)), true);
+		@SuppressWarnings("unchecked")
+		var instance = (Function<Object, Object>) TestUtils.newInstance(lookup);
+		assertEquals("success", instance.apply("ok"));
+		assertEquals("success", instance.apply("foo"));
+		assertEquals("success", instance.apply(null));
+	}
+	
+	@Test
+	public void testCode() throws Throwable {
+		var def = ClassDef.create("fi.benjami.code4jvm.test.TestCode", Access.PUBLIC);
+		def.addEmptyConstructor(Access.PUBLIC);
+		def.interfaces(Type.of(Function.class));
+		
+		var method = def.addMethod(Type.OBJECT, "apply", Access.PUBLIC);
+		var arg = method.arg(Type.OBJECT);
+		method.add(new IfBlock()
+				.branch(block -> {
+					// argument -> local variable, just to see that test block is properly emitted
+					var local = block.add(Value.uninitialized(Type.of(String.class))).variable();
+					block.add(local.set(arg.cast(Type.of(String.class))));
+					return Condition.equal(local, Constant.of("ok"));
+				}, block -> {
+					block.add(Return.value(Constant.of("success")));
+				}));
+		method.add(Return.value(Constant.of("fail")));
+		
+		var lookup = LOOKUP.defineHiddenClass(def.compile(new CompileOptions(true)), true);
+		@SuppressWarnings("unchecked")
+		var instance = (Function<Object, Object>) TestUtils.newInstance(lookup);
+		assertEquals("success", instance.apply("ok"));
+		assertEquals("fail", instance.apply("foo"));
+		assertEquals("fail", instance.apply(null));
 	}
 }
