@@ -44,6 +44,11 @@ public class Constant implements Value {
 		return value;
 	}
 	
+	public Object asmValue() {
+		// TODO change when dynamic constants are supported
+		return value;
+	}
+	
 	@Override
 	public Type type() {
 		return type;

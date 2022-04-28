@@ -2,8 +2,6 @@ package fi.benjami.code4jvm.util;
 
 import fi.benjami.code4jvm.Type;
 
-import static org.objectweb.asm.Opcodes.*;
-
 public class TypeUtils {
 	
 	public static boolean isIntLike(Type type) {

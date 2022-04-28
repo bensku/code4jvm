@@ -10,7 +10,6 @@ import fi.benjami.code4jvm.Value;
 import fi.benjami.code4jvm.Variable;
 import fi.benjami.code4jvm.statement.Bytecode;
 import fi.benjami.code4jvm.util.TypeCheck;
-import fi.benjami.code4jvm.util.TypeUtils;
 
 import static org.objectweb.asm.Opcodes.*;
 

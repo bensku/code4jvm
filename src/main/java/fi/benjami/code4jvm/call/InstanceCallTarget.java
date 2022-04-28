@@ -3,6 +3,8 @@ package fi.benjami.code4jvm.call;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+import org.objectweb.asm.Handle;
+
 import fi.benjami.code4jvm.Expression;
 import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.Value;
@@ -11,7 +13,13 @@ import fi.benjami.code4jvm.util.TypeUtils;
 
 import static org.objectweb.asm.Opcodes.*;
 
-public class InstanceCallTarget extends CallTarget {
+/**
+ * Call target that is an instance method.
+ * 
+ * @implNote Compiles to {@code invokevirtual} or {@code invokeinterface}.
+ *
+ */
+public class InstanceCallTarget extends FixedCallTarget {
 	
 	private final Value instance;
 	private final boolean ownerIsInterface;
@@ -38,13 +46,10 @@ public class InstanceCallTarget extends CallTarget {
 
 	@Override
 	public Expression call(Value... args) {
+		// TODO optionally validate argument types
+		
 		// Select the correct method call opcode based on lookup information
-		int opcode;
-		if (linkage == Linkage.SPECIAL) {
-			opcode = INVOKESPECIAL;
-		} else {
-			opcode = ownerIsInterface ? INVOKEINTERFACE : INVOKEVIRTUAL;
-		}
+		int opcode = getOpcode();
 		
 		// Inputs are the instance, followed by all arguments
 		var inputs = new ArrayList<Value>();
@@ -57,6 +62,20 @@ public class InstanceCallTarget extends CallTarget {
 						TypeUtils.methodDescriptor(returnType(), argTypes()), ownerIsInterface);
 			})).value();
 		};
+	}
+	
+	private int getOpcode() {
+		if (linkage == Linkage.SPECIAL) {
+			return INVOKESPECIAL;
+		} else {
+			return ownerIsInterface ? INVOKEINTERFACE : INVOKEVIRTUAL;
+		}
+	}
+
+	@Override
+	public Handle asMethodHandle() {
+		return new Handle(getOpcode(), owner().internalName(), name(),
+				TypeUtils.methodDescriptor(returnType(), argTypes()), ownerIsInterface());
 	}
 
 }

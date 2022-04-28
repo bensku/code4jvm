@@ -1,9 +1,13 @@
 package fi.benjami.code4jvm.test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.lang.invoke.CallSite;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
+import java.lang.invoke.MutableCallSite;
 import java.util.function.Supplier;
 
 import org.junit.jupiter.api.Test;
@@ -11,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import fi.benjami.code4jvm.ClassDef;
 import fi.benjami.code4jvm.Constant;
 import fi.benjami.code4jvm.Type;
+import fi.benjami.code4jvm.call.DynamicCallTarget;
 import fi.benjami.code4jvm.flag.Access;
 import fi.benjami.code4jvm.statement.Return;
 
@@ -83,5 +88,56 @@ public class MethodTest {
 		var lookup = LOOKUP.defineHiddenClass(def.compile(), true);
 		var instance = (Supplier<?>) TestUtils.newInstance(lookup);
 		assertEquals(new Constructable("ok"), instance.get());
+	}
+	
+	private static CallSite CALL_SITE;
+	
+	@SuppressWarnings("unused") // invokedynamic
+	private static boolean targetMethod1(String arg) {
+		return arg.equals("ok");
+	}
+	
+	@SuppressWarnings("unused") // invokedynamic
+	private static boolean targetMethod2(String arg) {
+		return false;
+	}
+	
+	public static CallSite bootstrap(MethodHandles.Lookup lookup, String name, MethodType type, String arg) throws NoSuchMethodException, IllegalAccessException {
+		if (!name.equals("methodName") || !arg.equals("extraArg")) {
+			throw new AssertionError();
+		}
+		var target = MethodHandles.lookup().findStatic(MethodTest.class, "targetMethod1",
+				MethodType.methodType(boolean.class, String.class));
+		CALL_SITE = new MutableCallSite(target);
+		return CALL_SITE;
+	}
+	
+	interface BooleanFunction {
+		boolean apply(String arg);
+	}
+	
+	@Test
+	public void invokeDynamic() throws Throwable {
+		var def = ClassDef.create("fi.benjami.code4jvm.test.InvokeDynamic", Access.PUBLIC);
+		def.interfaces(Type.of(BooleanFunction.class));
+		def.addEmptyConstructor(Access.PUBLIC);
+		
+		var method = def.addMethod(Type.BOOLEAN, "apply", Access.PUBLIC);
+		var arg = method.arg(Type.of(String.class));
+		var bootstrap = Type.of(getClass()).findStatic(Type.of(CallSite.class), "bootstrap",
+				Type.of(MethodHandles.Lookup.class), Type.of(String.class), Type.of(MethodType.class), Type.of(String.class));
+		var result = method.add(new DynamicCallTarget("methodName", bootstrap, Constant.of("extraArg"))
+				.call(Type.BOOLEAN, arg)).value();
+		method.add(Return.value(result));
+		
+		var lookup = LOOKUP.defineHiddenClass(def.compile(), true);
+		var instance = (BooleanFunction) TestUtils.newInstance(lookup);
+		assertTrue(instance.apply("ok"));
+		assertFalse(instance.apply("something else"));
+		
+		// Change target and try again
+		CALL_SITE.setTarget(MethodHandles.lookup().findStatic(MethodTest.class, "targetMethod2",
+				MethodType.methodType(boolean.class, String.class)));
+		assertFalse(instance.apply("ok"));
 	}
 }

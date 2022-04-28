@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import org.objectweb.asm.Handle;
+
 import fi.benjami.code4jvm.Expression;
 import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.Value;
@@ -12,7 +14,12 @@ import fi.benjami.code4jvm.util.TypeUtils;
 
 import static org.objectweb.asm.Opcodes.*;
 
-public class InitCallTarget extends CallTarget {
+/**
+ * Call target that is constructor of a type.
+ *
+ * @implNote Compiles to {@code new} followed by {@code invokespecial}.
+ */
+public class InitCallTarget extends FixedCallTarget {
 
 	public InitCallTarget(Type owner, Type[] argTypes) {
 		super(owner, false, owner, "<init>", argTypes);
@@ -43,6 +50,12 @@ public class InitCallTarget extends CallTarget {
 			// Return the other reference to the object, now initialized
 			return instance;
 		};
+	}
+
+	@Override
+	public Handle asMethodHandle() {
+		return new Handle(H_INVOKESPECIAL, owner().internalName(), name(),
+				TypeUtils.methodDescriptor(Type.VOID, argTypes()), false);
 	}
 
 }
