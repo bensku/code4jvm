@@ -2,6 +2,8 @@ package fi.benjami.code4jvm;
 
 import java.util.Optional;
 
+import fi.benjami.code4jvm.block.Block;
+
 public class Constant implements Value {
 	
 	public static Constant of(boolean value) {

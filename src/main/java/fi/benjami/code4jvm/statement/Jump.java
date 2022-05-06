@@ -5,10 +5,10 @@ import java.util.List;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 
-import fi.benjami.code4jvm.Block;
 import fi.benjami.code4jvm.Condition;
 import fi.benjami.code4jvm.Statement;
 import fi.benjami.code4jvm.Type;
+import fi.benjami.code4jvm.block.Block;
 import fi.benjami.code4jvm.internal.NeedsBlockLabels;
 import fi.benjami.code4jvm.util.TypeUtils;
 

@@ -8,11 +8,12 @@ import java.lang.invoke.MethodHandles;
 
 import org.junit.jupiter.api.Test;
 
-import fi.benjami.code4jvm.Block;
 import fi.benjami.code4jvm.ClassDef;
 import fi.benjami.code4jvm.Condition;
 import fi.benjami.code4jvm.Constant;
 import fi.benjami.code4jvm.Type;
+import fi.benjami.code4jvm.block.Block;
+import fi.benjami.code4jvm.block.Method;
 import fi.benjami.code4jvm.flag.Access;
 import fi.benjami.code4jvm.statement.Jump;
 import fi.benjami.code4jvm.statement.Return;
@@ -388,7 +389,8 @@ public class ConditionTest {
 		assertTrue(instance.greaterThan(100, 50));
 	}
 
-	private void setupJump(Block outer, Condition condition) {
+	private void setupJump(Method method, Condition condition) {
+		var outer = method.block();
 		var inner = Block.create();
 		inner.add(Jump.to(inner, Jump.Target.END, condition));
 		inner.add(Return.value(Constant.of(false)));

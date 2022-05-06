@@ -38,7 +38,7 @@ public abstract class FixedCallTarget extends CallTarget {
 		return argTypes;
 	}
 	
-	public abstract Handle asMethodHandle();
+	public abstract Handle toMethodHandle();
 	
 	public Expression call(Type returnType, Value... args) {
 		return call(returnType, args);

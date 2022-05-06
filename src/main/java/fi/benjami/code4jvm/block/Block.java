@@ -1,9 +1,18 @@
-package fi.benjami.code4jvm;
+package fi.benjami.code4jvm.block;
 
 import java.util.ArrayList;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
+
 import org.objectweb.asm.Label;
 
+import fi.benjami.code4jvm.CompileHook;
+import fi.benjami.code4jvm.Constant;
+import fi.benjami.code4jvm.Expression;
+import fi.benjami.code4jvm.Statement;
+import fi.benjami.code4jvm.Value;
+import fi.benjami.code4jvm.Variable;
 import fi.benjami.code4jvm.internal.BlockNode;
 import fi.benjami.code4jvm.internal.CodeNode;
 import fi.benjami.code4jvm.internal.CompileContext;
@@ -71,8 +80,9 @@ public class Block {
 	
 	private final List<Node> nodes;
 	private final Scope scope;
+	private Map<Object, CompileHook> hooks;
 	
-	private Block parent;
+	Block parent;
 	private Label startLabel, endLabel;
 	
 	Block() {
@@ -120,10 +130,26 @@ public class Block {
 		scope.reset();
 	}
 	
+	public void setCompileHook(Object key, CompileHook hook) {
+		if (hooks == null) {
+			hooks = new IdentityHashMap<>(1);
+		}
+		hooks.put(key, hook);
+	}
+		
 	void emitBytecode(CompileContext ctx) {
 		if (startLabel != null) {
 			ctx.asm().visitLabel(startLabel);
 		}
+		
+		// Call compile hooks (used by e.g. lambda method generation)
+		if (hooks != null) {			
+			for (var hook : hooks.values()) {
+				hook.onCompile(ctx.owner());
+			}
+		}
+		
+		// Ask nodes to emit bytecode
 		for (var node : nodes) {
 			if (node instanceof BlockNode blockNode) {
 				blockNode.block().emitBytecode(ctx);

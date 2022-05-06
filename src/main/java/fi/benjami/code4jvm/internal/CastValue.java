@@ -4,9 +4,9 @@ import java.util.Optional;
 
 import org.objectweb.asm.MethodVisitor;
 
-import fi.benjami.code4jvm.Block;
 import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.Value;
+import fi.benjami.code4jvm.block.Block;
 import fi.benjami.code4jvm.util.TypeUtils;
 
 import static org.objectweb.asm.Opcodes.*;

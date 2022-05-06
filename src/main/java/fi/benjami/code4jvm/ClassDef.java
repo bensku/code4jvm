@@ -2,7 +2,10 @@ package fi.benjami.code4jvm;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
@@ -10,6 +13,8 @@ import org.objectweb.asm.util.CheckClassAdapter;
 
 import fi.benjami.code4jvm.flag.MethodFlag;
 import fi.benjami.code4jvm.statement.Return;
+import fi.benjami.code4jvm.block.Method;
+import fi.benjami.code4jvm.block.MethodCompiler;
 import fi.benjami.code4jvm.flag.Access;
 import fi.benjami.code4jvm.flag.ClassFlag;
 
@@ -31,12 +36,14 @@ public class ClassDef {
 	private Type[] interfaces;
 	
 	private final List<Method> methods;
+	private final Map<Method, Access> accessTable;
 	
 	private ClassDef(int access, String name) {
 		this.access = access;
 		this.name = name;
 		this.type = Type.of(name, (access & Opcodes.ACC_INTERFACE) != 0);
 		this.methods = new ArrayList<>();
+		this.accessTable = new IdentityHashMap<>();
 	}
 	
 	public Type type() {
@@ -57,11 +64,20 @@ public class ClassDef {
 		interfaces = types;
 	}
 	
-	public Method.Instance addMethod(Type returnType, String name, Access access, MethodFlag... flags) {
-		var method = new Method.Instance(returnType, name, type());
-		method.setAccess(access);
-		method.setFlags(flags);
+	public void addMethod(Method method, Access access) {
 		methods.add(method);
+		accessTable.put(method, access);
+	}
+	
+	public Method.Instance addMethod(Type returnType, String name, Access access, MethodFlag... flags) {
+		var method = Method.instanceMethod(returnType, name, type(), flags);
+		addMethod(method, access);
+		return method;
+	}
+	
+	public Method.Static addStaticMethod(Type returnType, String name, Access access, MethodFlag... flags) {
+		var method = Method.staticMethod(returnType, name, flags);
+		addMethod(method, access);
 		return method;
 	}
 	
@@ -76,12 +92,8 @@ public class ClassDef {
 		constructor.add(Return.nothing());
 	}
 	
-	public Method.Static addStaticMethod(Type returnType, String name, Access access, MethodFlag... flags) {
-		var method = new Method.Static(returnType, name);
-		method.setAccess(access);
-		method.setFlags(flags);
-		method.markStatic();
-		return method;
+	public List<Method> methods() {
+		return Collections.unmodifiableList(methods);
 	}
 	
 	public byte[] compile(CompileOptions opts) {
@@ -96,8 +108,13 @@ public class ClassDef {
 		// TODO customizable Java version (needs more than just this flag, though)
 		cv.visit(Opcodes.V17, access, name.replace('.', '/'), null, superName, interfaceNames);
 		
-		for (var method : methods) {
-			method.compile(cv, opts);
+		var methodCompiler = new MethodCompiler(this, cv, opts);
+		
+		// Compile hooks may add methods, so we can't use iterator or foreach (ConcurrentModificationException)
+		// Since nothing is ever removed from list, this should be safe
+		for (var i = 0; i < methods.size(); i++) {
+			var method = methods.get(i);
+			methodCompiler.compile(method, accessTable.get(method));
 		}
 		
 		cv.visitEnd();

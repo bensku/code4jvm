@@ -35,7 +35,7 @@ public class StaticCallTarget extends FixedCallTarget {
 	}
 
 	@Override
-	public Handle asMethodHandle() {
+	public Handle toMethodHandle() {
 		return new Handle(H_INVOKESTATIC, owner().internalName(), name(),
 				TypeUtils.methodDescriptor(returnType(), argTypes()), ownerIsInterface());
 	}

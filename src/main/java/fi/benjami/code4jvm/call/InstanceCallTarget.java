@@ -73,7 +73,7 @@ public class InstanceCallTarget extends FixedCallTarget {
 	}
 
 	@Override
-	public Handle asMethodHandle() {
+	public Handle toMethodHandle() {
 		return new Handle(getOpcode(), owner().internalName(), name(),
 				TypeUtils.methodDescriptor(returnType(), argTypes()), ownerIsInterface());
 	}

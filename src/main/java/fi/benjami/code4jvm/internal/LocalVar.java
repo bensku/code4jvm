@@ -3,11 +3,11 @@ package fi.benjami.code4jvm.internal;
 import java.util.List;
 import java.util.Optional;
 
-import fi.benjami.code4jvm.Block;
 import fi.benjami.code4jvm.Statement;
 import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.Value;
 import fi.benjami.code4jvm.Variable;
+import fi.benjami.code4jvm.block.Block;
 import fi.benjami.code4jvm.statement.Bytecode;
 import fi.benjami.code4jvm.util.TypeCheck;
 

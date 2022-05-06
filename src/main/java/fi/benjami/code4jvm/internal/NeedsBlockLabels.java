@@ -2,7 +2,7 @@ package fi.benjami.code4jvm.internal;
 
 import org.objectweb.asm.Label;
 
-import fi.benjami.code4jvm.Block;
+import fi.benjami.code4jvm.block.Block;
 
 public interface NeedsBlockLabels {
 	

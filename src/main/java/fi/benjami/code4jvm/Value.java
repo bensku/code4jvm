@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
+import fi.benjami.code4jvm.block.Block;
 import fi.benjami.code4jvm.call.InstanceCallTarget;
 import fi.benjami.code4jvm.call.Linkage;
 import fi.benjami.code4jvm.internal.CastValue;

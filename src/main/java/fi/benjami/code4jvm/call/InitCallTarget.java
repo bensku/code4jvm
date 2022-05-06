@@ -53,7 +53,7 @@ public class InitCallTarget extends FixedCallTarget {
 	}
 
 	@Override
-	public Handle asMethodHandle() {
+	public Handle toMethodHandle() {
 		return new Handle(H_INVOKESPECIAL, owner().internalName(), name(),
 				TypeUtils.methodDescriptor(Type.VOID, argTypes()), false);
 	}

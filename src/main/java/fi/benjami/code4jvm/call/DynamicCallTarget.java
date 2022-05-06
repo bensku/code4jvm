@@ -48,7 +48,7 @@ public class DynamicCallTarget extends CallTarget {
 			return block.add(Bytecode.run(returnType, Arrays.asList(args), mv -> {
 				mv.visitInvokeDynamicInsn(name(),
 						TypeUtils.methodDescriptor(returnType, argTypes),
-						bootstrapMethod.asMethodHandle(),
+						bootstrapMethod.toMethodHandle(),
 						Arrays.stream(bootstrapArgs).map(Constant::asmValue).toArray());
 			})).value();
 		};

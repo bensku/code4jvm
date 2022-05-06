@@ -5,9 +5,9 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import fi.benjami.code4jvm.Block;
 import fi.benjami.code4jvm.Condition;
 import fi.benjami.code4jvm.Statement;
+import fi.benjami.code4jvm.block.Block;
 import fi.benjami.code4jvm.statement.Jump;
 
 /**
