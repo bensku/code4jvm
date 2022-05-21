@@ -12,6 +12,13 @@ import fi.benjami.code4jvm.block.Block.AddExpression;
 import fi.benjami.code4jvm.internal.LocalVar;
 import fi.benjami.code4jvm.internal.SlotAllocator;
 
+/**
+ * A callable unit such as a concrete method or a lambda.
+ * 
+ * @see Method
+ * @see Lambda
+ *
+ */
 public class Routine {
 	
 	private final Block block;
@@ -35,6 +42,12 @@ public class Routine {
 		return returnType;
 	}
 	
+	/**
+	 * Adds a named argument to this routine.
+	 * @param type Type of the argument.
+	 * @param name Name of the argument.
+	 * @return Value that represents the argument.
+	 */
 	public Value arg(Type type, String name) {
 		var localVar = new LocalVar(type, block);
 		localVar.initialized = true; // Arguments are always initialized (but can be null)
@@ -44,10 +57,19 @@ public class Routine {
 		return localVar;
 	}
 	
+	/**
+	 * Adds an unnamed argument to this routine.
+	 * @param type Type of the argument.
+	 * @return Value that represents the argument.
+	 */
 	public Value arg(Type type) {
 		return arg(type, null);
 	}
 	
+	/**
+	 * Gets an unmodifiable list of previously added arguments.
+	 * @return Argument values.
+	 */
 	public List<Value> arguments() {
 		return Collections.unmodifiableList(args);
 	}

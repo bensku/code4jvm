@@ -16,40 +16,45 @@ import fi.benjami.code4jvm.util.TypeUtils;
  * @implNote Compiles to {@code invokedynamic}.
  *
  */
-public class DynamicCallTarget extends CallTarget {
+public final class DynamicCallTarget extends CallTarget {
 
-	private final StaticCallTarget bootstrapMethod;
-	private final Constant[] bootstrapArgs;
-	
-	/**
-	 * Creates a new dynamic call target.
-	 * @param name Method name. This is given as argument to bootstrap method runtime.
-	 * @param bootstrap Bootstrap method.
-	 * @param bootstrapArgs Additional arguments for the bootstrap method.
-	 */
-	public DynamicCallTarget(String name, StaticCallTarget bootstrap, Constant... bootstrapArgs) {
-		super(name);
-		this.bootstrapMethod = bootstrap;
-		this.bootstrapArgs = bootstrapArgs;
+	private final FixedCallTarget bootstrapMethod;
+		
+	DynamicCallTarget(Type returnType, String name, Type[] argTypes, Value[] capturedArgs, FixedCallTarget bootstrapMethod) {
+		super(returnType, name, argTypes, Linkage.DYNAMIC, capturedArgs);
+		this.bootstrapMethod = bootstrapMethod;
 	}
 	
-	public StaticCallTarget bootstrapMethod() {
+	public FixedCallTarget bootstrapMethod() {
 		return bootstrapMethod;
 	}
 	
-	public Constant[] bootstrapArgs() {
-		return bootstrapArgs;
+	@Override
+	public DynamicCallTarget withCapturedArgs(Value... args) {
+		return new DynamicCallTarget(returnType(), name(), argTypes(),
+				CallTarget.mergeArgs(capturedArgs(), args), bootstrapMethod);
+	}
+	
+	@Override
+	public DynamicCallTarget withoutCapturedArgs() {
+		return new DynamicCallTarget(returnType(), name(), argTypes(), new Value[0], bootstrapMethod);
 	}
 
 	@Override
-	public Expression call(Type returnType, Value... args) {
-		var argTypes = Arrays.stream(args).map(Value::type).toArray(Type[]::new);
+	public Expression call(Value... args) {
+		var allArgs = CallTarget.mergeArgs(capturedArgs(), args);
+		var argTypes = Arrays.stream(allArgs).map(Value::type).toArray(Type[]::new);
 		return block -> {
-			return block.add(Bytecode.run(returnType, Arrays.asList(args), mv -> {
+			return block.add(Bytecode.run(returnType(), allArgs, mv -> {
+				// Bootstrap arguments are just arguments the bootstrapMethod has captured!
+				var bootstrapArgs = Arrays.stream(bootstrapMethod.capturedArgs())
+						.map(val -> ((Constant) val).asmValue())
+						.toArray();
+				
 				mv.visitInvokeDynamicInsn(name(),
-						TypeUtils.methodDescriptor(returnType, argTypes),
+						TypeUtils.methodDescriptor(returnType(), argTypes),
 						bootstrapMethod.toMethodHandle(),
-						Arrays.stream(bootstrapArgs).map(Constant::asmValue).toArray());
+						bootstrapArgs);
 			})).value();
 		};
 	}

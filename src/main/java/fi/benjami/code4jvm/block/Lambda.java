@@ -5,7 +5,6 @@ import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.util.Arrays;
-import java.util.List;
 
 import org.objectweb.asm.Handle;
 
@@ -13,8 +12,9 @@ import fi.benjami.code4jvm.ClassDef;
 import fi.benjami.code4jvm.Expression;
 import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.Value;
-import fi.benjami.code4jvm.call.StaticCallTarget;
+import fi.benjami.code4jvm.call.FixedCallTarget;
 import fi.benjami.code4jvm.flag.Access;
+import fi.benjami.code4jvm.flag.MethodFlag;
 import fi.benjami.code4jvm.statement.Bytecode;
 import fi.benjami.code4jvm.util.TypeUtils;
 
@@ -63,14 +63,16 @@ public class Lambda extends Routine {
 		return new Shape(interfaceType, methodName, returnType, argTypes);
 	}
 	
-	private StaticCallTarget backingMethod;
+	private FixedCallTarget backingMethod;
 	
 	private Lambda(Block block, Type returnType) {
 		super(block, returnType);
 	}
 	
 	private void setupHiddenMethod(ClassDef def) {
-		backingMethod = toStaticMethod(def);
+		if (backingMethod == null) {			
+			backingMethod = addStaticMethod(def);
+		}
 	}
 	
 	/**
@@ -85,9 +87,9 @@ public class Lambda extends Routine {
 			block.setCompileHook(this, this::setupHiddenMethod);
 			// Setup static call without StaticCallTarget, because we don't have the target up-front
 			// (method is generated just before bytecode generation)
-			return block.add(Bytecode.run(returnType(), Arrays.asList(args), mv -> {
+			return block.add(Bytecode.run(returnType(), args, mv -> {
 				mv.visitMethodInsn(INVOKESTATIC, backingMethod.owner().internalName(), backingMethod.name(),
-						TypeUtils.methodDescriptor(returnType(), backingMethod.argTypes()), backingMethod.ownerIsInterface());
+						TypeUtils.methodDescriptor(returnType(), backingMethod.argTypes()), backingMethod.owner().isInterface());
 			})).value();
 		};
 	}
@@ -113,7 +115,7 @@ public class Lambda extends Routine {
 	 * functional interface.
 	 * 
 	 * <p>Note that JVM does not support creating lambda instances in hidden
-	 * classes. Direct {@link #call(Value...) calls} work as expected.
+	 * classes. Direct {@link #call(Value...) calls} work as expected with them.
 	 * @param interfaceType Functional interface type.
 	 * @param methodName Name of the implemented method in interface.
 	 * @param capturedArgs Arguments that are captured where the returned
@@ -127,7 +129,7 @@ public class Lambda extends Routine {
 	public Expression newInstance(Type interfaceType, String methodName, Value... capturedArgs) {
 		return block -> {
 			block.setCompileHook(this, this::setupHiddenMethod);
-			return block.add(Bytecode.run(interfaceType, List.of(capturedArgs), mv -> {
+			return block.add(Bytecode.run(interfaceType, capturedArgs, mv -> {
 				// Set up invokedynamic call to method that creates instance of the lambda
 				// with LambdaMetafactory#metafactory as bootstrap
 				// Captured values are given as arguments
@@ -152,17 +154,54 @@ public class Lambda extends Routine {
 	}
 	
 	/**
-	 * Adds this lambda as a static method to given class definition.
-	 * @param def Class definition.
-	 * @return Call target of the generated method.
+	 * Converts this lambda to a static method.
+	 * @param name Method name.
+	 * @param flags Method flags.
+	 * @return Static method builder.
 	 */
-	public StaticCallTarget toStaticMethod(ClassDef def) {
-		var method = new Method.Static(block(), returnType(), lambdaName(def), ACC_SYNTHETIC);
+	public Method.Static asStaticMethod(String name, MethodFlag... flags) {
+		var method = new Method.Static(block(), returnType(), name, flags);
 		method.args.addAll(args);
-		def.addMethod(method, Access.PUBLIC);
-		return def.type().findStatic(returnType(), method.name(),
+		return method;
+	}
+	
+	/**
+	 * Converts this lambda to an instance method.
+	 * @param parentClass Type of {@code this} value, i.e. the first
+	 * {@link #arg(Type) argument} received by this lambda.
+	 * @param name Method name.
+	 * @param flags Method flags.
+	 * @return Instance method builder.
+	 */
+	public Method.Instance asInstanceMethod(Type parentClass, String name, MethodFlag... flags) {
+		var method = new Method.Instance(block(), returnType(), name, parentClass, flags);
+		// First slot is reserved for this/self(), method doesn't have an argument for it
+		method.args.addAll(args.subList(1, args.size()));
+		return method;
+	}
+	
+	/**
+	 * Adds a synthetic static method with body of this lambda to a class.
+	 * @param def Class builder.
+	 * @return Call target for the added method.
+	 */
+	public FixedCallTarget addStaticMethod(ClassDef def) {
+		var name = lambdaName(def);
+		def.addMethod(asStaticMethod(name, MethodFlag.SYNTHETIC), Access.PUBLIC);
+		return def.type().staticMethod(returnType(), name,
 				args.stream().map(Value::type).toArray(Type[]::new));
 	}
 	
-	// TODO toInstanceMethod - InstanceCallTarget expects this Value which we don't have here
+	/**
+	 * Adds a synthetic instance method with body of this lambda to a class.
+	 * @param def Class builder.
+	 * @return Call target for the added method.
+	 */
+	public FixedCallTarget addInstanceMethod(ClassDef def) {
+		var name = lambdaName(def);
+		def.addMethod(asInstanceMethod(def.type(), name, MethodFlag.SYNTHETIC), Access.PUBLIC);
+		return def.type().virtualMethod(returnType(), name,
+				args.stream().map(Value::type).toArray(Type[]::new));
+	}
+	
 }

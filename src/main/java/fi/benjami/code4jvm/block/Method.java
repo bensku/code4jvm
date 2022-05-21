@@ -16,11 +16,11 @@ import fi.benjami.code4jvm.internal.LocalVar;
 public class Method extends Routine {
 	
 	public static Method.Static staticMethod(Type returnType, String name, MethodFlag... flags) {
-		return new Method.Static(Block.create(), returnType, name, getAccess(flags));
+		return new Method.Static(Block.create(), returnType, name, flags);
 	}
 	
 	public static Method.Instance instanceMethod(Type returnType, String name, Type parentClass, MethodFlag... flags) {
-		return new Method.Instance(Block.create(), returnType, name, parentClass, getAccess(flags));
+		return new Method.Instance(Block.create(), returnType, name, parentClass, flags);
 	}
 	
 	private static int getAccess(MethodFlag[] flags) {
@@ -33,8 +33,8 @@ public class Method extends Routine {
 	}
 	
 	public static class Static extends Method {
-		Static(Block block, Type returnType, String name, int access) {
-			super(block, returnType, name, access | Opcodes.ACC_STATIC);
+		Static(Block block, Type returnType, String name, MethodFlag[] flags) {
+			super(block, returnType, name, getAccess(flags) | Opcodes.ACC_STATIC);
 		}
 	}
 	
@@ -45,8 +45,8 @@ public class Method extends Routine {
 		 */
 		private final LocalVar self;
 		
-		Instance(Block block, Type returnType, String name, Type parentClass, int access) {
-			super(block, returnType, name, access);
+		Instance(Block block, Type returnType, String name, Type parentClass, MethodFlag[] flags) {
+			super(block, returnType, name, getAccess(flags));
 			// this is passed in slot 0
 			// It is NOT present in method signature, so avoid calling arg()
 			this.self = new LocalVar(parentClass, block);

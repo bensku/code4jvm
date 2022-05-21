@@ -4,8 +4,10 @@ import org.objectweb.asm.Opcodes;
 
 public enum MethodFlag {
 
+	DEPRECATED(Opcodes.ACC_DEPRECATED),
+	SYNCHRONIZED(Opcodes.ACC_SYNCHRONIZED),
 	SYNTHETIC(Opcodes.ACC_SYNTHETIC),
-	DEPRECATED(Opcodes.ACC_DEPRECATED);
+	BRIDGE(Opcodes.ACC_BRIDGE);
 	
 	private final int value;
 	

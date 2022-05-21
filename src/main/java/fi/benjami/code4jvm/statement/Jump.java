@@ -1,13 +1,12 @@
 package fi.benjami.code4jvm.statement;
 
-import java.util.List;
-
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 
 import fi.benjami.code4jvm.Condition;
 import fi.benjami.code4jvm.Statement;
 import fi.benjami.code4jvm.Type;
+import fi.benjami.code4jvm.Value;
 import fi.benjami.code4jvm.block.Block;
 import fi.benjami.code4jvm.internal.NeedsBlockLabels;
 import fi.benjami.code4jvm.util.TypeUtils;
@@ -58,7 +57,7 @@ public class Jump implements Statement, NeedsBlockLabels {
 			var type = condition.values()[0].type();
 			var isObject = type.isObject();
 			var intLike = TypeUtils.isIntLike(type);
-			block.add(Bytecode.run(Type.VOID, List.of(condition.values()), mv -> {
+			block.add(Bytecode.run(Type.VOID, condition.values(), mv -> {
 				switch (condition.type()) {
 				case REF_EQUAL -> mv.visitJumpInsn(IF_ACMPEQ, label);
 				case REF_NOT_EQUAL -> mv.visitJumpInsn(IF_ACMPNE, label);
@@ -145,7 +144,7 @@ public class Jump implements Statement, NeedsBlockLabels {
 				}				
 			}));
 		} else {			
-			block.add(Bytecode.run(Type.VOID, List.of(), mv -> {
+			block.add(Bytecode.run(Type.VOID, new Value[0], mv -> {
 				mv.visitJumpInsn(GOTO, label);
 			}));
 		}

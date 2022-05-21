@@ -2,12 +2,10 @@ package fi.benjami.code4jvm;
 
 
 import java.util.Arrays;
-import java.util.List;
 
-import fi.benjami.code4jvm.call.InitCallTarget;
-import fi.benjami.code4jvm.call.StaticCallTarget;
+import fi.benjami.code4jvm.call.CallTarget;
+import fi.benjami.code4jvm.call.FixedCallTarget;
 import fi.benjami.code4jvm.statement.Bytecode;
-import fi.benjami.code4jvm.util.TypeCheck;
 
 import static org.objectweb.asm.Opcodes.*;
 
@@ -185,28 +183,49 @@ public class Type {
 		return kind == KIND_INTERFACE && arrayDimensions == 0;
 	}
 	
-	public InitCallTarget findConstructor(Type... argTypes) {
-		TypeCheck.mustBeMethodOwner(this);
-		return new InitCallTarget(this, argTypes);
+	public FixedCallTarget constructor(Type... argTypes) {
+		return CallTarget.constructor(this, argTypes);
 	}
 	
 	public Expression newInstance(Value... args) {
-		return findConstructor(Arrays.stream(args).map(Value::type).toArray(Type[]::new))
+		return constructor(Arrays.stream(args).map(Value::type).toArray(Type[]::new))
 				.call(args);
 	}
 	
-	public StaticCallTarget findStatic(Type returnType, String name, Type... argTypes) {
-		return new StaticCallTarget(this, isInterface(), returnType, name, argTypes);
+	// Method calls
+	
+	public FixedCallTarget staticMethod(Type returnType, String name, Type... argTypes) {
+		return CallTarget.staticMethod(this, returnType, name, argTypes);
 	}
 	
 	public Expression callStatic(Type returnType, String name, Value... args) {
-		return findStatic(returnType, name, Arrays.stream(args).map(Value::type).toArray(Type[]::new))
+		return staticMethod(returnType, name, Arrays.stream(args).map(Value::type).toArray(Type[]::new))
 				.call(args);
 	}
 	
+	public FixedCallTarget virtualMethod(Type returnType, String name, Type... argTypes) {
+		return CallTarget.virtualMethod(this, returnType, name, argTypes);
+	}
+	
+	public Expression callVirtual(Type returnType, String name, Value... args) {
+		return virtualMethod(returnType, name, Arrays.stream(args).map(Value::type).toArray(Type[]::new))
+				.call(args);
+	}
+	
+	public FixedCallTarget privateMethod(Type returnType, String name, Type... argTypes) {
+		return CallTarget.privateMethod(this, returnType, name, argTypes);
+	}
+	
+	public Expression callPrivate(Type returnType, String name, Value... args) {
+		return privateMethod(returnType, name, Arrays.stream(args).map(Value::type).toArray(Type[]::new))
+				.call(args);
+	}
+	
+	// Field access
+	
 	public Expression getStatic(Type fieldType, String name) {
 		return block -> {
-			return block.add(Bytecode.run(fieldType, List.of(), mv -> {
+			return block.add(Bytecode.run(fieldType, new Value[0], mv -> {
 				mv.visitFieldInsn(GETSTATIC, internalName(), name, fieldType.descriptor());
 			})).value();
 		};
@@ -214,7 +233,7 @@ public class Type {
 	
 	public Statement putStatic(Type fieldType, String name, Value value) {
 		return block -> {
-			block.add(Bytecode.run(Type.VOID, List.of(value), mv -> {
+			block.add(Bytecode.run(Type.VOID, new Value[] {value}, mv -> {
 				mv.visitFieldInsn(PUTSTATIC, internalName(), name, fieldType.descriptor());
 			}));
 		};

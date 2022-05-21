@@ -7,6 +7,7 @@ import java.util.Map;
 
 import org.objectweb.asm.Label;
 
+import fi.benjami.code4jvm.ClassDef;
 import fi.benjami.code4jvm.CompileHook;
 import fi.benjami.code4jvm.Constant;
 import fi.benjami.code4jvm.Expression;
@@ -130,6 +131,14 @@ public class Block {
 		scope.reset();
 	}
 	
+	/**
+	 * Sets a compile hook to this block. It is called when this block is
+	 * compiled as part of a {@link ClassDef class definition}.
+	 * 
+	 * <p>Compile hooks may be called for multiple times for same class and
+	 * should not e.g. generate duplicate methods when this occurs.
+	 * @param hook The hook.
+	 */
 	public void setCompileHook(Object key, CompileHook hook) {
 		if (hooks == null) {
 			hooks = new IdentityHashMap<>(1);

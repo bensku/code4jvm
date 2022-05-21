@@ -13,21 +13,21 @@ public class Scope {
 		this.stack = new ArrayList<>();
 	}
 	
-	public void checkInputs(List<Value> inputs) {
+	public void checkInputs(Value[] inputs) {
 		// Find how many inputs are already loaded on stack
-		var inputsStart = stack.size() - inputs.size();
+		var inputsStart = stack.size() - inputs.length;
 		var loadedCount = 0;
 		if (inputsStart > 0) {
-			for (; loadedCount < inputs.size(); loadedCount++) {
-				if (stack.get(inputsStart + loadedCount) != inputs.get(loadedCount)) {
+			for (; loadedCount < inputs.length; loadedCount++) {
+				if (stack.get(inputsStart + loadedCount) != inputs[loadedCount]) {
 					break;
 				}
 			}
 		} // else: stack has less elements than inputs, we DEFINITELY need to load the inputs
 		
 		// Mark the rest to require local variable slot
-		for (int i = loadedCount; i < inputs.size(); i++) {
-			var value = inputs.get(i);
+		for (int i = loadedCount; i < inputs.length; i++) {
+			var value = inputs[i];
 			if (value instanceof CastValue cast) {
 				value = cast.original(); // Original COULD be LocalVar
 			}

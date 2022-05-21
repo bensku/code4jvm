@@ -30,11 +30,27 @@ public class LambdaTest {
 		var def = ClassDef.create("fi.benjami.code4jvm.test.LambdaStaticMethod", Access.PUBLIC);
 		def.addEmptyConstructor(Access.PUBLIC);
 		
-		var method = returnArg().toStaticMethod(def);
+		var method = returnArg().addStaticMethod(def);
 		
 		var lookup = LOOKUP.defineHiddenClass(def.compile(), true);
 		assertEquals("ok", lookup.findStatic(lookup.lookupClass(), method.name(), MethodType.methodType(Object.class, Object.class))
 				.invoke("ok"));
+	}
+	
+	@Test
+	public void instanceMethod() throws Throwable {
+		var def = ClassDef.create("fi.benjami.code4jvm.test.LambdaInstanceMethod", Access.PUBLIC);
+		def.addEmptyConstructor(Access.PUBLIC);
+		
+		var lambda = Lambda.create(def.type());
+		var arg = lambda.arg(def.type());
+		lambda.add(Return.value(arg));
+		var method = lambda.addInstanceMethod(def);
+		
+		var c = LOOKUP.defineClass(def.compile());
+		var instance = c.getConstructor().newInstance();
+		assertEquals(instance, LOOKUP.findVirtual(c, method.name(), MethodType.methodType(c))
+				.invoke(instance));
 	}
 	
 	@Test
@@ -46,7 +62,7 @@ public class LambdaTest {
 		var arg = redirect.arg(Type.OBJECT);
 		var value = redirect.add(returnArg().call(arg)).value();
 		redirect.add(Return.value(value));
-		var method = redirect.toStaticMethod(def);
+		var method = redirect.addStaticMethod(def);
 		
 		var lookup = LOOKUP.defineHiddenClass(def.compile(), true);
 		assertEquals("ok", lookup.findStatic(lookup.lookupClass(), method.name(), MethodType.methodType(Object.class, Object.class))
@@ -61,7 +77,7 @@ public class LambdaTest {
 		var lambda = Lambda.create(Type.of(Function.class));
 		var instance = lambda.add(returnArg().newInstance(Lambda.shape(Type.of(Function.class), "apply", Type.OBJECT, Type.OBJECT))).value();
 		lambda.add(Return.value(instance));
-		var method = lambda.toStaticMethod(def);
+		var method = lambda.addStaticMethod(def);
 		
 		Class<?> c = LOOKUP.defineClass(def.compile());
 		var func = (Function<Object, Object>) LOOKUP.findStatic(c, method.name(), MethodType.methodType(Function.class))
@@ -93,7 +109,7 @@ public class LambdaTest {
 		var callMe = lambda.arg(Type.of(CallMe.class));
 		var instance = lambda.add(target.newInstance(Type.of(Function.class), "apply", callMe)).value();
 		lambda.add(Return.value(instance));
-		var method = lambda.toStaticMethod(def);
+		var method = lambda.addStaticMethod(def);
 		
 		Class<?> c = LOOKUP.defineClass(def.compile());
 		var func = (Function<Object, Object>) LOOKUP.findStatic(c, method.name(), MethodType.methodType(Function.class, CallMe.class))

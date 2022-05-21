@@ -1,12 +1,10 @@
 package fi.benjami.code4jvm;
 
 import java.util.Arrays;
-import java.util.List;
 import java.util.Optional;
 
 import fi.benjami.code4jvm.block.Block;
-import fi.benjami.code4jvm.call.InstanceCallTarget;
-import fi.benjami.code4jvm.call.Linkage;
+import fi.benjami.code4jvm.call.FixedCallTarget;
 import fi.benjami.code4jvm.internal.CastValue;
 import fi.benjami.code4jvm.internal.LocalVar;
 import fi.benjami.code4jvm.statement.Bytecode;
@@ -17,7 +15,7 @@ public interface Value {
 	
 	static Expression uninitialized(Type type) {
 		return block -> {
-			return block.add(Bytecode.stub(type, List.of(LocalVar.EMPTY_MARKER))).value();
+			return block.add(Bytecode.stub(type, new Value[] {LocalVar.EMPTY_MARKER})).value();
 		};
 	}
 
@@ -39,13 +37,13 @@ public interface Value {
 		return block -> {
 			// Load to stack and keep it there
 			// Block and Bytecode handle slot allocation
-			return block.add(Bytecode.stub(type(), List.of(this))).value();
+			return block.add(Bytecode.stub(type(), new Value[] {this})).value();
 		};
 	}
 	
 	default Expression getField(Type fieldType, String name) {
 		return block -> {
-			return block.add(Bytecode.run(fieldType, List.of(this), mv -> {
+			return block.add(Bytecode.run(fieldType, new Value[] {this}, mv -> {
 				mv.visitFieldInsn(GETFIELD, type().internalName(), name, fieldType.descriptor());
 			})).value();
 		};
@@ -53,36 +51,36 @@ public interface Value {
 	
 	default Statement putField(Type fieldType, String name, Value value) {
 		return block -> {
-			block.add(Bytecode.run(Type.VOID, List.of(this, value), mv -> {
+			block.add(Bytecode.run(Type.VOID, new Value[] {this, value}, mv -> {
 				mv.visitFieldInsn(PUTFIELD, type().internalName(), name, fieldType.descriptor());
 			}));
 		};
 	}
 	
-	default InstanceCallTarget findVirtual(Type returnType, String name, Type... argTypes) {
-		return new InstanceCallTarget(type(), this, type().isInterface(), Linkage.VIRTUAL, returnType, name, argTypes);
+	default FixedCallTarget virtualMethod(Type returnType, String name, Type... argTypes) {
+		return type().virtualMethod(returnType, name, argTypes).withCapturedArgs(this);
 	}
 	
 	default Expression callVirtual(Type returnType, String name, Value... args) {
-		return findVirtual(returnType, name, Arrays.stream(args).map(Value::type).toArray(Type[]::new))
+		return virtualMethod(returnType, name, Arrays.stream(args).map(Value::type).toArray(Type[]::new))
 				.call(args);
 	}
 	
-	default InstanceCallTarget findSpecial(Type owner, Type returnType, String name, Type... argTypes) {
-		return new InstanceCallTarget(owner, this, owner.isInterface(), Linkage.SPECIAL, returnType, name, argTypes);
+	default FixedCallTarget privateMethod(Type owner, Type returnType, String name, Type... argTypes) {
+		return owner.privateMethod(returnType, name, argTypes).withCapturedArgs(this);
 	}
 	
-	default InstanceCallTarget findSpecial(Type returnType, String name, Type... argTypes) {
-		return findSpecial(type(), returnType, name, argTypes);
+	default FixedCallTarget privateMethod(Type returnType, String name, Type... argTypes) {
+		return type().privateMethod(returnType, name, argTypes).withCapturedArgs(this);
 	}
 	
-	default Expression callSpecial(Type owner, Type returnType, String name, Value... args) {
-		return findSpecial(owner, returnType, name, Arrays.stream(args).map(Value::type).toArray(Type[]::new))
+	default Expression callPrivate(Type owner, Type returnType, String name, Value... args) {
+		return privateMethod(owner, returnType, name, Arrays.stream(args).map(Value::type).toArray(Type[]::new))
 				.call(args);
 	}
 	
-	default Expression callSpecial(Type returnType, String name, Value... args) {
-		return callSpecial(type(), returnType, name, args);
+	default Expression callPrivate(Type returnType, String name, Value... args) {
+		return callPrivate(type(), returnType, name, args);
 	}
 	
 }

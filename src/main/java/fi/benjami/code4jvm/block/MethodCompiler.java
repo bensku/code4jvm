@@ -13,7 +13,7 @@ import fi.benjami.code4jvm.internal.SlotAllocator;
 import fi.benjami.code4jvm.util.TypeUtils;
 
 /**
- * Compiles methods with ASM.
+ * Compiles methods to JVM bytecode with ASM.
  * 
  * @see Method
  * @see ClassDef

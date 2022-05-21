@@ -18,4 +18,14 @@ public class TypeUtils {
 		return sb.toString();
 	}
 	
+	public static String instanceMethodDescriptor(Type returnType, Type... argTypes) {
+		var sb = new StringBuilder("(");
+		for (int i = 1; i < argTypes.length; i++) {
+			sb.append(argTypes[i].descriptor());
+		}
+		sb.append(")");
+		sb.append(returnType.descriptor());
+		return sb.toString();
+	}
+	
 }

@@ -36,7 +36,7 @@ public class ClassTest {
 	public void withConstructor() throws Throwable {
 		var def = ClassDef.create("fi.benjami.code4jvm.test.WithConstructor", Access.PUBLIC);
 		var constructor = def.addConstructor(Access.PUBLIC);
-		constructor.add(constructor.self().callSpecial(Type.OBJECT, Type.VOID, "<init>"));
+		constructor.add(constructor.self().callPrivate(Type.OBJECT, Type.VOID, "<init>"));
 		constructor.add(Return.nothing());
 		
 		var lookup = LOOKUP.defineHiddenClass(def.compile(), true);

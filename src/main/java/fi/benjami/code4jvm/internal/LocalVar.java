@@ -1,6 +1,5 @@
 package fi.benjami.code4jvm.internal;
 
-import java.util.List;
 import java.util.Optional;
 
 import fi.benjami.code4jvm.Statement;
@@ -87,7 +86,7 @@ public class LocalVar implements Variable {
 	public Statement set(Value value) {
 		TypeCheck.mustEqual(this, value);
 		return block -> {
-			block.add(Bytecode.run(Type.VOID, List.of(value), mv -> {
+			block.add(Bytecode.run(Type.VOID, new Value[] {value}, mv -> {
 				if (needsSlot) {
 					assert assignedSlot != -1 : "set(Value) on untracked variable " + toString();
 					mv.visitVarInsn(type.getOpcode(ISTORE), assignedSlot);

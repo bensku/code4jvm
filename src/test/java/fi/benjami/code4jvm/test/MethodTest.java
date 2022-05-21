@@ -15,7 +15,7 @@ import org.junit.jupiter.api.Test;
 import fi.benjami.code4jvm.ClassDef;
 import fi.benjami.code4jvm.Constant;
 import fi.benjami.code4jvm.Type;
-import fi.benjami.code4jvm.call.DynamicCallTarget;
+import fi.benjami.code4jvm.call.CallTarget;
 import fi.benjami.code4jvm.flag.Access;
 import fi.benjami.code4jvm.statement.Return;
 
@@ -124,10 +124,12 @@ public class MethodTest {
 		
 		var method = def.addMethod(Type.BOOLEAN, "apply", Access.PUBLIC);
 		var arg = method.arg(Type.of(String.class));
-		var bootstrap = Type.of(getClass()).findStatic(Type.of(CallSite.class), "bootstrap",
+		var bootstrap = Type.of(getClass()).staticMethod(Type.of(CallSite.class), "bootstrap",
 				Type.of(MethodHandles.Lookup.class), Type.of(String.class), Type.of(MethodType.class), Type.of(String.class));
-		var result = method.add(new DynamicCallTarget("methodName", bootstrap, Constant.of("extraArg"))
-				.call(Type.BOOLEAN, arg)).value();
+		CallTarget.dynamic(bootstrap.withCapturedArgs(Constant.of("extraArg")), Type.BOOLEAN, "methodName", Type.of(String.class));
+		var result = method.add(CallTarget.dynamic(bootstrap.withCapturedArgs(Constant.of("extraArg")),
+				Type.BOOLEAN, "methodName", Type.of(String.class))
+				.call(arg)).value();
 		method.add(Return.value(result));
 		
 		var lookup = LOOKUP.defineHiddenClass(def.compile(), true);

@@ -2,7 +2,6 @@ package fi.benjami.code4jvm.statement;
 
 import static org.objectweb.asm.Opcodes.*;
 
-import java.util.List;
 import java.util.function.Consumer;
 
 import org.objectweb.asm.MethodVisitor;
@@ -19,19 +18,19 @@ import fi.benjami.code4jvm.internal.CompileContext;
 
 public class Bytecode implements Expression {
 
-	public static Bytecode run(Type outputType, List<Value> inputs, Consumer<MethodVisitor> emitter) {
+	public static Bytecode run(Type outputType, Value[] inputs, Consumer<MethodVisitor> emitter) {
 		return new Bytecode(outputType, inputs, emitter);
 	}
 	
-	public static Bytecode stub(Type outputType, List<Value> inputs) {
+	public static Bytecode stub(Type outputType, Value[] inputs) {
 		return new Bytecode(outputType, inputs, null);
 	}
 	
 	private final Type outputType;
-	private final List<Value> inputs;
+	private final Value[] inputs;
 	private final Consumer<MethodVisitor> emitter;
 	
-	private Bytecode(Type outputType, List<Value> inputs, Consumer<MethodVisitor> emitter) {
+	private Bytecode(Type outputType, Value[] inputs, Consumer<MethodVisitor> emitter) {
 		this.outputType = outputType;
 		this.inputs = inputs;
 		this.emitter = emitter;
@@ -46,7 +45,7 @@ public class Bytecode implements Expression {
 		return outputType;
 	}
 	
-	public List<Value> inputs() {
+	public Value[] inputs() {
 		return inputs;
 	}
 	
@@ -101,7 +100,7 @@ public class Bytecode implements Expression {
 		if (localVar.needsSlot) {
 			var slot = ctx.slotAllocator().get(localVar);
 			// Special handling for uninitialized values that should NOT be stored
-			if (inputs.size() == 1 && inputs.get(0) == LocalVar.EMPTY_MARKER) {
+			if (inputs.length == 1 && inputs[0] == LocalVar.EMPTY_MARKER) {
 				return;
 			}
 			ctx.asm().visitVarInsn(localVar.type().getOpcode(ISTORE), slot);

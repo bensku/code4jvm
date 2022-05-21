@@ -88,7 +88,7 @@ public class ClassDef {
 	public void addEmptyConstructor(Access access) {
 		var superType = superClass != null ? superClass : Type.OBJECT;
 		var constructor = addConstructor(access);
-		constructor.add(constructor.self().callSpecial(superType, Type.VOID, "<init>"));
+		constructor.add(constructor.self().callPrivate(superType, Type.VOID, "<init>"));
 		constructor.add(Return.nothing());
 	}
 	
