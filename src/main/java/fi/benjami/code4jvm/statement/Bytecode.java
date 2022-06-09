@@ -4,21 +4,30 @@ import static org.objectweb.asm.Opcodes.*;
 
 import java.util.function.Consumer;
 
+import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 
-import fi.benjami.code4jvm.Constant;
 import fi.benjami.code4jvm.Expression;
 import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.Value;
 import fi.benjami.code4jvm.block.Block;
+import fi.benjami.code4jvm.block.CompileContext;
 import fi.benjami.code4jvm.internal.LocalVar;
-import fi.benjami.code4jvm.internal.SlotAllocator;
-import fi.benjami.code4jvm.internal.CastValue;
-import fi.benjami.code4jvm.internal.CompileContext;
+import fi.benjami.code4jvm.internal.MethodCompilerState;
+import fi.benjami.code4jvm.internal.SharedSecrets;
+import fi.benjami.code4jvm.internal.ValueTools;
 
 public class Bytecode implements Expression {
-
-	public static Bytecode run(Type outputType, Value[] inputs, Consumer<MethodVisitor> emitter) {
+	
+	public interface Emitter {
+		void emit(MethodVisitor mv);
+		
+		default void emit(MethodVisitor mv, CompileContext ctx) {
+			emit(mv);
+		}
+	}
+	
+	public static Bytecode run(Type outputType, Value[] inputs, Consumer<CompileContext> emitter) {
 		return new Bytecode(outputType, inputs, emitter);
 	}
 	
@@ -26,11 +35,15 @@ public class Bytecode implements Expression {
 		return new Bytecode(outputType, inputs, null);
 	}
 	
+	public static Label requestLabel(Block block, Jump.Target position) {
+		return SharedSecrets.LABEL_GETTER.apply(block, position);
+	}
+	
 	private final Type outputType;
 	private final Value[] inputs;
-	private final Consumer<MethodVisitor> emitter;
+	private final Consumer<CompileContext> emitter;
 	
-	private Bytecode(Type outputType, Value[] inputs, Consumer<MethodVisitor> emitter) {
+	private Bytecode(Type outputType, Value[] inputs, Consumer<CompileContext> emitter) {
 		this.outputType = outputType;
 		this.inputs = inputs;
 		this.emitter = emitter;
@@ -50,39 +63,16 @@ public class Bytecode implements Expression {
 	}
 	
 	
-	public void emitBytecode(CompileContext ctx) {
+	public void emitBytecode(MethodCompilerState state) {
 		// Load inputs that are not in stack:
 		// - Inputs that are not on stack directly before this statement
 		// - Inputs that are in right place on stack, but need to be stored as local variables
-		var mv = ctx.asm();
-		var slotAllocator = ctx.slotAllocator();
+		var ctx = state.ctx();
 		for (var input : inputs) {
-			emitInput(mv, slotAllocator, input);
+			ValueTools.emitInput(state, input);
 		}
 		if (emitter != null) {			
-			emitter.accept(ctx.asm()); // Emit user bytecode
-		}
-	}
-	
-	private void emitInput(MethodVisitor mv, SlotAllocator slotAllocator, Value input) {
-		if (input instanceof Constant constant) {
-			mv.visitLdcInsn(constant.value());
-		} else if (input instanceof LocalVar localVar) {
-			if (localVar == LocalVar.EMPTY_MARKER) {
-				return; // Ignore and skip unknown input assert
-			}
-			if (!localVar.initialized) {
-				throw new IllegalStateException("uninitialized value: " + localVar);
-			}
-			if (localVar.needsSlot) {
-				mv.visitVarInsn(localVar.type().getOpcode(ILOAD), slotAllocator.get(localVar));
-			} // else: already on stack
-		} else if (input instanceof CastValue cast) {
-			// Recursively emit the original, then the required cast
-			emitInput(mv, slotAllocator, cast.original());
-			cast.emitCast(mv);
-		} else {
-			throw new AssertionError("unknown input: " + input);
+			emitter.accept(ctx); // Emit user bytecode
 		}
 	}
 	
@@ -96,14 +86,14 @@ public class Bytecode implements Expression {
 		}
 	}
 	
-	public void storeOutput(CompileContext ctx, LocalVar localVar) {
+	public void storeOutput(MethodCompilerState state, LocalVar localVar) {
 		if (localVar.needsSlot) {
-			var slot = ctx.slotAllocator().get(localVar);
+			var slot = state.slotAllocator().get(localVar);
 			// Special handling for uninitialized values that should NOT be stored
 			if (inputs.length == 1 && inputs[0] == LocalVar.EMPTY_MARKER) {
 				return;
 			}
-			ctx.asm().visitVarInsn(localVar.type().getOpcode(ISTORE), slot);
+			state.ctx().asm().visitVarInsn(localVar.type().getOpcode(ISTORE, state.ctx()), slot);
 		}
 		localVar.initialized = true;
 	}

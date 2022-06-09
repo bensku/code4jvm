@@ -16,14 +16,26 @@ import fi.benjami.code4jvm.Value;
 import fi.benjami.code4jvm.Variable;
 import fi.benjami.code4jvm.internal.BlockNode;
 import fi.benjami.code4jvm.internal.CodeNode;
-import fi.benjami.code4jvm.internal.CompileContext;
 import fi.benjami.code4jvm.internal.LocalVar;
+import fi.benjami.code4jvm.internal.MethodCompilerState;
 import fi.benjami.code4jvm.internal.NeedsBlockLabels;
 import fi.benjami.code4jvm.internal.Node;
+import fi.benjami.code4jvm.internal.ReturnImpl;
+import fi.benjami.code4jvm.internal.ReturnNode;
+import fi.benjami.code4jvm.internal.ReturnRedirect;
 import fi.benjami.code4jvm.internal.Scope;
+import fi.benjami.code4jvm.internal.SharedSecrets;
 import fi.benjami.code4jvm.statement.Bytecode;
+import fi.benjami.code4jvm.statement.Jump;
 
 public class Block {
+	
+	static {
+		// requestLabel is not public API, because we want to avoid limit
+		// use of ASM types in public API to statement.Bytecode
+		SharedSecrets.LABEL_GETTER = Block::requestLabel;
+		SharedSecrets.NODE_APPENDER = Block::addNode;
+	}
 	
 	public static Block create() {
 		return new Block();
@@ -107,7 +119,15 @@ public class Block {
 				block.endLabel = end;
 			}
 		}
-		stmt.emitVoid(this);
+		if (stmt instanceof ReturnImpl ret) {
+			// For returns, emit a special ReturnNode to support redirection
+			nodes.add(new ReturnNode(ret.value()));
+			if (ret.value() != null) {
+				scope.checkInputs(new Value[] {ret.value()});
+			}
+		} else {
+			stmt.emitVoid(this);
+		}
 	}
 	
 	public AddExpression add(Expression expr) {
@@ -126,9 +146,13 @@ public class Block {
 	
 	public void add(Block block) {
 		block.parent = this;
-		nodes.add(new BlockNode(block));
+		nodes.add(new BlockNode(block, null));
 		// Reset scope, stack will be gone after the newly added block
 		scope.reset();
+	}
+	
+	private void addNode(Node node) {
+		nodes.add(node);
 	}
 	
 	/**
@@ -145,8 +169,27 @@ public class Block {
 		}
 		hooks.put(key, hook);
 	}
+	
+	private Label requestLabel(Jump.Target position) {
+		return switch (position) {
+		case START -> {
+			if (startLabel == null) {
+				startLabel = new Label();
+			}
+			yield startLabel;
+		}
+		case END -> {
+			if (endLabel == null) {
+				endLabel = new Label();
+			}
+			yield endLabel;
+
+		}
+		};
+	}
 		
-	void emitBytecode(CompileContext ctx) {
+	void emitBytecode(MethodCompilerState state, ReturnRedirect returnRedirect) {
+		var ctx = state.ctx();
 		if (startLabel != null) {
 			ctx.asm().visitLabel(startLabel);
 		}
@@ -161,9 +204,12 @@ public class Block {
 		// Ask nodes to emit bytecode
 		for (var node : nodes) {
 			if (node instanceof BlockNode blockNode) {
-				blockNode.block().emitBytecode(ctx);
+				var redirect = blockNode.returnRedirect() != null ? blockNode.returnRedirect() : returnRedirect;
+				blockNode.block().emitBytecode(state, redirect);
 			} else if (node instanceof CodeNode codeNode) {
-				codeNode.emitBytecode(ctx);
+				codeNode.emitBytecode(state);
+			} else if (node instanceof ReturnNode returnNode) {
+				returnNode.emitBytecode(state, returnRedirect);
 			}
 		}
 		if (endLabel != null) {

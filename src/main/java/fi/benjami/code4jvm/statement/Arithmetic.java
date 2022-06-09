@@ -18,8 +18,8 @@ public class Arithmetic {
 		TypeCheck.mustEqual(lhs, rhs);
 		var type = lhs.type();
 		return block -> {
-			return block.add(Bytecode.run(type, new Value[] {lhs, rhs}, mv -> {
-				mv.visitInsn(type.getOpcode(IADD));
+			return block.add(Bytecode.run(type, new Value[] {lhs, rhs}, ctx -> {
+				ctx.asm().visitInsn(type.getOpcode(IADD, ctx));
 			})).value();
 		};
 	}
@@ -28,8 +28,8 @@ public class Arithmetic {
 		TypeCheck.mustEqual(lhs, rhs);
 		var type = lhs.type();
 		return block -> {
-			return block.add(Bytecode.run(type, new Value[] {lhs, rhs}, mv -> {
-				mv.visitInsn(type.getOpcode(ISUB));
+			return block.add(Bytecode.run(type, new Value[] {lhs, rhs}, ctx -> {
+				ctx.asm().visitInsn(type.getOpcode(ISUB, ctx));
 			})).value();
 		};
 	}
@@ -38,8 +38,8 @@ public class Arithmetic {
 		TypeCheck.mustEqual(lhs, rhs);
 		var type = lhs.type();
 		return block -> {
-			return block.add(Bytecode.run(type, new Value[] {lhs, rhs}, mv -> {
-				mv.visitInsn(type.getOpcode(IMUL));
+			return block.add(Bytecode.run(type, new Value[] {lhs, rhs}, ctx -> {
+				ctx.asm().visitInsn(type.getOpcode(IMUL, ctx));
 			})).value();
 		};
 	}
@@ -48,8 +48,8 @@ public class Arithmetic {
 		TypeCheck.mustEqual(lhs, rhs);
 		var type = lhs.type();
 		return block -> {
-			return block.add(Bytecode.run(type, new Value[] {lhs, rhs}, mv -> {
-				mv.visitInsn(type.getOpcode(IDIV));
+			return block.add(Bytecode.run(type, new Value[] {lhs, rhs}, ctx -> {
+				ctx.asm().visitInsn(type.getOpcode(IDIV, ctx));
 			})).value();
 		};
 	}
@@ -58,8 +58,8 @@ public class Arithmetic {
 		TypeCheck.mustEqual(lhs, rhs);
 		var type = lhs.type();
 		return block -> {
-			return block.add(Bytecode.run(type, new Value[] {lhs, rhs}, mv -> {
-				mv.visitInsn(type.getOpcode(ISUB));
+			return block.add(Bytecode.run(type, new Value[] {lhs, rhs}, ctx -> {
+				ctx.asm().visitInsn(type.getOpcode(ISUB, ctx));
 			})).value();
 		};
 	}

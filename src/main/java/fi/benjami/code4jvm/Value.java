@@ -43,16 +43,16 @@ public interface Value {
 	
 	default Expression getField(Type fieldType, String name) {
 		return block -> {
-			return block.add(Bytecode.run(fieldType, new Value[] {this}, mv -> {
-				mv.visitFieldInsn(GETFIELD, type().internalName(), name, fieldType.descriptor());
+			return block.add(Bytecode.run(fieldType, new Value[] {this}, ctx -> {
+				ctx.asm().visitFieldInsn(GETFIELD, type().internalName(), name, fieldType.descriptor());
 			})).value();
 		};
 	}
 	
 	default Statement putField(Type fieldType, String name, Value value) {
 		return block -> {
-			block.add(Bytecode.run(Type.VOID, new Value[] {this, value}, mv -> {
-				mv.visitFieldInsn(PUTFIELD, type().internalName(), name, fieldType.descriptor());
+			block.add(Bytecode.run(Type.VOID, new Value[] {this, value}, ctx -> {
+				ctx.asm().visitFieldInsn(PUTFIELD, type().internalName(), name, fieldType.descriptor());
 			}));
 		};
 	}

@@ -48,30 +48,30 @@ public final class FixedCallTarget extends CallTarget {
 		
 		return block -> {
 			return switch (linkage()) {
-			case STATIC -> block.add(Bytecode.run(returnType(), allArgs, mv -> {
-					mv.visitMethodInsn(INVOKESTATIC, owner.internalName(), name(),
+			case STATIC -> block.add(Bytecode.run(returnType(), allArgs, ctx -> {
+					ctx.asm().visitMethodInsn(INVOKESTATIC, owner.internalName(), name(),
 							TypeUtils.methodDescriptor(returnType(), argTypes()), owner.isInterface());
 				})).value();
 			// TODO first arg is this, take it out
-			case VIRTUAL -> block.add(Bytecode.run(returnType(), allArgs, mv -> {
-					mv.visitMethodInsn(INVOKEVIRTUAL, owner.internalName(), name(),
+			case VIRTUAL -> block.add(Bytecode.run(returnType(), allArgs, ctx -> {
+					ctx.asm().visitMethodInsn(INVOKEVIRTUAL, owner.internalName(), name(),
 							TypeUtils.instanceMethodDescriptor(returnType(), argTypes()), owner.isInterface());
 				})).value();
-			case INTERFACE -> block.add(Bytecode.run(returnType(), allArgs, mv -> {
-					mv.visitMethodInsn(INVOKEINTERFACE, owner.internalName(), name(),
+			case INTERFACE -> block.add(Bytecode.run(returnType(), allArgs, ctx -> {
+					ctx.asm().visitMethodInsn(INVOKEINTERFACE, owner.internalName(), name(),
 							TypeUtils.instanceMethodDescriptor(returnType(), argTypes()), owner.isInterface());
 				})).value();
-			case SPECIAL -> block.add(Bytecode.run(returnType(), allArgs, mv -> {
-					mv.visitMethodInsn(INVOKESPECIAL, owner.internalName(), name(),
+			case SPECIAL -> block.add(Bytecode.run(returnType(), allArgs, ctx -> {
+					ctx.asm().visitMethodInsn(INVOKESPECIAL, owner.internalName(), name(),
 							TypeUtils.instanceMethodDescriptor(returnType(), argTypes()), owner.isInterface());
 				})).value();
 			case INIT -> {
 				var ownerName = owner().internalName();
 				
 				// Create new object and leave two references of it to stack
-				var instance = block.add(Bytecode.run(returnType(), new Value[0], mv -> {
-					mv.visitTypeInsn(NEW, ownerName);
-					mv.visitInsn(DUP);
+				var instance = block.add(Bytecode.run(returnType(), new Value[0], ctx -> {
+					ctx.asm().visitTypeInsn(NEW, ownerName);
+					ctx.asm().visitInsn(DUP);
 				})).value();
 				
 				// Load arguments to stack on top of them
@@ -80,8 +80,8 @@ public final class FixedCallTarget extends CallTarget {
 				System.arraycopy(args, 0, inputs, 1, args.length);
 				
 				// Call constructor to consume one reference to object and all arguments
-				block.add(Bytecode.run(returnType(), inputs, mv -> {
-					mv.visitMethodInsn(INVOKESPECIAL, ownerName, "<init>",
+				block.add(Bytecode.run(returnType(), inputs, ctx -> {
+					ctx.asm().visitMethodInsn(INVOKESPECIAL, ownerName, "<init>",
 							TypeUtils.methodDescriptor(Type.VOID, argTypes()), false);
 				}));
 				

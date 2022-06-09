@@ -19,7 +19,7 @@ import fi.benjami.code4jvm.util.TypeUtils;
 public final class DynamicCallTarget extends CallTarget {
 
 	private final FixedCallTarget bootstrapMethod;
-		
+	
 	DynamicCallTarget(Type returnType, String name, Type[] argTypes, Value[] capturedArgs, FixedCallTarget bootstrapMethod) {
 		super(returnType, name, argTypes, Linkage.DYNAMIC, capturedArgs);
 		this.bootstrapMethod = bootstrapMethod;
@@ -45,13 +45,13 @@ public final class DynamicCallTarget extends CallTarget {
 		var allArgs = CallTarget.mergeArgs(capturedArgs(), args);
 		var argTypes = Arrays.stream(allArgs).map(Value::type).toArray(Type[]::new);
 		return block -> {
-			return block.add(Bytecode.run(returnType(), allArgs, mv -> {
+			return block.add(Bytecode.run(returnType(), allArgs, ctx -> {
 				// Bootstrap arguments are just arguments the bootstrapMethod has captured!
 				var bootstrapArgs = Arrays.stream(bootstrapMethod.capturedArgs())
 						.map(val -> ((Constant) val).asmValue())
 						.toArray();
 				
-				mv.visitInvokeDynamicInsn(name(),
+				ctx.asm().visitInvokeDynamicInsn(name(),
 						TypeUtils.methodDescriptor(returnType(), argTypes),
 						bootstrapMethod.toMethodHandle(),
 						bootstrapArgs);

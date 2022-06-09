@@ -1,5 +1,5 @@
 package fi.benjami.code4jvm.internal;
 
-public interface Node {
+public sealed interface Node permits BlockNode, CodeNode, ReturnNode {
 
 }

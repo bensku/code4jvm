@@ -86,10 +86,10 @@ public class LocalVar implements Variable {
 	public Statement set(Value value) {
 		TypeCheck.mustEqual(this, value);
 		return block -> {
-			block.add(Bytecode.run(Type.VOID, new Value[] {value}, mv -> {
+			block.add(Bytecode.run(Type.VOID, new Value[] {value}, ctx -> {
 				if (needsSlot) {
 					assert assignedSlot != -1 : "set(Value) on untracked variable " + toString();
-					mv.visitVarInsn(type.getOpcode(ISTORE), assignedSlot);
+					ctx.asm().visitVarInsn(type.getOpcode(ISTORE, ctx), assignedSlot);
 				} // else: nothing seems to read this variable, so stores to it don't matter
 				initialized = true; // This variable received a value
 			}));

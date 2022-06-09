@@ -57,7 +57,8 @@ public class Jump implements Statement, NeedsBlockLabels {
 			var type = condition.values()[0].type();
 			var isObject = type.isObject();
 			var intLike = TypeUtils.isIntLike(type);
-			block.add(Bytecode.run(Type.VOID, condition.values(), mv -> {
+			block.add(Bytecode.run(Type.VOID, condition.values(), ctx -> {
+				var mv = ctx.asm();
 				switch (condition.type()) {
 				case REF_EQUAL -> mv.visitJumpInsn(IF_ACMPEQ, label);
 				case REF_NOT_EQUAL -> mv.visitJumpInsn(IF_ACMPNE, label);
@@ -144,8 +145,8 @@ public class Jump implements Statement, NeedsBlockLabels {
 				}				
 			}));
 		} else {			
-			block.add(Bytecode.run(Type.VOID, new Value[0], mv -> {
-				mv.visitJumpInsn(GOTO, label);
+			block.add(Bytecode.run(Type.VOID, new Value[0], ctx -> {
+				ctx.asm().visitJumpInsn(GOTO, label);
 			}));
 		}
 	}

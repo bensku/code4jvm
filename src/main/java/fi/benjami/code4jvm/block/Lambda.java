@@ -70,7 +70,7 @@ public class Lambda extends Routine {
 	}
 	
 	private void setupHiddenMethod(ClassDef def) {
-		if (backingMethod == null) {			
+		if (backingMethod == null) {
 			backingMethod = addStaticMethod(def);
 		}
 	}
@@ -87,8 +87,8 @@ public class Lambda extends Routine {
 			block.setCompileHook(this, this::setupHiddenMethod);
 			// Setup static call without StaticCallTarget, because we don't have the target up-front
 			// (method is generated just before bytecode generation)
-			return block.add(Bytecode.run(returnType(), args, mv -> {
-				mv.visitMethodInsn(INVOKESTATIC, backingMethod.owner().internalName(), backingMethod.name(),
+			return block.add(Bytecode.run(returnType(), args, ctx -> {
+				ctx.asm().visitMethodInsn(INVOKESTATIC, backingMethod.owner().internalName(), backingMethod.name(),
 						TypeUtils.methodDescriptor(returnType(), backingMethod.argTypes()), backingMethod.owner().isInterface());
 			})).value();
 		};
@@ -129,7 +129,7 @@ public class Lambda extends Routine {
 	public Expression newInstance(Type interfaceType, String methodName, Value... capturedArgs) {
 		return block -> {
 			block.setCompileHook(this, this::setupHiddenMethod);
-			return block.add(Bytecode.run(interfaceType, capturedArgs, mv -> {
+			return block.add(Bytecode.run(interfaceType, capturedArgs, ctx -> {
 				// Set up invokedynamic call to method that creates instance of the lambda
 				// with LambdaMetafactory#metafactory as bootstrap
 				// Captured values are given as arguments
@@ -141,7 +141,7 @@ public class Lambda extends Routine {
 						backingMethod.toMethodHandle(), // implementation
 						interfaceMethodType // dynamicMethodType
 				};
-				mv.visitInvokeDynamicInsn(methodName,
+				ctx.asm().visitInvokeDynamicInsn(methodName,
 						TypeUtils.methodDescriptor(interfaceType, capturedTypes),
 						LAMBDA_METAFACTORY,
 						bootstrapArgs);

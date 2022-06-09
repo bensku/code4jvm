@@ -2,7 +2,7 @@ package fi.benjami.code4jvm.internal;
 
 import fi.benjami.code4jvm.statement.Bytecode;
 
-public class CodeNode implements Node {
+public final class CodeNode implements Node {
 	
 	private final Bytecode statement;
 	private LocalVar assignedVar;
@@ -15,12 +15,12 @@ public class CodeNode implements Node {
 		this.assignedVar = localVar;
 	}
 	
-	public void emitBytecode(CompileContext ctx) {
-		statement.emitBytecode(ctx);
+	public void emitBytecode(MethodCompilerState state) {
+		statement.emitBytecode(state);
 		if (assignedVar != null) {
-			statement.storeOutput(ctx, assignedVar);
+			statement.storeOutput(state, assignedVar);
 		} else {
-			statement.discardOutput(ctx);
+			statement.discardOutput(state.ctx());
 		}
 	}
 }

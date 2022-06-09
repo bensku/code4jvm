@@ -3,6 +3,7 @@ package fi.benjami.code4jvm;
 
 import java.util.Arrays;
 
+import fi.benjami.code4jvm.block.CompileContext;
 import fi.benjami.code4jvm.call.CallTarget;
 import fi.benjami.code4jvm.call.FixedCallTarget;
 import fi.benjami.code4jvm.statement.Bytecode;
@@ -59,6 +60,8 @@ public class Type {
 	// j.l.Object is used so often that a constant is nice to have
 	public static final Type OBJECT = new Type("java.lang.Object", "java/lang/Object", KIND_CLASS, "Ljava/lang/Object;", 0, OBJ_OPCODES);
 	
+	public static final Type METHOD_RETURN_TYPE = new Type("code4jvm.special.MethodReturn", "code4jvm/special/MethodReturn",
+			new TypeOpcodes(NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP));
 
 	public static Type of(String name, boolean isInterface) {
 		return switch (name) {
@@ -225,21 +228,25 @@ public class Type {
 	
 	public Expression getStatic(Type fieldType, String name) {
 		return block -> {
-			return block.add(Bytecode.run(fieldType, new Value[0], mv -> {
-				mv.visitFieldInsn(GETSTATIC, internalName(), name, fieldType.descriptor());
+			return block.add(Bytecode.run(fieldType, new Value[0], ctx -> {
+				ctx.asm().visitFieldInsn(GETSTATIC, internalName(), name, fieldType.descriptor());
 			})).value();
 		};
 	}
 	
 	public Statement putStatic(Type fieldType, String name, Value value) {
 		return block -> {
-			block.add(Bytecode.run(Type.VOID, new Value[] {value}, mv -> {
-				mv.visitFieldInsn(PUTSTATIC, internalName(), name, fieldType.descriptor());
+			block.add(Bytecode.run(Type.VOID, new Value[] {value}, ctx -> {
+				ctx.asm().visitFieldInsn(PUTSTATIC, internalName(), name, fieldType.descriptor());
 			}));
 		};
 	}
 	
-	public int getOpcode(int intOpcode) {
+	public int getOpcode(int intOpcode, CompileContext ctx) {
+		if (this == METHOD_RETURN_TYPE) {
+			// Special case, get method return type and call getOpcode on that
+			return ctx.method().returnType().getOpcode(intOpcode, null);
+		}
 		var opcode = switch (intOpcode) {
 		case ILOAD -> opcodes.load;
 		case ISTORE -> opcodes.store;
