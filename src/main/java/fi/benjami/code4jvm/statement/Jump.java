@@ -1,6 +1,5 @@
 package fi.benjami.code4jvm.statement;
 
-import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 
 import fi.benjami.code4jvm.Condition;
@@ -8,12 +7,11 @@ import fi.benjami.code4jvm.Statement;
 import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.Value;
 import fi.benjami.code4jvm.block.Block;
-import fi.benjami.code4jvm.internal.NeedsBlockLabels;
 import fi.benjami.code4jvm.util.TypeUtils;
 
 import static org.objectweb.asm.Opcodes.*;
 
-public class Jump implements Statement, NeedsBlockLabels {
+public class Jump implements Statement {
 	
 	public enum Target {
 		START,
@@ -28,31 +26,19 @@ public class Jump implements Statement, NeedsBlockLabels {
 		return to(block, target, null);
 	}
 	
-	private final Block block;
+	private final Block targetBlock;
 	private final Target target;
 	private final Condition condition;
-	
-	private Label label;
-	
+		
 	private Jump(Block block, Target target, Condition condition) {
-		this.block = block;
+		this.targetBlock = block;
 		this.target = target;
 		this.condition = condition;
-	}
-	
-	@Override
-	public Block targetBlock() {
-		return block;
-	}
-	
-	@Override
-	public int setLabels(Label start, Label end) {
-		label = target == Target.START ? start : end;
-		return target == Target.START ? NeedsBlockLabels.NEED_START : NeedsBlockLabels.NEED_END;
 	}
 
 	@Override
 	public void emitVoid(Block block) {
+		var label = Bytecode.requestLabel(targetBlock, target);
 		if (condition != null) {
 			var type = condition.values()[0].type();
 			var isObject = type.isObject();

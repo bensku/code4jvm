@@ -18,7 +18,6 @@ import fi.benjami.code4jvm.internal.BlockNode;
 import fi.benjami.code4jvm.internal.CodeNode;
 import fi.benjami.code4jvm.internal.LocalVar;
 import fi.benjami.code4jvm.internal.MethodCompilerState;
-import fi.benjami.code4jvm.internal.NeedsBlockLabels;
 import fi.benjami.code4jvm.internal.Node;
 import fi.benjami.code4jvm.internal.ReturnImpl;
 import fi.benjami.code4jvm.internal.ReturnNode;
@@ -104,21 +103,6 @@ public class Block {
 	}
 	
 	public void add(Statement stmt) {
-		if (stmt instanceof NeedsBlockLabels labelConsumer) {
-			// Note that the jump (or whatever else) could lead to another block!
-			var block = labelConsumer.targetBlock();
-			var start = block.startLabel != null ? block.startLabel : new Label();
-			var end = block.endLabel != null ? block.endLabel : new Label();
-			var needs = labelConsumer.setLabels(start, end);
-			
-			// Make sure that the needed labels are actually given to ASM
-			if ((needs & NeedsBlockLabels.NEED_START) != 0) {
-				block.startLabel = start;
-			}
-			if ((needs & NeedsBlockLabels.NEED_END) != 0) {
-				block.endLabel = end;
-			}
-		}
 		if (stmt instanceof ReturnImpl ret) {
 			// For returns, emit a special ReturnNode to support redirection
 			nodes.add(new ReturnNode(ret.value()));
