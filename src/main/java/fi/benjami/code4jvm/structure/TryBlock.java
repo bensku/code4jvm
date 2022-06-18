@@ -10,7 +10,6 @@ import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.Value;
 import fi.benjami.code4jvm.block.Block;
 import fi.benjami.code4jvm.internal.BlockNode;
-import fi.benjami.code4jvm.internal.LazyValue;
 import fi.benjami.code4jvm.internal.LocalVar;
 import fi.benjami.code4jvm.internal.ReturnRedirect;
 import fi.benjami.code4jvm.internal.SharedSecrets;
@@ -37,7 +36,7 @@ public class TryBlock implements Statement {
 			 */
 			Type type,
 			Block handler,
-			LazyValue caughtValue
+			LocalVar caughtValue
 	) {}
 	
 	/**
@@ -67,15 +66,17 @@ public class TryBlock implements Statement {
 	private Block exitHook;
 	
 	private Block returnHook;
-	private final LazyValue returnedValue;
+	private final LocalVar returnedValue;
 	
 	private Block throwHook;
-	private LazyValue thrownValue;
+	private final LocalVar thrownValue;
 	
 	private TryBlock(Block main) {
 		this.main = main;
 		this.catchBlocks = new ArrayList<>();
-		this.returnedValue = new LazyValue(Type.METHOD_RETURN_TYPE);
+		// TODO parent blocks are technically incorrect, worry about that later
+		this.returnedValue = new LocalVar(Type.METHOD_RETURN_TYPE, main);
+		this.thrownValue = new LocalVar(Type.of(Throwable.class), main);
 	}
 	
 	/**
@@ -85,10 +86,11 @@ public class TryBlock implements Statement {
 	 * @return The caught exception, available inside the handler.
 	 */
 	public Value addCatch(Type exception, Block handler) {
-		var caughtValue = new LazyValue(exception);
-		catchBlocks.add(new Catch(exception, handler, caughtValue));
-		
-		// Exception is added to stack by JVM
+		var parent = Block.create(); // Wrap handler to make caughtValue available
+		var caughtValue = new LocalVar(exception, parent);
+		parent.add(caughtValue.storeToThis()); // Added to stack by VM
+		parent.add(handler);
+		catchBlocks.add(new Catch(exception, parent, caughtValue));
 		return caughtValue;
 	}
 	
@@ -102,8 +104,12 @@ public class TryBlock implements Statement {
 	 */
 	public TryBlock addCatch(Type exception, BiConsumer<Block, Value> callback) {
 		var handler = Block.create();
-		var thrownValue = addCatch(exception, handler);
-		callback.accept(handler, thrownValue);
+		var caughtValue = new LocalVar(exception, handler);
+		handler.add(caughtValue.storeToThis()); // Added to stack by VM
+		
+		// Don't call addCatch(Type, Block) to avoid unnecessary extra block
+		catchBlocks.add(new Catch(exception, handler, caughtValue));
+		callback.accept(handler, caughtValue);
 		return this;
 	}
 	
@@ -181,7 +187,6 @@ public class TryBlock implements Statement {
 	 */
 	public Value addThrowHook(Block hook) {
 		throwHook = hook;
-		thrownValue = new LazyValue(Type.of(Throwable.class));
 		return thrownValue;
 	}
 	
@@ -230,14 +235,11 @@ public class TryBlock implements Statement {
 		if (hasReturnHandler) {
 			// Exit via return in main OR any of the catch blocks
 			exitViaReturn = Block.create();
-			
-			// Create an uninitialized local variable where return values are captured
-			// METHOD_RETURN_TYPE is translated to return type of current method by Type#getOpcode()
-			var localVar = (LocalVar) root.add(Value.uninitialized(Type.METHOD_RETURN_TYPE)).variable();
-			localVar.initialized = true; // If it is used, it has also been initialized
-			localVar.needsSlot = true; // ReturnNode needs to store to this
-			returnRedirect = new ReturnRedirect(Bytecode.requestLabel(exitViaReturn, Jump.Target.START), localVar);
-			returnedValue.value = localVar;
+
+			// Capture return to a previously created local variable
+			returnedValue.initialized = true; // If it is used, it has also been initialized
+			returnedValue.needsSlot = true; // ReturnNode needs to store to this
+			returnRedirect = new ReturnRedirect(Bytecode.requestLabel(exitViaReturn, Jump.Target.START), returnedValue);
 			
 			if (exitHook != null) {
 				exitViaReturn.add(exitHook);
@@ -250,7 +252,7 @@ public class TryBlock implements Statement {
 					exitViaReturn.add(Jump.to(root, Jump.Target.END));
 				}
 			} else {
-				exitViaReturn.add(Return.value(returnedValue.value));
+				exitViaReturn.add(Return.value(returnedValue));
 			}
 		}
 		Block exitViaThrow = null;
@@ -258,15 +260,14 @@ public class TryBlock implements Statement {
 			// Exit via throw in main OR any of the catch blocks
 			exitViaThrow = Block.create();
 			// VM adds thrown value at top of the stack
-			var exception = exitViaThrow.add(Bytecode.stub(Type.of(Throwable.class), new Value[0])).value();
-			if (exitHook != null) {				
+			exitViaThrow.add(thrownValue.storeToThis());
+			if (exitHook != null) {
 				exitViaThrow.add(exitHook);
 			}
 			if (throwHook != null) {
-				thrownValue.value = exception;
 				exitViaThrow.add(throwHook);
 			} else {
-				exitViaThrow.add(Throw.value(exception)); // Re-throw by default
+				exitViaThrow.add(Throw.value(thrownValue)); // Re-throw by default
 			}
 			
 			// Add catch-all handler to exception table
@@ -298,8 +299,6 @@ public class TryBlock implements Statement {
 			
 			// Add catch blocks
 			for (var clause : catchBlocks) {
-				var exception = outer.add(Bytecode.stub(clause.type, new Value[0])).value();
-				clause.caughtValue.value = exception; // Initialize lazy value
 				outer.add(clause.handler);
 				// Handled exception is considered a normal exit
 				outer.add(Jump.to(normalExit, Jump.Target.START));

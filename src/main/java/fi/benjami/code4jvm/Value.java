@@ -25,6 +25,8 @@ public interface Value {
 	
 	Optional<String> name();
 	
+	Value original();
+	
 	default Value cast(Type to) {
 		return CastValue.cast(this, to);
 	}

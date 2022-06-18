@@ -2,6 +2,7 @@ package fi.benjami.code4jvm.internal;
 
 import java.util.Optional;
 
+import fi.benjami.code4jvm.Expression;
 import fi.benjami.code4jvm.Statement;
 import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.Value;
@@ -39,6 +40,12 @@ public class LocalVar implements Variable {
 	 * <p>Used in bytecode generation phase.
 	 */
 	public boolean initialized;
+	
+	/**
+	 * Whether or not this value is used as an input. Unused values are
+	 * discarded.
+	 */
+	public boolean used;
 	
 	/**
 	 * Whether or not this needs a local variable slot. Values that are used
@@ -81,6 +88,11 @@ public class LocalVar implements Variable {
 	public void name(String name) {
 		this.name = name;
 	}
+	
+	@Override
+	public Value original() {
+		return this;
+	}
 
 	@Override
 	public Statement set(Value value) {
@@ -96,8 +108,20 @@ public class LocalVar implements Variable {
 		};
 	}
 	
+	public Expression storeToThis() {
+		return block -> {
+			var node = new CodeNode(Bytecode.stub(type, new Value[0]));
+			node.assignVar(this);
+			SharedSecrets.NODE_APPENDER.accept(block, node);
+			return this;
+		};
+	}
+	
 	@Override
 	public String toString() {
+		if (this == EMPTY_MARKER) {
+			return "LocalVar.EMPTY_MARKER";
+		}
 		return "LocalVar{" + type + " " + assignedSlot + (name != null ? " " + name : "") + "}";
 	}
 }

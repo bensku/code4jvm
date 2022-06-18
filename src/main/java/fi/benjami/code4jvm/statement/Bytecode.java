@@ -2,6 +2,7 @@ package fi.benjami.code4jvm.statement;
 
 import static org.objectweb.asm.Opcodes.*;
 
+import java.util.Arrays;
 import java.util.function.Consumer;
 
 import org.objectweb.asm.Label;
@@ -87,14 +88,17 @@ public class Bytecode implements Expression {
 	}
 	
 	public void storeOutput(MethodCompilerState state, LocalVar localVar) {
+		// Special handling for uninitialized values that should NOT be stored
+		// Currently, they are only created by LocalVar#uninitialized(Type)
+		var initialize = inputs.length != 1 || inputs[0] != LocalVar.EMPTY_MARKER;
 		if (localVar.needsSlot) {
 			var slot = state.slotAllocator().get(localVar);
-			// Special handling for uninitialized values that should NOT be stored
-			if (inputs.length == 1 && inputs[0] == LocalVar.EMPTY_MARKER) {
-				return;
+			if (initialize) {
+				state.ctx().asm().visitVarInsn(localVar.type().getOpcode(ISTORE, state.ctx()), slot);
 			}
-			state.ctx().asm().visitVarInsn(localVar.type().getOpcode(ISTORE, state.ctx()), slot);
 		}
-		localVar.initialized = true;
+		if (initialize) {
+			localVar.initialized = true;
+		}
 	}
 }

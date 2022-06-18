@@ -60,7 +60,6 @@ public class IfBlockTest {
 					block.add(Return.value(Constant.of("else")));
 				}));
 		method.add(Return.value(Constant.of("fail")));
-		Files.write(Path.of("Debug.class"), def.compile());
 		
 		var lookup = LOOKUP.defineHiddenClass(def.compile(new CompileOptions(true)), true);
 		@SuppressWarnings("unchecked")

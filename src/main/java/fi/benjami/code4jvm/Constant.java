@@ -66,4 +66,9 @@ public class Constant implements Value {
 		return Optional.empty();
 	}
 
+	@Override
+	public Value original() {
+		return this;
+	}
+
 }

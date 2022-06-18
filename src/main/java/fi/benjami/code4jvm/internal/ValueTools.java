@@ -26,10 +26,6 @@ public class ValueTools {
 			// Recursively emit the original, then the required cast
 			emitInput(state, cast.original());
 			cast.emitCast(mv);
-		} else if (input instanceof LazyValue lazy) {
-			// The real value SHOULD be there... it'll be trouble if it is not
-			assert lazy.value != null : "lazy value not available";
-			emitInput(state, lazy.value);
 		} else {
 			throw new AssertionError("unknown input: " + input);
 		}

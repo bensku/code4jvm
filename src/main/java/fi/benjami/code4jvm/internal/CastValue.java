@@ -155,6 +155,7 @@ public class CastValue implements Value {
 		return original.name();
 	}
 	
+	@Override
 	public Value original() {
 		return original;
 	}

@@ -17,7 +17,7 @@ public final class CodeNode implements Node {
 	
 	public void emitBytecode(MethodCompilerState state) {
 		statement.emitBytecode(state);
-		if (assignedVar != null) {
+		if (assignedVar != null && assignedVar.used) {
 			statement.storeOutput(state, assignedVar);
 		} else {
 			statement.discardOutput(state.ctx());
