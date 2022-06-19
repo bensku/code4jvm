@@ -98,7 +98,12 @@ public class Scope {
 	private boolean validateOnReset() {
 		for (var value : stack) {
 			if (value.original() instanceof LocalVar localVar) {
-				assert localVar.used : "used stack value " + value;
+				// JVM stack should be clear when a block ends
+				// For this reason, values that are used (i.e. not discarded)
+				// and stored in stack (instead of local variables) MUST not exit
+				// when the scope is reset
+				// Anything else indicates a bug in our code
+				assert !localVar.used || localVar.needsSlot : "stack value should have been discarded: " + value;
 			}
 		}
 		return true;
