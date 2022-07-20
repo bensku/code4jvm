@@ -49,8 +49,7 @@ public class Routine {
 	 * @return Value that represents the argument.
 	 */
 	public Value arg(Type type, String name) {
-		var localVar = new LocalVar(type, block);
-		localVar.initialized = true; // Arguments are always initialized (but can be null)
+		var localVar = new LocalVar(type, true);
 		localVar.name(name);
 		argsAllocator.get(localVar);
 		args.add(localVar);

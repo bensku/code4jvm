@@ -10,8 +10,8 @@ import fi.benjami.code4jvm.Value;
 import fi.benjami.code4jvm.call.CallTarget;
 import fi.benjami.code4jvm.call.FixedCallTarget;
 import fi.benjami.code4jvm.flag.Access;
+import fi.benjami.code4jvm.internal.FrameManager;
 import fi.benjami.code4jvm.internal.MethodCompilerState;
-import fi.benjami.code4jvm.internal.SlotAllocator;
 import fi.benjami.code4jvm.util.TypeUtils;
 
 import static org.objectweb.asm.Opcodes.*;
@@ -43,14 +43,21 @@ public class MethodCompiler {
 			mv = new CheckMethodAdapter(mv);
 		}
 		
+		var slotAllocator = method.argsAllocator; // Start allocating other values after this + args
+		// TODO can we just re-use args allocator safely?
+		// Compute stack map table frames
+		if (!method.framesComputed) {
+			new FrameBuilder(slotAllocator).trace(method);
+			method.framesComputed = true;
+		}
+		
 		var ctx = new CompileContext(owner, getTarget(method.access, method.returnType(), method.name(), argTypes), mv, options);
-		// Start allocating other values after this references + args
-		var state = new MethodCompilerState(ctx, new SlotAllocator(method.argsAllocator));
-				
+		var state = new MethodCompilerState(ctx, slotAllocator, new FrameManager(method, slotAllocator));
+		
 		// Emit method content
 		// TODO support abstract methods?
 		mv.visitCode();
-		method.block().emitBytecode(state, null);
+		method.block().emitBytecode(state);
 		mv.visitEnd();
 		mv.visitMaxs(0, 0);
 	}

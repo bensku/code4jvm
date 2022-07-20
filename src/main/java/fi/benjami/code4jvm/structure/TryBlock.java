@@ -5,14 +5,14 @@ import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
+import org.objectweb.asm.Label;
+
 import fi.benjami.code4jvm.Statement;
 import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.Value;
+import fi.benjami.code4jvm.Variable;
 import fi.benjami.code4jvm.block.Block;
-import fi.benjami.code4jvm.internal.BlockNode;
-import fi.benjami.code4jvm.internal.LocalVar;
-import fi.benjami.code4jvm.internal.ReturnRedirect;
-import fi.benjami.code4jvm.internal.SharedSecrets;
+import fi.benjami.code4jvm.block.ReturnRedirect;
 import fi.benjami.code4jvm.statement.Bytecode;
 import fi.benjami.code4jvm.statement.Jump;
 import fi.benjami.code4jvm.statement.Return;
@@ -36,7 +36,7 @@ public class TryBlock implements Statement {
 			 */
 			Type type,
 			Block handler,
-			LocalVar caughtValue
+			Variable caughtValue
 	) {}
 	
 	/**
@@ -66,17 +66,16 @@ public class TryBlock implements Statement {
 	private Block exitHook;
 	
 	private Block returnHook;
-	private final LocalVar returnedValue;
+	private final Variable returnedValue;
 	
 	private Block throwHook;
-	private final LocalVar thrownValue;
+	private final Variable thrownValue;
 	
 	private TryBlock(Block main) {
 		this.main = main;
 		this.catchBlocks = new ArrayList<>();
-		// TODO parent blocks are technically incorrect, worry about that later
-		this.returnedValue = new LocalVar(Type.METHOD_RETURN_TYPE, main);
-		this.thrownValue = new LocalVar(Type.of(Throwable.class), main);
+		this.returnedValue = Variable.createUnbound(Type.METHOD_RETURN_TYPE);
+		this.thrownValue = Variable.createUnbound(Type.of(Throwable.class));
 	}
 	
 	/**
@@ -87,8 +86,8 @@ public class TryBlock implements Statement {
 	 */
 	public Value addCatch(Type exception, Block handler) {
 		var parent = Block.create(); // Wrap handler to make caughtValue available
-		var caughtValue = new LocalVar(exception, parent);
-		parent.add(caughtValue.storeToThis()); // Added to stack by VM
+		var caughtValue = Variable.createUnbound(exception);
+		parent.add(caughtValue.set(Value.stackTop(exception))); // Added to stack by VM
 		parent.add(handler);
 		catchBlocks.add(new Catch(exception, parent, caughtValue));
 		return caughtValue;
@@ -104,8 +103,8 @@ public class TryBlock implements Statement {
 	 */
 	public TryBlock addCatch(Type exception, BiConsumer<Block, Value> callback) {
 		var handler = Block.create();
-		var caughtValue = new LocalVar(exception, handler);
-		handler.add(caughtValue.storeToThis()); // Added to stack by VM
+		var caughtValue = Variable.createUnbound(exception);
+		handler.add(caughtValue.set(Value.stackTop(exception))); // Added to stack by VM
 		
 		// Don't call addCatch(Type, Block) to avoid unnecessary extra block
 		catchBlocks.add(new Catch(exception, handler, caughtValue));
@@ -211,8 +210,6 @@ public class TryBlock implements Statement {
 	public void emitVoid(Block block) {
 		var root = Block.create();
 		var outer = Block.create();
-		var mainStart = Bytecode.requestLabel(main, Jump.Target.START);
-		var mainEnd = Bytecode.requestLabel(main, Jump.Target.END);
 		
 		// Generate code for exit, return and throw hooks (Java 'finally' block with bells and whistles)
 		// It is assumed that the exit hook is quite short, so we'll just copy it like javac does
@@ -237,12 +234,10 @@ public class TryBlock implements Statement {
 			exitViaReturn = Block.create();
 
 			// Capture return to a previously created local variable
-			returnedValue.initialized = true; // If it is used, it has also been initialized
-			returnedValue.needsSlot = true; // ReturnNode needs to store to this
-			returnRedirect = new ReturnRedirect(Bytecode.requestLabel(exitViaReturn, Jump.Target.START), returnedValue);
+			returnRedirect = new ReturnRedirect(exitViaReturn, returnedValue);
 			
 			if (exitHook != null) {
-				exitViaReturn.add(exitHook);
+				exitViaReturn.add(exitHook.copy());
 			}
 			if (returnHook != null) {
 				exitViaReturn.add(returnHook);
@@ -260,9 +255,9 @@ public class TryBlock implements Statement {
 			// Exit via throw in main OR any of the catch blocks
 			exitViaThrow = Block.create();
 			// VM adds thrown value at top of the stack
-			exitViaThrow.add(thrownValue.storeToThis());
+			exitViaThrow.add(thrownValue.set(Value.stackTop(Type.of(Throwable.class))));
 			if (exitHook != null) {
-				exitViaThrow.add(exitHook);
+				exitViaThrow.add(exitHook.copy());
 			}
 			if (throwHook != null) {
 				exitViaThrow.add(throwHook);
@@ -271,12 +266,19 @@ public class TryBlock implements Statement {
 			}
 			
 			// Add catch-all handler to exception table
-			var outerStart = Bytecode.requestLabel(outer, Jump.Target.START);
-			var outerEnd = Bytecode.requestLabel(outer, Jump.Target.END);
-			var handler = Bytecode.requestLabel(exitViaThrow, Jump.Target.START);
+			var outerStart = outer.requestLabel(Jump.Target.START);
+			var outerEnd = outer.requestLabel(Jump.Target.END);
+			var handler = outer.add(new Block.Edge(exitViaThrow, Jump.Target.START, true, new Type[] {Type.of(Throwable.class)}));
 			root.add(Bytecode.run(Type.VOID, new Value[0], ctx -> {
 				ctx.asm().visitTryCatchBlock(outerStart, outerEnd, handler, null);
 			}));
+		}
+		
+		// Add edges for exception handlers
+		Label[] labels = new Label[catchBlocks.size()];
+		for (int i = 0; i < catchBlocks.size(); i++) {
+			var clause = catchBlocks.get(i);
+			labels[i] = outer.add(new Block.Edge(clause.handler, Jump.Target.START, true, new Type[] {clause.type}));
 		}
 		
 		// Add main content to outer (not root) block
@@ -289,11 +291,15 @@ public class TryBlock implements Statement {
 		
 		// Add catch blocks for exceptions to outer block
 		if (!catchBlocks.isEmpty()) {
+			// Main labels are exclusively for defining catch block boundaries
+			var mainStart = main.requestLabel(Jump.Target.START);
+			var mainEnd = main.requestLabel(Jump.Target.END);
+			
 			// Register exception handlers
 			root.add(Bytecode.run(Type.VOID, new Value[0], ctx -> {
-				for (var clause : catchBlocks) {
-					var handler = Bytecode.requestLabel(clause.handler, Jump.Target.START);
-					ctx.asm().visitTryCatchBlock(mainStart, mainEnd, handler, clause.type.internalName());
+				for (int i = 0; i < catchBlocks.size(); i++) {
+					ctx.asm().visitTryCatchBlock(mainStart, mainEnd, labels[i],
+							catchBlocks.get(i).type().internalName());
 				}
 			}));
 			
@@ -309,11 +315,9 @@ public class TryBlock implements Statement {
 		// This is needed since the exit hooks should be called even for
 		// exception handlers
 		if (hasReturnHandler) {
-			// Add block with return redirect
-			SharedSecrets.NODE_APPENDER.accept(root, new BlockNode(outer, returnRedirect));
-		} else {			
-			root.add(outer);
+			outer.setReturnRedirect(returnRedirect);
 		}
+		root.add(outer);
 		
 		// Emit previously generated hooks after outer block, directly to root
 		root.add(normalExit);

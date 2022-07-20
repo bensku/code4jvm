@@ -11,11 +11,16 @@ import java.util.function.Supplier;
 import org.junit.jupiter.api.Test;
 
 import fi.benjami.code4jvm.ClassDef;
+import fi.benjami.code4jvm.Condition;
 import fi.benjami.code4jvm.Constant;
 import fi.benjami.code4jvm.Type;
-import fi.benjami.code4jvm.Value;
+import fi.benjami.code4jvm.UninitializedValueException;
+import fi.benjami.code4jvm.Variable;
+import fi.benjami.code4jvm.block.Block;
 import fi.benjami.code4jvm.block.Method;
 import fi.benjami.code4jvm.flag.Access;
+import fi.benjami.code4jvm.statement.Arithmetic;
+import fi.benjami.code4jvm.statement.Jump;
 import fi.benjami.code4jvm.statement.Return;
 
 public class ValuesTest {
@@ -164,13 +169,13 @@ public class ValuesTest {
 	}
 	
 	@Test
-	public void uninitialized() throws Throwable {
-		var def = ClassDef.create("fi.benjami.code4jvm.test.EmptyValue", Access.PUBLIC);
+	public void unboundValue() throws Throwable {
+		var def = ClassDef.create("fi.benjami.code4jvm.test.UnboundValue", Access.PUBLIC);
 		def.interfaces(Type.of(Supplier.class));
 		def.addEmptyConstructor(Access.PUBLIC);
 		
 		var method = def.addMethod(Type.of(Object.class), "get", Access.PUBLIC);
-		var value = method.add(Value.uninitialized(Type.of(String.class))).variable();
+		var value = Variable.createUnbound(Type.of(String.class));
 		method.add(value.set(Constant.of("ok")));
 		method.add(Return.value(value));
 		
@@ -180,16 +185,51 @@ public class ValuesTest {
 	}
 	
 	@Test
-	public void uninitializedError() throws Throwable {
-		var def = ClassDef.create("fi.benjami.code4jvm.test.EmptyValueError", Access.PUBLIC);
+	public void unboundValueError() throws Throwable {
+		var def = ClassDef.create("fi.benjami.code4jvm.test.UnboundValueError", Access.PUBLIC);
 		def.interfaces(Type.of(Supplier.class));
 		def.addEmptyConstructor(Access.PUBLIC);
 		
 		var method = def.addMethod(Type.of(Object.class), "get", Access.PUBLIC);
-		var value = method.add(Value.uninitialized(Type.of(String.class))).variable();
+		var value = Variable.createUnbound(Type.of(String.class));
 		value.set(Constant.of("ok")); // Note the missing method.add(...)!
 		method.add(Return.value(value));
 		
-		assertThrows(IllegalStateException.class, () -> def.compile());
+		assertThrows(UninitializedValueException.class, () -> def.compile());
+	}
+	
+	@Test
+	public void useBeforeDefinition() {
+		var def = ClassDef.create("fi.benjami.code4jvm.test.UseBeforeDefinition", Access.PUBLIC);
+		def.interfaces(Type.of(Supplier.class));
+		def.addEmptyConstructor(Access.PUBLIC);
+		
+		var method = def.addMethod(Type.of(Object.class), "get", Access.PUBLIC);
+		var block = Block.create();
+		var value = block.add(Arithmetic.add(Constant.of(1), Constant.of(2))).value();
+		method.add(Arithmetic.add(value, Constant.of(3)));
+		method.add(block);
+		method.add(Return.value(Constant.of("ok")));
+		
+		assertThrows(UninitializedValueException.class, () -> def.compile());
+	}
+	
+	@Test
+	public void maybeUninitialized() {
+		var def = ClassDef.create("fi.benjami.code4jvm.test.MaybeUninitialized", Access.PUBLIC);
+		def.interfaces(Type.of(Supplier.class));
+		def.addEmptyConstructor(Access.PUBLIC);
+		
+		var method = def.addMethod(Type.of(Object.class), "get", Access.PUBLIC);
+		var a = Block.create();
+		var value = a.add(Arithmetic.add(Constant.of(1), Constant.of(2))).value();
+		var b = Block.create();
+		method.add(Jump.to(b, Jump.Target.START, Condition.isTrue(Constant.of(true))));
+		method.add(a);
+		method.add(b);
+		method.add(Arithmetic.add(value, Constant.of(3)));
+		method.add(Return.value(Constant.of("ok")));
+		
+		assertThrows(UninitializedValueException.class, () -> def.compile());
 	}
 }

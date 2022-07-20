@@ -2,16 +2,13 @@ package fi.benjami.code4jvm.internal;
 
 import java.util.Optional;
 
-import fi.benjami.code4jvm.Expression;
 import fi.benjami.code4jvm.Statement;
 import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.Value;
 import fi.benjami.code4jvm.Variable;
-import fi.benjami.code4jvm.block.Block;
+import fi.benjami.code4jvm.internal.node.StoreNode;
 import fi.benjami.code4jvm.statement.Bytecode;
 import fi.benjami.code4jvm.util.TypeCheck;
-
-import static org.objectweb.asm.Opcodes.*;
 
 /**
  * A value that is can be stored on a local variable slot if needed.
@@ -24,22 +21,18 @@ public class LocalVar implements Variable {
 	 * is never stored. Used for
 	 * {@link Value#uninitialized(Type) uninitialized values}.
 	 */
-	public static final LocalVar EMPTY_MARKER = new LocalVar(null, null);
+	public static final LocalVar EMPTY_MARKER = new LocalVar(null, false);
 
 	private final Type type;
-	private final Block parentBlock;
 	private String name;
 
 	/**
-	 * If this value has been initialized. Most expressions (except
-	 * {@link Value#uninitialized(Type)}) return values that have been
-	 * initialized. {@link #set(Value) Setting} a variable also makes it
-	 * initialized. Uninitialized values cannot be used as inputs for
-	 * {@link Bytecode}.
+	 * If this value starts as initialized.
 	 * 
-	 * <p>Used in bytecode generation phase.
+	 * <p>Values that are NOT initialized are added to frames only after
+	 * something is stored into them.
 	 */
-	public boolean initialized;
+	public final boolean startInitialized;
 	
 	/**
 	 * Whether or not this value is used as an input. Unused values are
@@ -60,11 +53,11 @@ public class LocalVar implements Variable {
 	 * Slot this variable is assigned to. Use {@link SlotAllocator#get(LocalVar)}
 	 * instead of accessing this directly.
 	 */
-	int assignedSlot;
+	public int assignedSlot;
 	
-	public LocalVar(Type type, Block parentBlock) {
+	public LocalVar(Type type, boolean initialized) {
 		this.type = type;
-		this.parentBlock = parentBlock;
+		this.startInitialized = initialized;
 		this.name = null;
 		this.needsSlot = false;
 		this.assignedSlot = -1;
@@ -73,11 +66,6 @@ public class LocalVar implements Variable {
 	@Override
 	public Type type() {
 		return type;
-	}
-
-	@Override
-	public Optional<Block> parentBlock() {
-		return Optional.of(parentBlock);
 	}
 
 	@Override
@@ -97,24 +85,7 @@ public class LocalVar implements Variable {
 	@Override
 	public Statement set(Value value) {
 		TypeCheck.mustEqual(this, value);
-		return block -> {
-			block.add(Bytecode.run(Type.VOID, new Value[] {value}, ctx -> {
-				if (needsSlot) {
-					assert assignedSlot != -1 : "set(Value) on untracked variable " + toString();
-					ctx.asm().visitVarInsn(type.getOpcode(ISTORE, ctx), assignedSlot);
-				} // else: nothing seems to read this variable, so stores to it don't matter
-				initialized = true; // This variable received a value
-			}));
-		};
-	}
-	
-	public Expression storeToThis() {
-		return block -> {
-			var node = new CodeNode(Bytecode.stub(type, new Value[0]));
-			node.assignVar(this);
-			SharedSecrets.NODE_APPENDER.accept(block, node);
-			return this;
-		};
+		return new StoreNode(this, value);
 	}
 	
 	@Override

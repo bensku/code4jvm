@@ -8,5 +8,7 @@ public record MethodCompilerState(
 		 */
 		CompileContext ctx,
 		
-		SlotAllocator slotAllocator
+		SlotAllocator slotAllocator,
+		
+		FrameManager frames
 ) {}

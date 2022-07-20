@@ -11,6 +11,8 @@ import fi.benjami.code4jvm.util.TypeUtils;
 
 import static org.objectweb.asm.Opcodes.*;
 
+import java.util.Optional;
+
 public class Jump implements Statement {
 	
 	public enum Target {
@@ -35,10 +37,22 @@ public class Jump implements Statement {
 		this.target = target;
 		this.condition = condition;
 	}
+	
+	public Block block() {
+		return targetBlock;
+	}
+	
+	public Target target() {
+		return target;
+	}
+	
+	public Optional<Condition> condition() {
+		return Optional.ofNullable(condition);
+	}
 
 	@Override
 	public void emitVoid(Block block) {
-		var label = Bytecode.requestLabel(targetBlock, target);
+		var label = block.add(new Block.Edge(targetBlock, target, condition != null, new Type[0]));
 		if (condition != null) {
 			var type = condition.values()[0].type();
 			var isObject = type.isObject();

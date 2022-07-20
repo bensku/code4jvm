@@ -12,7 +12,7 @@ import fi.benjami.code4jvm.ClassDef;
 import fi.benjami.code4jvm.Condition;
 import fi.benjami.code4jvm.Constant;
 import fi.benjami.code4jvm.Type;
-import fi.benjami.code4jvm.Value;
+import fi.benjami.code4jvm.Variable;
 import fi.benjami.code4jvm.flag.Access;
 import fi.benjami.code4jvm.statement.Return;
 import fi.benjami.code4jvm.statement.Throw;
@@ -167,7 +167,7 @@ public class TryBlockTest {
 		var method = def.addMethod(Type.OBJECT, "apply", Access.PUBLIC);
 		var arg = method.arg(Type.OBJECT);
 		method.add(TryBlock.create(block -> {
-			var variable = block.add(Value.uninitialized(Type.of(String.class))).variable();
+			var variable = Variable.createUnbound(Type.of(String.class));
 			block.add(variable.set(Constant.of("fail")));
 			block.add(Return.value(variable));
 		}).addReturnHook((block, value) -> {

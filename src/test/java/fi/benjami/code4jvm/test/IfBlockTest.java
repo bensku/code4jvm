@@ -3,8 +3,6 @@ package fi.benjami.code4jvm.test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.lang.invoke.MethodHandles;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.function.Function;
 
 import org.junit.jupiter.api.Test;
@@ -14,7 +12,7 @@ import fi.benjami.code4jvm.CompileOptions;
 import fi.benjami.code4jvm.Condition;
 import fi.benjami.code4jvm.Constant;
 import fi.benjami.code4jvm.Type;
-import fi.benjami.code4jvm.Value;
+import fi.benjami.code4jvm.Variable;
 import fi.benjami.code4jvm.flag.Access;
 import fi.benjami.code4jvm.statement.Return;
 import fi.benjami.code4jvm.structure.IfBlock;
@@ -129,7 +127,7 @@ public class IfBlockTest {
 		method.add(new IfBlock()
 				.branch(block -> {
 					// argument -> local variable, just to see that test block is properly emitted
-					var local = block.add(Value.uninitialized(Type.of(String.class))).variable();
+					var local = Variable.createUnbound(Type.of(String.class));
 					block.add(local.set(arg.cast(Type.of(String.class))));
 					return Condition.equal(local, Constant.of("ok"));
 				}, block -> {

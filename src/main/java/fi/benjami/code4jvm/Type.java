@@ -153,6 +153,7 @@ public class Type {
 	}
 	
 	public String internalName() {
+		// FIXME doesn't work for METHOD_RETURN_TYPE, oops
 		return internalName;
 	}
 	

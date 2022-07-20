@@ -3,25 +3,30 @@ package fi.benjami.code4jvm;
 import java.util.Arrays;
 import java.util.Optional;
 
-import fi.benjami.code4jvm.block.Block;
 import fi.benjami.code4jvm.call.FixedCallTarget;
 import fi.benjami.code4jvm.internal.CastValue;
-import fi.benjami.code4jvm.internal.LocalVar;
+import fi.benjami.code4jvm.internal.StackTop;
 import fi.benjami.code4jvm.statement.Bytecode;
 
 import static org.objectweb.asm.Opcodes.*;
 
 public interface Value {
 	
-	static Expression uninitialized(Type type) {
-		return block -> {
-			return block.add(Bytecode.stub(type, new Value[] {LocalVar.EMPTY_MARKER})).value();
-		};
+	/**
+	 * Creates a value that represents what is already available on stack.
+	 * This is necessary for accessing values that are stacked by JVM, e.g.
+	 * when handling exceptions by hand.
+	 * 
+	 * <p>This is a low-level utility. Unless you're generating
+	 * {@link Bytecode custom bytecode}, you probably won't need this.
+	 * @param type Type of value that is already on stack.
+	 * @return Value that is already on stack.
+	 */
+	public static Value stackTop(Type type) {
+		return new StackTop(type);
 	}
 
 	Type type();
-	
-	Optional<Block> parentBlock();
 	
 	Optional<String> name();
 	

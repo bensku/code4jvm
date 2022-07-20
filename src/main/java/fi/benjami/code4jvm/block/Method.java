@@ -43,14 +43,13 @@ public class Method extends Routine {
 		/**
 		 * Value for 'this'.
 		 */
-		private final LocalVar self;
+		final LocalVar self;
 		
 		Instance(Block block, Type returnType, String name, Type parentClass, MethodFlag[] flags) {
 			super(block, returnType, name, getAccess(flags));
 			// this is passed in slot 0
 			// It is NOT present in method signature, so avoid calling arg()
-			this.self = new LocalVar(parentClass, block);
-			self.initialized = true; // this is always initialized
+			this.self = new LocalVar(parentClass, true);
 			argsAllocator.get(self);
 		}
 		
@@ -61,6 +60,8 @@ public class Method extends Routine {
 
 	private final String name;
 	final int access;
+	
+	boolean framesComputed;
 	
 	Method(Block block, Type returnType, String name, int access) {
 		super(block, returnType);

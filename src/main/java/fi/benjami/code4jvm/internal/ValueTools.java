@@ -16,9 +16,6 @@ public class ValueTools {
 			if (localVar == LocalVar.EMPTY_MARKER) {
 				return; // Ignore and skip unknown input assert
 			}
-			if (!localVar.initialized) {
-				throw new IllegalStateException("uninitialized value: " + localVar);
-			}
 			if (localVar.needsSlot) {
 				mv.visitVarInsn(localVar.type().getOpcode(ILOAD, state.ctx()), slotAllocator.get(localVar));
 			} // else: already on stack
@@ -26,6 +23,8 @@ public class ValueTools {
 			// Recursively emit the original, then the required cast
 			emitInput(state, cast.original());
 			cast.emitCast(mv);
+		} else if (input instanceof StackTop) {
+			// Do nothing, value is already on stack
 		} else {
 			throw new AssertionError("unknown input: " + input);
 		}

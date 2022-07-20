@@ -97,9 +97,10 @@ public class ClassDef {
 	}
 	
 	public byte[] compile(CompileOptions opts) {
-		var writer = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
+		var writer = new ClassWriter(ClassWriter.COMPUTE_MAXS); // TODO compute nothing
 		// Enable ASM checks if user has requested them
 		// But don't enable data flow checks, can't use them with COMPUTE_FRAMES
+		// FIXME enable data flow checks
 		var cv = opts.asmChecks() ? new CheckClassAdapter(writer, false) : writer;
 		var superName = superClass != null ? superClass.internalName() : "java/lang/Object";
 		var interfaceNames = interfaces != null ? 

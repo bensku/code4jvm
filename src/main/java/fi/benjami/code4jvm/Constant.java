@@ -2,8 +2,6 @@ package fi.benjami.code4jvm;
 
 import java.util.Optional;
 
-import fi.benjami.code4jvm.block.Block;
-
 public class Constant implements Value {
 	
 	public static Constant of(boolean value) {
@@ -54,11 +52,6 @@ public class Constant implements Value {
 	@Override
 	public Type type() {
 		return type;
-	}
-
-	@Override
-	public Optional<Block> parentBlock() {
-		return Optional.empty();
 	}
 
 	@Override

@@ -1,6 +1,7 @@
 package fi.benjami.code4jvm.test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.lang.invoke.MethodHandles;
 import java.util.function.IntSupplier;
@@ -12,7 +13,9 @@ import fi.benjami.code4jvm.ClassDef;
 import fi.benjami.code4jvm.Condition;
 import fi.benjami.code4jvm.Constant;
 import fi.benjami.code4jvm.Type;
+import fi.benjami.code4jvm.Variable;
 import fi.benjami.code4jvm.block.Block;
+import fi.benjami.code4jvm.block.ReturnRedirect;
 import fi.benjami.code4jvm.flag.Access;
 import fi.benjami.code4jvm.statement.Arithmetic;
 import fi.benjami.code4jvm.statement.Jump;
@@ -93,6 +96,48 @@ public class BlockTest {
 		var lookup = LOOKUP.defineHiddenClass(def.compile(), true);
 		var instance = (IntSupplier) TestUtils.newInstance(lookup);
 		assertEquals(100, instance.getAsInt());
+	}
+	
+	@Test
+	public void blockAddedTwice() throws Throwable {
+		var def = ClassDef.create("fi.benjami.code4jvm.test.BlockAddedTwice", Access.PUBLIC);
+		def.interfaces(Type.of(Supplier.class));
+		def.addEmptyConstructor(Access.PUBLIC);
+		
+		var method = def.addMethod(Type.of(Object.class), "get", Access.PUBLIC);
+		var a = Block.create();
+		method.add(a);
+		assertThrows(IllegalArgumentException.class, () -> method.add(a));
+	}
+	
+	@Test
+	public void rawReturnRedirect() throws Throwable {
+		// See also TryBlockTest for high-level API tests
+		var def = ClassDef.create("fi.benjami.code4jvm.test.RawReturnRedirect", Access.PUBLIC);
+		def.interfaces(Type.of(Supplier.class));
+		def.addEmptyConstructor(Access.PUBLIC);
+		
+		var method = def.addMethod(Type.of(Object.class), "get", Access.PUBLIC);
+		
+		var block = Block.create();
+		block.add(Return.value(Constant.of("ok")));
+		var endBlock = block.copy();
+		
+		var handler = Block.create();
+		var capturedReturn = Variable.createUnbound(Type.METHOD_RETURN_TYPE);
+		handler.add(Jump.to(endBlock, Jump.Target.START, Condition.equal(capturedReturn.asType(Type.of(String.class)),
+				Constant.of("ok"))));
+		handler.add(Return.value(Constant.of("fail")));
+		
+		block.setReturnRedirect(new ReturnRedirect(handler, capturedReturn));
+		
+		method.add(block);
+		method.add(handler);
+		method.add(endBlock);
+		
+		var lookup = LOOKUP.defineHiddenClass(def.compile(), true);
+		var instance = (Supplier<?>) TestUtils.newInstance(lookup);
+		assertEquals("ok", instance.get());
 	}
 	
 }

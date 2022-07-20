@@ -2,11 +2,8 @@ package fi.benjami.code4jvm.statement;
 
 import static org.objectweb.asm.Opcodes.*;
 
-import java.util.Arrays;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-
-import org.objectweb.asm.Label;
-import org.objectweb.asm.MethodVisitor;
 
 import fi.benjami.code4jvm.Expression;
 import fi.benjami.code4jvm.Type;
@@ -15,36 +12,27 @@ import fi.benjami.code4jvm.block.Block;
 import fi.benjami.code4jvm.block.CompileContext;
 import fi.benjami.code4jvm.internal.LocalVar;
 import fi.benjami.code4jvm.internal.MethodCompilerState;
-import fi.benjami.code4jvm.internal.SharedSecrets;
 import fi.benjami.code4jvm.internal.ValueTools;
 
 public class Bytecode implements Expression {
 	
-	public interface Emitter {
-		void emit(MethodVisitor mv);
-		
-		default void emit(MethodVisitor mv, CompileContext ctx) {
-			emit(mv);
-		}
+	public static Bytecode run(Type outputType, Value[] inputs, BiConsumer<CompileContext, Block> emitter) {
+		return new Bytecode(outputType, inputs, emitter);
 	}
 	
 	public static Bytecode run(Type outputType, Value[] inputs, Consumer<CompileContext> emitter) {
-		return new Bytecode(outputType, inputs, emitter);
+		return new Bytecode(outputType, inputs, (ctx, block) -> emitter.accept(ctx));
 	}
 	
 	public static Bytecode stub(Type outputType, Value[] inputs) {
 		return new Bytecode(outputType, inputs, null);
 	}
 	
-	public static Label requestLabel(Block block, Jump.Target position) {
-		return SharedSecrets.LABEL_GETTER.apply(block, position);
-	}
-	
 	private final Type outputType;
 	private final Value[] inputs;
-	private final Consumer<CompileContext> emitter;
+	private final BiConsumer<CompileContext, Block> emitter;
 	
-	private Bytecode(Type outputType, Value[] inputs, Consumer<CompileContext> emitter) {
+	private Bytecode(Type outputType, Value[] inputs, BiConsumer<CompileContext, Block> emitter) {
 		this.outputType = outputType;
 		this.inputs = inputs;
 		this.emitter = emitter;
@@ -64,7 +52,7 @@ public class Bytecode implements Expression {
 	}
 	
 	
-	public void emitBytecode(MethodCompilerState state) {
+	public void emitBytecode(MethodCompilerState state, Block block) {
 		// Load inputs that are not in stack:
 		// - Inputs that are not on stack directly before this statement
 		// - Inputs that are in right place on stack, but need to be stored as local variables
@@ -72,8 +60,8 @@ public class Bytecode implements Expression {
 		for (var input : inputs) {
 			ValueTools.emitInput(state, input);
 		}
-		if (emitter != null) {			
-			emitter.accept(ctx); // Emit user bytecode
+		if (emitter != null) {
+			emitter.accept(ctx, block); // Emit user bytecode
 		}
 	}
 	
@@ -96,9 +84,6 @@ public class Bytecode implements Expression {
 			if (initialize) {
 				state.ctx().asm().visitVarInsn(localVar.type().getOpcode(ISTORE, state.ctx()), slot);
 			}
-		}
-		if (initialize) {
-			localVar.initialized = true;
 		}
 	}
 }

@@ -13,6 +13,10 @@ public class Scope {
 		this.stack = new ArrayList<>();
 	}
 	
+	public Scope(Scope other) {
+		this.stack = new ArrayList<>(other.stack);
+	}
+	
 	public void checkInputs(Value[] inputs) {
 		if (inputs.length == 0) {
 			return;
@@ -53,44 +57,11 @@ public class Scope {
 		}
 	}
 	
-	public void checkInputs1(Value[] inputs) {
-		// Find how many inputs are already loaded on stack
-		var inputsStart = stack.size() - inputs.length;
-		var loadedCount = 0;
-		if (inputsStart > 0) {
-			for (; loadedCount < inputs.length; loadedCount++) {
-				var input = inputs[loadedCount];
-				if (stack.get(inputsStart + loadedCount) != input) {
-					break;
-				}
-				input = input.original();
-				if (input instanceof LocalVar localVar) {
-					localVar.used = true;
-				}
-			}
-		} // else: stack has less elements than inputs, we DEFINITELY need to load the inputs
-		
-		// Mark the rest to require local variable slot
-		for (int i = loadedCount; i < inputs.length; i++) {
-			var value = inputs[i].original();
-			if (value instanceof LocalVar localVar) {
-				localVar.used = true;
-				localVar.needsSlot = true;
-			}
-		}
-		
-		// Pop them from stack
-		var firstLoaded = stack.size() - loadedCount;
-		for (int i = stack.size() - 1; i >= firstLoaded; i--) {
-			stack.remove(i);
-		}
-	}
-	
 	public void addOutput(Value output) {
 		stack.add(output);
 	}
 	
-	public void reset() {
+	public void resetStack() {
 		assert validateOnReset();
 		stack.clear();
 	}

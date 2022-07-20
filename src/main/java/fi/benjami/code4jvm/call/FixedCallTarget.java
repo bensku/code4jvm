@@ -66,24 +66,26 @@ public final class FixedCallTarget extends CallTarget {
 							TypeUtils.instanceMethodDescriptor(returnType(), argTypes()), owner.isInterface());
 				})).value();
 			case INIT -> {
+				// TODO optimize, this uses unnecessary variables
 				var ownerName = owner().internalName();
 				
 				// Create new object and leave two references of it to stack
-				var instance = block.add(Bytecode.run(returnType(), new Value[0], ctx -> {
+				// Don't create value yet - it is not initialized
+				block.add(Bytecode.run(Type.VOID, new Value[0], ctx -> {
 					ctx.asm().visitTypeInsn(NEW, ownerName);
 					ctx.asm().visitInsn(DUP);
-				})).value();
+				}));
 				
 				// Load arguments to stack on top of them
 				var inputs = new Value[args.length + 1];
-				inputs[0] = instance; // Already on stack
+				inputs[0] = Value.stackTop(returnType()); // Already on stack
 				System.arraycopy(args, 0, inputs, 1, args.length);
 				
 				// Call constructor to consume one reference to object and all arguments
-				block.add(Bytecode.run(returnType(), inputs, ctx -> {
+				var instance = block.add(Bytecode.run(returnType(), inputs, ctx -> {
 					ctx.asm().visitMethodInsn(INVOKESPECIAL, ownerName, "<init>",
 							TypeUtils.methodDescriptor(Type.VOID, argTypes()), false);
-				}));
+				})).value();
 				
 				// Return the other reference to the object, now initialized
 				yield instance;
