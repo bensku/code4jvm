@@ -56,10 +56,10 @@ public interface Value {
 		};
 	}
 	
-	default Statement putField(Type fieldType, String name, Value value) {
+	default Statement putField(String name, Value value) {
 		return block -> {
 			block.add(Bytecode.run(Type.VOID, new Value[] {this, value}, ctx -> {
-				ctx.asm().visitFieldInsn(PUTFIELD, type().internalName(), name, fieldType.descriptor());
+				ctx.asm().visitFieldInsn(PUTFIELD, type().internalName(), name, value.type().descriptor());
 			}));
 		};
 	}

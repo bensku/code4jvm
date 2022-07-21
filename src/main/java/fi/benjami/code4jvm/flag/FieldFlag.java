@@ -4,8 +4,11 @@ import org.objectweb.asm.Opcodes;
 
 public enum FieldFlag {
 
+	FINAL(Opcodes.ACC_FINAL),
+	VOLATILE(Opcodes.ACC_VOLATILE),
+	TRANSIENT(Opcodes.ACC_TRANSIENT),
 	SYNTHETIC(Opcodes.ACC_SYNTHETIC),
-	DEPRECATED(Opcodes.ACC_DEPRECATED);
+	ENUM(Opcodes.ACC_ENUM);
 	
 	private final int value;
 	
