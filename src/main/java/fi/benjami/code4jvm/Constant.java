@@ -4,8 +4,10 @@ import java.util.Optional;
 
 public class Constant implements Value {
 	
+	private static final Constant TRUE = new Constant(true, Type.BOOLEAN), FALSE = new Constant(false, Type.BOOLEAN);
+	
 	public static Constant of(boolean value) {
-		return new Constant(value, Type.BOOLEAN);
+		return value ? TRUE : FALSE;
 	}
 	
 	public static Constant of(int value) {
