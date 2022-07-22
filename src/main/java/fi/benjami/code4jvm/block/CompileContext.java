@@ -2,9 +2,9 @@ package fi.benjami.code4jvm.block;
 
 import org.objectweb.asm.MethodVisitor;
 
-import fi.benjami.code4jvm.ClassDef;
 import fi.benjami.code4jvm.CompileOptions;
 import fi.benjami.code4jvm.call.FixedCallTarget;
+import fi.benjami.code4jvm.typedef.ClassDef;
 
 /**
  * Context for compiling a single method.

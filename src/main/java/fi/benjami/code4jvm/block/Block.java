@@ -8,7 +8,6 @@ import java.util.Map;
 
 import org.objectweb.asm.Label;
 
-import fi.benjami.code4jvm.ClassDef;
 import fi.benjami.code4jvm.CompileHook;
 import fi.benjami.code4jvm.Constant;
 import fi.benjami.code4jvm.Expression;
@@ -28,6 +27,7 @@ import fi.benjami.code4jvm.statement.Bytecode;
 import fi.benjami.code4jvm.statement.Jump;
 import fi.benjami.code4jvm.statement.Return;
 import fi.benjami.code4jvm.statement.Throw;
+import fi.benjami.code4jvm.typedef.ClassDef;
 
 public class Block {
 	

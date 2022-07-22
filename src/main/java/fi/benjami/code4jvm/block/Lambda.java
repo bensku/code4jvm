@@ -8,7 +8,6 @@ import java.util.Arrays;
 
 import org.objectweb.asm.Handle;
 
-import fi.benjami.code4jvm.ClassDef;
 import fi.benjami.code4jvm.Expression;
 import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.Value;
@@ -16,6 +15,7 @@ import fi.benjami.code4jvm.call.FixedCallTarget;
 import fi.benjami.code4jvm.flag.Access;
 import fi.benjami.code4jvm.flag.MethodFlag;
 import fi.benjami.code4jvm.statement.Bytecode;
+import fi.benjami.code4jvm.typedef.ClassDef;
 import fi.benjami.code4jvm.util.TypeUtils;
 
 import static org.objectweb.asm.Opcodes.*;

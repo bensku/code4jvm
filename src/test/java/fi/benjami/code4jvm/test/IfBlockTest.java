@@ -7,7 +7,6 @@ import java.util.function.Function;
 
 import org.junit.jupiter.api.Test;
 
-import fi.benjami.code4jvm.ClassDef;
 import fi.benjami.code4jvm.CompileOptions;
 import fi.benjami.code4jvm.Condition;
 import fi.benjami.code4jvm.Constant;
@@ -16,6 +15,7 @@ import fi.benjami.code4jvm.Variable;
 import fi.benjami.code4jvm.flag.Access;
 import fi.benjami.code4jvm.statement.Return;
 import fi.benjami.code4jvm.structure.IfBlock;
+import fi.benjami.code4jvm.typedef.ClassDef;
 
 public class IfBlockTest {
 

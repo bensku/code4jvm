@@ -12,12 +12,12 @@ import java.util.function.Supplier;
 
 import org.junit.jupiter.api.Test;
 
-import fi.benjami.code4jvm.ClassDef;
 import fi.benjami.code4jvm.Constant;
 import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.call.CallTarget;
 import fi.benjami.code4jvm.flag.Access;
 import fi.benjami.code4jvm.statement.Return;
+import fi.benjami.code4jvm.typedef.ClassDef;
 
 public class MethodTest {
 	

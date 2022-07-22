@@ -4,6 +4,8 @@ import org.objectweb.asm.Opcodes;
 
 public enum ClassFlag {
 
+	ABSTRACT(Opcodes.ACC_ABSTRACT),
+	INTERFACE(Opcodes.ACC_INTERFACE | Opcodes.ACC_ABSTRACT),
 	DEPRECATED(Opcodes.ACC_DEPRECATED);
 	
 	private final int value;

@@ -1,5 +1,7 @@
 package fi.benjami.code4jvm.block;
 
+import java.util.List;
+
 import org.objectweb.asm.Opcodes;
 
 import fi.benjami.code4jvm.Type;
@@ -13,7 +15,7 @@ import fi.benjami.code4jvm.internal.LocalVar;
  * @see Lambda
  *
  */
-public class Method extends Routine {
+public sealed interface Method permits AbstractMethod, ConcreteMethod {
 	
 	public static Method.Static staticMethod(Type returnType, String name, MethodFlag... flags) {
 		return new Method.Static(Block.create(), returnType, name, flags);
@@ -23,7 +25,15 @@ public class Method extends Routine {
 		return new Method.Instance(Block.create(), returnType, name, parentClass, flags);
 	}
 	
-	private static int getAccess(MethodFlag[] flags) {
+	public static AbstractMethod abstractMethod(Type returnType, String name, MethodFlag... flags) {
+		return new AbstractMethod(returnType, name, flags, false, false);
+	}
+	
+	public static AbstractMethod nativeMethod(boolean isStatic, Type returnType, String name, MethodFlag... flags) {
+		return new AbstractMethod(returnType, name, flags, isStatic, true);
+	}
+	
+	static int getAccess(MethodFlag[] flags) {
 		var access = 0;
 		// JVM stores other flags in access bit set, OR them into it
 		for (var flag : flags) {
@@ -32,13 +42,13 @@ public class Method extends Routine {
 		return access;
 	}
 	
-	public static class Static extends Method {
+	public static final class Static extends ConcreteMethod {
 		Static(Block block, Type returnType, String name, MethodFlag[] flags) {
 			super(block, returnType, name, getAccess(flags) | Opcodes.ACC_STATIC);
 		}
 	}
 	
-	public static class Instance extends Method {
+	public static final class Instance extends ConcreteMethod {
 		
 		/**
 		 * Value for 'this'.
@@ -57,20 +67,11 @@ public class Method extends Routine {
 			return self;
 		}
 	}
-
-	private final String name;
-	final int access;
 	
-	boolean framesComputed;
+	Type returnType();
 	
-	Method(Block block, Type returnType, String name, int access) {
-		super(block, returnType);
-		this.name = name;
-		this.access = access;
-	}
+	String name();
 	
-	public String name() {
-		return name;
-	}
+	List<Type> argumentTypes();
 
 }

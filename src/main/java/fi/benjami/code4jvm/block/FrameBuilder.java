@@ -34,7 +34,7 @@ class FrameBuilder {
 	 * defined.
 	 * @param method Method to trace.
 	 */
-	public void trace(Method method) {
+	public void trace(ConcreteMethod method) {
 		var root = method.block();
 		var rootFrame = new Frame();
 		// 'this'/self and method arguments are visible to entire method

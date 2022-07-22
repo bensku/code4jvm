@@ -8,12 +8,12 @@ import java.lang.invoke.MethodHandles;
 
 import org.junit.jupiter.api.Test;
 
-import fi.benjami.code4jvm.ClassDef;
 import fi.benjami.code4jvm.Constant;
 import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.flag.Access;
 import fi.benjami.code4jvm.flag.FieldFlag;
 import fi.benjami.code4jvm.statement.Return;
+import fi.benjami.code4jvm.typedef.ClassDef;
 
 public class FieldTest {
 	

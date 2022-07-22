@@ -2,13 +2,13 @@ package fi.benjami.code4jvm.call;
 
 import java.util.Arrays;
 
-import fi.benjami.code4jvm.ClassDef;
 import fi.benjami.code4jvm.Expression;
 import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.Value;
 import fi.benjami.code4jvm.flag.Access;
 import fi.benjami.code4jvm.flag.MethodFlag;
 import fi.benjami.code4jvm.statement.Return;
+import fi.benjami.code4jvm.typedef.ClassDef;
 
 /**
  * A target for method calls, i.e. a method or dynamic target.

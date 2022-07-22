@@ -1,6 +1,7 @@
 package fi.benjami.code4jvm;
 
 import fi.benjami.code4jvm.block.Block;
+import fi.benjami.code4jvm.typedef.ClassDef;
 
 /**
  * Compile hooks {@link Block#setCompileHook(Object, CompileHook) added to}

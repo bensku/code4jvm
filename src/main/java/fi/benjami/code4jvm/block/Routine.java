@@ -73,6 +73,10 @@ public class Routine {
 		return Collections.unmodifiableList(args);
 	}
 	
+	public List<Type> argumentTypes() {
+		return args.stream().map(Value::type).toList();
+	}
+	
 	public void add(Statement stmt) {
 		block.add(stmt);
 	}

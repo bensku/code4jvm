@@ -8,7 +8,6 @@ import java.util.function.Function;
 
 import org.junit.jupiter.api.Test;
 
-import fi.benjami.code4jvm.ClassDef;
 import fi.benjami.code4jvm.Condition;
 import fi.benjami.code4jvm.Constant;
 import fi.benjami.code4jvm.Type;
@@ -18,6 +17,7 @@ import fi.benjami.code4jvm.statement.Return;
 import fi.benjami.code4jvm.statement.Throw;
 import fi.benjami.code4jvm.structure.IfBlock;
 import fi.benjami.code4jvm.structure.TryBlock;
+import fi.benjami.code4jvm.typedef.ClassDef;
 
 public class TryBlockTest {
 

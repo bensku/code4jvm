@@ -7,13 +7,13 @@ import java.util.function.BiFunction;
 
 import org.junit.jupiter.api.Test;
 
-import fi.benjami.code4jvm.ClassDef;
 import fi.benjami.code4jvm.Expression;
 import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.Value;
 import fi.benjami.code4jvm.flag.Access;
 import fi.benjami.code4jvm.statement.Arithmetic;
 import fi.benjami.code4jvm.statement.Return;
+import fi.benjami.code4jvm.typedef.ClassDef;
 
 public class ArithmeticTest {
 
