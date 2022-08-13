@@ -1,5 +1,8 @@
 package fi.benjami.code4jvm.block;
 
+import java.util.IdentityHashMap;
+import java.util.Map;
+
 import fi.benjami.code4jvm.UninitializedValueException;
 import fi.benjami.code4jvm.internal.Frame;
 import fi.benjami.code4jvm.internal.LocalVar;
@@ -45,23 +48,26 @@ class FrameBuilder {
 			rootFrame.add(arg);
 		}
 		
-		trace(root, rootFrame, 0, false);
+		// Don't store sub-block frames in blocks to create less maps/arrays
+		// We don't need to after tracing, because they are not emitted in bytecode
+		var subBlockFrames = new IdentityHashMap<EdgeNode, Frame>();
+		trace(subBlockFrames, root, rootFrame, 0, false);
 		// If assertions are enabled, make sure that the frames don't change when recomputed
 		// This could help catch bugs in tracing code
-		assert framesAreStable(root, rootFrame);
+		assert framesAreStable(subBlockFrames, root, rootFrame);
 	}
 	
-	private boolean framesAreStable(Block block, Frame frame) {
+	private boolean framesAreStable(Map<EdgeNode, Frame> subBlockFrames, Block block, Frame frame) {
 		try {
 			allowMutations = false;
-			trace(block, frame, 0, false);
+			trace(subBlockFrames, block, frame, 0, false);
 		} finally {
 			allowMutations = true;
 		}
 		return true; // Would have failed assert in trace(...)
 	}
 	
-	private void trace(Block block, Frame frame, int startNode, boolean jump) {
+	private void trace(Map<EdgeNode, Frame> subBlockFrames, Block block, Frame frame, int startNode, boolean jump) {
 		assert startNode == 0 || startNode == block.nodes.size()
 				|| block.nodes.get(startNode - 1) instanceof EdgeNode
 				: "tracing can only start from edges";
@@ -79,7 +85,7 @@ class FrameBuilder {
 		} else if (startNode < block.nodes.size()) {
 			assert !jump; // This should be sub-block returning control to us
 			var edge = (EdgeNode) block.nodes.get(startNode - 1);
-			var modified = block.subBlockFrames.get(edge).merge(frame);
+			var modified = subBlockFrames.computeIfAbsent(edge, k -> new Frame()).merge(frame);
 			assert allowMutations || !modified;
 		}
 		
@@ -133,7 +139,7 @@ class FrameBuilder {
 							allocator.get(localVar);
 							redirectFrame.add(localVar);
 						}
-						trace(redirect.target(), redirectFrame, 0, true);
+						trace(subBlockFrames, redirect.target(), redirectFrame, 0, true);
 					}
 				} else if (type == EdgeNode.THROW) {
 					// No-op
@@ -141,10 +147,10 @@ class FrameBuilder {
 					// Sub-block or jump
 					if (edge.position() == Jump.Target.START) {
 						// Trace the target block from start to end
-						trace(edge.target(), snapshot, 0, type != EdgeNode.SUB_BLOCK);
+						trace(subBlockFrames, edge.target(), snapshot, 0, type != EdgeNode.SUB_BLOCK);
 					} else {
 						// END is always a jump, never sub-block
-						trace(edge.target(), snapshot, edge.target().nodes.size(), true);
+						trace(subBlockFrames, edge.target(), snapshot, edge.target().nodes.size(), true);
 					}
 				}
 				
@@ -192,7 +198,7 @@ class FrameBuilder {
 			// Blocks have implicit edge that leads to their parent block
 			// This is done so that sub-blocks can make new variables visible
 			// to their parent blocks
-			trace(block.parent, frame, block.parentNodeIndex + 1, false);
+			trace(subBlockFrames, block.parent, frame, block.parentNodeIndex + 1, false);
 		}
 	}
 

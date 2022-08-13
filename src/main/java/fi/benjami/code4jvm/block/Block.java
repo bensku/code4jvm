@@ -103,7 +103,6 @@ public class Block {
 	final BitSet reachability;
 	final Frame startFrame;
 	final Frame endFrame;
-	final Map<EdgeNode, Frame> subBlockFrames;
 	
 	private Block(ArrayList<Node> nodes, Scope scope) {
 		this.nodes = nodes;
@@ -111,7 +110,6 @@ public class Block {
 		this.reachability = new BitSet();
 		this.startFrame = new Frame();
 		this.endFrame = new Frame();
-		this.subBlockFrames = new IdentityHashMap<>();
 	}
 	
 	public void add(Statement stmt) {
@@ -153,7 +151,6 @@ public class Block {
 		
 		var edge = new EdgeNode(block, Jump.Target.START, EdgeNode.SUB_BLOCK, null);
 		nodes.add(edge);
-		subBlockFrames.put(edge, new Frame());
 		// Reset scope, stack will be gone after the newly added block
 		scope.resetStack();
 	}
