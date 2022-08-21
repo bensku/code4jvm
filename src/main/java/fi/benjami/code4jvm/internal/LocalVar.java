@@ -50,8 +50,8 @@ public class LocalVar implements Variable {
 	public boolean needsSlot;
 	
 	/**
-	 * Slot this variable is assigned to. Use {@link SlotAllocator#get(LocalVar)}
-	 * instead of accessing this directly.
+	 * Slot this variable is assigned to. This is assigned by a
+	 * {@link slot allocator} when stack map frames are built.
 	 */
 	public int assignedSlot;
 	

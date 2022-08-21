@@ -17,7 +17,7 @@ public class SlotAllocator {
 		}
 	}
 	
-	public int get(LocalVar localVar) {
+	public void assignSlot(LocalVar localVar) {
 		var slot = localVar.assignedSlot;
 		if (slot == -1) {
 			slot = nextSlot;
@@ -37,7 +37,6 @@ public class SlotAllocator {
 				nextSlot += 1;
 			}
 		}
-		return slot;
 	}
 	
 	public LocalVar findVar(int slot) {

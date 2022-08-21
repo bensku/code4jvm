@@ -8,6 +8,7 @@ import java.util.function.IntSupplier;
 import java.util.function.Supplier;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import fi.benjami.code4jvm.Condition;
 import fi.benjami.code4jvm.Constant;
@@ -21,6 +22,7 @@ import fi.benjami.code4jvm.statement.Jump;
 import fi.benjami.code4jvm.statement.Return;
 import fi.benjami.code4jvm.typedef.ClassDef;
 
+@ExtendWith({EnableDebugExtension.class})
 public class BlockTest {
 
 	private static final MethodHandles.Lookup LOOKUP = MethodHandles.lookup();

@@ -9,6 +9,7 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import fi.benjami.code4jvm.Condition;
 import fi.benjami.code4jvm.Constant;
@@ -23,6 +24,7 @@ import fi.benjami.code4jvm.statement.Jump;
 import fi.benjami.code4jvm.statement.Return;
 import fi.benjami.code4jvm.typedef.ClassDef;
 
+@ExtendWith({EnableDebugExtension.class})
 public class ValuesTest {
 
 	private static final MethodHandles.Lookup LOOKUP = MethodHandles.lookup();
@@ -174,7 +176,7 @@ public class ValuesTest {
 		def.interfaces(Type.of(Supplier.class));
 		def.addEmptyConstructor(Access.PUBLIC);
 		
-		var method = def.addMethod(Type.of(Object.class), "get", Access.PUBLIC);
+		var method = def.addMethod(Type.OBJECT, "get", Access.PUBLIC);
 		var value = Variable.createUnbound(Type.of(String.class));
 		method.add(value.set(Constant.of("ok")));
 		method.add(Return.value(value));
@@ -190,7 +192,7 @@ public class ValuesTest {
 		def.interfaces(Type.of(Supplier.class));
 		def.addEmptyConstructor(Access.PUBLIC);
 		
-		var method = def.addMethod(Type.of(Object.class), "get", Access.PUBLIC);
+		var method = def.addMethod(Type.OBJECT, "get", Access.PUBLIC);
 		var value = Variable.createUnbound(Type.of(String.class));
 		value.set(Constant.of("ok")); // Note the missing method.add(...)!
 		method.add(Return.value(value));
@@ -204,7 +206,7 @@ public class ValuesTest {
 		def.interfaces(Type.of(Supplier.class));
 		def.addEmptyConstructor(Access.PUBLIC);
 		
-		var method = def.addMethod(Type.of(Object.class), "get", Access.PUBLIC);
+		var method = def.addMethod(Type.OBJECT, "get", Access.PUBLIC);
 		var block = Block.create();
 		var value = block.add(Arithmetic.add(Constant.of(1), Constant.of(2))).value();
 		method.add(Arithmetic.add(value, Constant.of(3)));
@@ -220,7 +222,7 @@ public class ValuesTest {
 		def.interfaces(Type.of(Supplier.class));
 		def.addEmptyConstructor(Access.PUBLIC);
 		
-		var method = def.addMethod(Type.of(Object.class), "get", Access.PUBLIC);
+		var method = def.addMethod(Type.OBJECT, "get", Access.PUBLIC);
 		var a = Block.create();
 		var value = a.add(Arithmetic.add(Constant.of(1), Constant.of(2))).value();
 		var b = Block.create();
@@ -231,5 +233,33 @@ public class ValuesTest {
 		method.add(Return.value(Constant.of("ok")));
 		
 		assertThrows(UninitializedValueException.class, () -> def.compile());
+	}
+	
+	@Test
+	public void charConstant() throws Throwable {
+		var def = ClassDef.create("fi.benjami.code4jvm.test.NonIntConstant", Access.PUBLIC);
+		def.addEmptyConstructor(Access.PUBLIC);
+		
+		var method = def.addMethod(Type.CHAR, "get", Access.PUBLIC);
+		method.add(Return.value(Constant.of('x')));
+		
+		var lookup = LOOKUP.defineHiddenClass(def.compile(), true);
+		var instance = TestUtils.newInstance(lookup);
+		assertEquals('x', (char) lookup.findVirtual(lookup.lookupClass(), "get", MethodType.methodType(char.class))
+				.invoke(instance));
+	}
+	
+	@Test
+	public void shortConstant() throws Throwable {
+		var def = ClassDef.create("fi.benjami.code4jvm.test.ShortConstant", Access.PUBLIC);
+		def.addEmptyConstructor(Access.PUBLIC);
+		
+		var method = def.addMethod(Type.SHORT, "get", Access.PUBLIC);
+		method.add(Return.value(Constant.of((short) -5)));
+		
+		var lookup = LOOKUP.defineHiddenClass(def.compile(), true);
+		var instance = TestUtils.newInstance(lookup);
+		assertEquals((short) -5, (short) lookup.findVirtual(lookup.lookupClass(), "get", MethodType.methodType(short.class))
+				.invoke(instance));
 	}
 }

@@ -136,7 +136,7 @@ class FrameBuilder {
 							// make sure it has a slot manually
 							var localVar = (LocalVar) holder.original();
 							localVar.needsSlot = true;
-							allocator.get(localVar);
+							allocator.assignSlot(localVar);
 							redirectFrame.add(localVar);
 						}
 						trace(subBlockFrames, redirect.target(), redirectFrame, 0, true);
@@ -170,7 +170,7 @@ class FrameBuilder {
 			} else if (node instanceof StoreNode store) {
 				// Validate that whatever we're storing is available
 				if (store.value().original() instanceof LocalVar localVar && localVar.needsSlot) {
-					allocator.get(localVar); // Make sure slot is available
+					allocator.assignSlot(localVar); // Make sure slot is available
 					if (!frame.has(localVar)) {
 						throw new UninitializedValueException(localVar, block);
 					}
@@ -178,7 +178,7 @@ class FrameBuilder {
 				if (!store.target().startInitialized) {
 					// Variables that start uninitialized are added to frame
 					// only when something is stored to them
-					allocator.get(store.target());
+					allocator.assignSlot(store.target());
 					frame.add(store.target());
 				}
 				

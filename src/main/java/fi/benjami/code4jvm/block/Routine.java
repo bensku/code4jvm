@@ -51,7 +51,7 @@ public class Routine {
 	public Value arg(Type type, String name) {
 		var localVar = new LocalVar(type, true);
 		localVar.name(name);
-		argsAllocator.get(localVar);
+		argsAllocator.assignSlot(localVar);
 		args.add(localVar);
 		return localVar;
 	}

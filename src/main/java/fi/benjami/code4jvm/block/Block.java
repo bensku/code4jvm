@@ -121,7 +121,7 @@ public class Block {
 			stmt.emitVoid(this);
 			nodes.add(new EdgeNode(null, Jump.Target.START, EdgeNode.THROW, null));
 		} else if (stmt instanceof StoreNode store) {
-			scope.checkInputs(new Value[] {store.value()});
+			scope.checkInputs(new Value[] {store.value()}, true);
 			nodes.add(store);
 		} else {
 			stmt.emitVoid(this);
@@ -130,7 +130,7 @@ public class Block {
 	
 	public AddExpression add(Expression expr) {
 		if (expr instanceof Bytecode bc) {
-			scope.checkInputs(bc.inputs());
+			scope.checkInputs(bc.inputs(), (bc.flags() & Bytecode.EXPLICIT_LOAD) == 0);
 			// Output is added in AddExpression if it is called
 			
 			var node = new CodeNode(bc);

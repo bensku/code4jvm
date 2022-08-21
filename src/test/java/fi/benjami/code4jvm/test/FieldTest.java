@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import java.lang.invoke.MethodHandles;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import fi.benjami.code4jvm.Constant;
 import fi.benjami.code4jvm.Type;
@@ -15,6 +16,7 @@ import fi.benjami.code4jvm.flag.FieldFlag;
 import fi.benjami.code4jvm.statement.Return;
 import fi.benjami.code4jvm.typedef.ClassDef;
 
+@ExtendWith({EnableDebugExtension.class})
 public class FieldTest {
 	
 	private static final MethodHandles.Lookup LOOKUP = MethodHandles.lookup();

@@ -7,6 +7,7 @@ import java.lang.invoke.MethodHandles;
 import java.util.function.Function;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import fi.benjami.code4jvm.Condition;
 import fi.benjami.code4jvm.Constant;
@@ -19,6 +20,7 @@ import fi.benjami.code4jvm.structure.IfBlock;
 import fi.benjami.code4jvm.structure.TryBlock;
 import fi.benjami.code4jvm.typedef.ClassDef;
 
+@ExtendWith({EnableDebugExtension.class})
 public class TryBlockTest {
 
 	private static final MethodHandles.Lookup LOOKUP = MethodHandles.lookup();

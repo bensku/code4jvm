@@ -35,7 +35,7 @@ public final class CodeNode implements Node {
 			// Ignore constants and on-stack variables
 			// Scope makes only variables that are not on stack use slots
 			if (input.original() instanceof LocalVar localVar && localVar.needsSlot) {
-				allocator.get(localVar); // Make sure slot is available
+				allocator.assignSlot(localVar); // Make sure slot is available
 				if (!frame.has(localVar)) {
 					throw new UninitializedValueException(localVar, parent);
 				}
@@ -45,7 +45,7 @@ public final class CodeNode implements Node {
 	
 	public void addOutput(SlotAllocator allocator, Frame frame) {
 		if (assignedVar != null && assignedVar.needsSlot) {
-			allocator.get(assignedVar); // Make sure slot is available
+			allocator.assignSlot(assignedVar); // Make sure slot is available
 			frame.add(assignedVar);
 		}
 	}

@@ -10,6 +10,18 @@ public class Constant implements Value {
 		return value ? TRUE : FALSE;
 	}
 	
+	public static Constant of(byte value) {
+		return new Constant(value, Type.BYTE);
+	}
+	
+	public static Constant of(short value) {
+		return new Constant(value, Type.SHORT);
+	}
+	
+	public static Constant of(char value) {
+		return new Constant(value, Type.CHAR);
+	}
+	
 	public static Constant of(int value) {
 		return new Constant(value, Type.INT);
 	}

@@ -3,11 +3,13 @@ package fi.benjami.code4jvm.block;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.util.CheckMethodAdapter;
 
-import fi.benjami.code4jvm.CompileOptions;
 import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.call.CallTarget;
 import fi.benjami.code4jvm.call.FixedCallTarget;
+import fi.benjami.code4jvm.config.CompileOptions;
+import fi.benjami.code4jvm.config.CoreOptions;
 import fi.benjami.code4jvm.flag.Access;
+import fi.benjami.code4jvm.internal.DebugOptions;
 import fi.benjami.code4jvm.internal.FrameManager;
 import fi.benjami.code4jvm.internal.MethodCompilerState;
 import fi.benjami.code4jvm.typedef.ClassDef;
@@ -43,8 +45,11 @@ public class MethodCompiler {
 		
 		var mv = cv.visitMethod(accessBits, method.name(),
 				TypeUtils.methodDescriptor(method.returnType(), argTypes), null, null);
-		if (options.asmChecks()) {
-			mv = new CheckMethodAdapter(mv);
+		if (DebugOptions.ASM_CHECKS) {
+			var checker = new CheckMethodAdapter(mv);
+			// CheckMethodAdapter needs version set to accept newer functionality
+			checker.version = options.get(CoreOptions.JAVA_VERSION).opcode();
+			mv = checker;
 		}
 		
 		if (method instanceof ConcreteMethod concrete) {			
@@ -62,9 +67,9 @@ public class MethodCompiler {
 			// Emit method content
 			mv.visitCode();
 			concrete.block().emitBytecode(state);
+			mv.visitMaxs(0, 0);
 		}
 		mv.visitEnd();
-		mv.visitMaxs(0, 0);
 	}
 	
 	private FixedCallTarget getTarget(int access, Type returnType, String name, Type[] argTypes) {

@@ -13,13 +13,15 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.util.CheckClassAdapter;
 
 import fi.benjami.code4jvm.flag.MethodFlag;
+import fi.benjami.code4jvm.internal.DebugOptions;
 import fi.benjami.code4jvm.statement.Return;
-import fi.benjami.code4jvm.CompileOptions;
 import fi.benjami.code4jvm.Constant;
 import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.block.AbstractMethod;
 import fi.benjami.code4jvm.block.Method;
 import fi.benjami.code4jvm.block.MethodCompiler;
+import fi.benjami.code4jvm.config.CompileOptions;
+import fi.benjami.code4jvm.config.CoreOptions;
 import fi.benjami.code4jvm.flag.Access;
 import fi.benjami.code4jvm.flag.ClassFlag;
 import fi.benjami.code4jvm.flag.FieldFlag;
@@ -274,13 +276,14 @@ public class ClassDef {
 		var writer = new ClassWriter(ClassWriter.COMPUTE_MAXS);
 		// Enable ASM checks if user has requested them
 		// But don't enable data flow checks, can't use them with COMPUTE_MAXS
-		var cv = opts.asmChecks() ? new CheckClassAdapter(writer, false) : writer;
+		var cv = DebugOptions.ASM_CHECKS ? new CheckClassAdapter(writer, false) : writer;
 		var superName = superClass != null ? superClass.internalName() : "java/lang/Object";
 		var interfaceNames = interfaces != null ? 
 				Arrays.stream(interfaces).map(Type::internalName).toArray(String[]::new)
 				: null;
 		// TODO customizable Java version (needs more than just this flag, though)
-		cv.visit(Opcodes.V17, access, name.replace('.', '/'), null, superName, interfaceNames);
+		cv.visit(opts.get(CoreOptions.JAVA_VERSION).opcode(),
+				access, name.replace('.', '/'), null, superName, interfaceNames);
 
 		// Add fields
 		for (var field : fields) {

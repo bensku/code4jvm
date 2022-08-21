@@ -6,8 +6,8 @@ import java.lang.invoke.MethodHandles;
 import java.util.function.Function;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
-import fi.benjami.code4jvm.CompileOptions;
 import fi.benjami.code4jvm.Condition;
 import fi.benjami.code4jvm.Constant;
 import fi.benjami.code4jvm.Type;
@@ -17,6 +17,7 @@ import fi.benjami.code4jvm.statement.Return;
 import fi.benjami.code4jvm.structure.IfBlock;
 import fi.benjami.code4jvm.typedef.ClassDef;
 
+@ExtendWith({EnableDebugExtension.class})
 public class IfBlockTest {
 
 	private static final MethodHandles.Lookup LOOKUP = MethodHandles.lookup();
@@ -35,7 +36,7 @@ public class IfBlockTest {
 				}));
 		method.add(Return.value(Constant.of("fail")));
 		
-		var lookup = LOOKUP.defineHiddenClass(def.compile(new CompileOptions(true)), true);
+		var lookup = LOOKUP.defineHiddenClass(def.compile(), true);
 		@SuppressWarnings("unchecked")
 		var instance = (Function<Object, Object>) TestUtils.newInstance(lookup);
 		assertEquals("success", instance.apply("ok"));
@@ -59,7 +60,7 @@ public class IfBlockTest {
 				}));
 		method.add(Return.value(Constant.of("fail")));
 		
-		var lookup = LOOKUP.defineHiddenClass(def.compile(new CompileOptions(true)), true);
+		var lookup = LOOKUP.defineHiddenClass(def.compile(), true);
 		@SuppressWarnings("unchecked")
 		var instance = (Function<Object, Object>) TestUtils.newInstance(lookup);
 		assertEquals("success", instance.apply("ok"));
@@ -85,7 +86,7 @@ public class IfBlockTest {
 				}));
 		method.add(Return.value(Constant.of("fail")));
 		
-		var lookup = LOOKUP.defineHiddenClass(def.compile(new CompileOptions(true)), true);
+		var lookup = LOOKUP.defineHiddenClass(def.compile(), true);
 		@SuppressWarnings("unchecked")
 		var instance = (Function<Object, Object>) TestUtils.newInstance(lookup);
 		assertEquals("success", instance.apply("ok"));
@@ -108,7 +109,7 @@ public class IfBlockTest {
 				}));
 		method.add(Return.value(Constant.of("fail")));
 		
-		var lookup = LOOKUP.defineHiddenClass(def.compile(new CompileOptions(true)), true);
+		var lookup = LOOKUP.defineHiddenClass(def.compile(), true);
 		@SuppressWarnings("unchecked")
 		var instance = (Function<Object, Object>) TestUtils.newInstance(lookup);
 		assertEquals("success", instance.apply("ok"));
@@ -135,7 +136,7 @@ public class IfBlockTest {
 				}));
 		method.add(Return.value(Constant.of("fail")));
 		
-		var lookup = LOOKUP.defineHiddenClass(def.compile(new CompileOptions(true)), true);
+		var lookup = LOOKUP.defineHiddenClass(def.compile(), true);
 		@SuppressWarnings("unchecked")
 		var instance = (Function<Object, Object>) TestUtils.newInstance(lookup);
 		assertEquals("success", instance.apply("ok"));

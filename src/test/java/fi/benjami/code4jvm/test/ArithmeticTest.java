@@ -6,6 +6,7 @@ import java.lang.invoke.MethodHandles;
 import java.util.function.BiFunction;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import fi.benjami.code4jvm.Expression;
 import fi.benjami.code4jvm.Type;
@@ -15,6 +16,7 @@ import fi.benjami.code4jvm.statement.Arithmetic;
 import fi.benjami.code4jvm.statement.Return;
 import fi.benjami.code4jvm.typedef.ClassDef;
 
+@ExtendWith({EnableDebugExtension.class})
 public class ArithmeticTest {
 
 	private static final MethodHandles.Lookup LOOKUP = MethodHandles.lookup();

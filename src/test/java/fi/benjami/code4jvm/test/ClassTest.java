@@ -7,6 +7,7 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.flag.Access;
@@ -15,6 +16,7 @@ import fi.benjami.code4jvm.flag.FieldFlag;
 import fi.benjami.code4jvm.statement.Return;
 import fi.benjami.code4jvm.typedef.ClassDef;
 
+@ExtendWith({EnableDebugExtension.class})
 public class ClassTest {
 
 	private static final MethodHandles.Lookup LOOKUP = MethodHandles.lookup();

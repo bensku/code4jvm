@@ -3,9 +3,11 @@ package fi.benjami.code4jvm.test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import fi.benjami.code4jvm.Type;
 
+@ExtendWith({EnableDebugExtension.class})
 public class TypeTest {
 
 	private record Row(
