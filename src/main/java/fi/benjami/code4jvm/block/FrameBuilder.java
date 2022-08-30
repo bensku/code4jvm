@@ -3,6 +3,7 @@ package fi.benjami.code4jvm.block;
 import java.util.IdentityHashMap;
 import java.util.Map;
 
+import fi.benjami.code4jvm.MissingReturnException;
 import fi.benjami.code4jvm.UninitializedValueException;
 import fi.benjami.code4jvm.internal.Frame;
 import fi.benjami.code4jvm.internal.LocalVar;
@@ -194,11 +195,17 @@ class FrameBuilder {
 		if (jump) {
 			block.endFrame.markNeedsBytecode();
 		}
-		if (modified && block.parent != null) {
-			// Blocks have implicit edge that leads to their parent block
-			// This is done so that sub-blocks can make new variables visible
-			// to their parent blocks
-			trace(subBlockFrames, block.parent, frame, block.parentNodeIndex + 1, false);
+		if (block.parent == null) {
+			// Reaching the end means that this method is not guaranteed to return or throw
+			// This would fail JVM bytecode verification, so better fail now
+			throw new MissingReturnException();
+		} else {
+			if (modified) {				
+				// Blocks have implicit edge that leads to their parent block
+				// This is done so that sub-blocks can make new variables visible
+				// to their parent blocks
+				trace(subBlockFrames, block.parent, frame, block.parentNodeIndex + 1, false);
+			}
 		}
 	}
 

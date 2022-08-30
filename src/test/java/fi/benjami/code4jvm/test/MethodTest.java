@@ -2,6 +2,7 @@ package fi.benjami.code4jvm.test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.invoke.CallSite;
@@ -14,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 import fi.benjami.code4jvm.Constant;
+import fi.benjami.code4jvm.MissingReturnException;
 import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.call.CallTarget;
 import fi.benjami.code4jvm.flag.Access;
@@ -143,5 +145,15 @@ public class MethodTest {
 		CALL_SITE.setTarget(MethodHandles.lookup().findStatic(MethodTest.class, "targetMethod2",
 				MethodType.methodType(boolean.class, String.class)));
 		assertFalse(instance.apply("ok"));
+	}
+	
+	@Test
+	public void missingReturn() throws Throwable {
+		var def = ClassDef.create("fi.benjami.code4jvm.test.MissingReturn", Access.PUBLIC);
+		def.addEmptyConstructor(Access.PUBLIC);
+		
+		def.addMethod(Type.VOID, "doNothing", Access.PUBLIC);
+		
+		assertThrows(MissingReturnException.class, () -> def.compile());
 	}
 }
