@@ -90,6 +90,28 @@ public final class FixedCallTarget extends CallTarget {
 				// Return the other reference to the object, now initialized
 				yield instance;
 			}
+			case INIT_ARRAY -> {
+				var type = returnType();
+				if (type.arrayDimensions() > 1) {
+					// Multi-dimensional primitive or reference array
+					// This could probably be used for other kinds of arrays, but currently we don't
+					yield block.add(Bytecode.run(returnType(), allArgs, ctx -> {
+						ctx.asm().visitMultiANewArrayInsn(type.descriptor(), type.arrayDimensions());
+					})).value();
+				} else if (type.isPrimitive()) {
+					// One-dimensional primitive array
+					yield block.add(Bytecode.run(returnType(), allArgs, ctx -> {
+						// JVM treats many Java primitives as ints, EXCEPT it has array types for them
+						// Each of them needs its own operand
+						ctx.asm().visitIntInsn(NEWARRAY, TypeUtils.getNewarrayOperand(type.componentType(1)));
+					})).value();
+				} else {
+					// One-dimensional object array
+					yield block.add(Bytecode.run(returnType(), allArgs, ctx -> {
+						ctx.asm().visitTypeInsn(ANEWARRAY, type.internalName());
+					})).value();
+				}
+			}
 			case DYNAMIC -> throw new AssertionError();
 			};
 		};
@@ -105,7 +127,9 @@ public final class FixedCallTarget extends CallTarget {
 				TypeUtils.methodDescriptor(returnType(), argTypes()), owner.isInterface());
 		case SPECIAL -> new Handle(H_INVOKESPECIAL, owner().internalName(), name(),
 				TypeUtils.methodDescriptor(Type.VOID, argTypes()), false);
-		case INIT -> throw new UnsupportedOperationException(); // Built on top of invokespecial, JVM doesn't REALLY support this
+		// INIT and INIT_ARRAY are code4jvm's own helpers, not supported by the JVM
+		case INIT -> throw new UnsupportedOperationException();
+		case INIT_ARRAY -> throw new UnsupportedOperationException();
 		case DYNAMIC -> throw new AssertionError(); // Should be DynamicCallTarget
 		};
 	}

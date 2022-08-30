@@ -170,8 +170,18 @@ public class Type {
 	}
 	
 	public Type array(int dimensions) {
-		// TODO array opcodes!
-		return new Type(name, internalName, kind, "[".repeat(dimensions) + descriptor, dimensions, null);
+		// Array access opcodes are stored in non-array opcodes, so array types can have them
+		// This won't work for multi-dimensional arrays, but getOpcode(...) has special case for them
+		return new Type(name, internalName, kind, "[".repeat(dimensions) + descriptor, arrayDimensions + dimensions, opcodes);
+	}
+	
+	public Type componentType(int popDimensions) {
+		if (!isArray()) {
+			return this;
+		}
+		var removedDimensions = Math.min(popDimensions, arrayDimensions);
+		var newDimensions = arrayDimensions - removedDimensions;
+		return new Type(name, internalName, kind, descriptor.substring(removedDimensions), newDimensions, opcodes);
 	}
 	
 	public boolean isPrimitive() {
@@ -247,6 +257,12 @@ public class Type {
 		if (this == METHOD_RETURN_TYPE) {
 			// Special case, get method return type and call getOpcode on that
 			return ctx.method().returnType().getOpcode(intOpcode, null);
+		} else if (isArray()) {
+			if (arrayDimensions > 1 || (intOpcode != IALOAD && intOpcode != IASTORE)) {
+				// Arrays are objects, except for special opcodes IALOAD and IASTORE
+				// This is ugly, but easier than having separate X_ARRAY TypeOpcodes
+				return OBJECT.getOpcode(intOpcode, ctx);
+			}
 		}
 		var opcode = switch (intOpcode) {
 		case ILOAD -> opcodes.load;

@@ -31,8 +31,20 @@ public abstract sealed class CallTarget permits FixedCallTarget, DynamicCallTarg
 	}
 	
 	public static FixedCallTarget constructor(Type owner, Type... argTypes) {
-		// Custom linkage INIT handles heavy lifting
-		return new FixedCallTarget(owner, "<init>", argTypes, Linkage.INIT, new Value[0], owner);
+		// Custom linkages handle the heavy lifting
+		if (owner.isArray()) {
+			if (argTypes.length != owner.arrayDimensions()) {
+				throw new IllegalArgumentException("expected lengths for " + owner.arrayDimensions() + " dimensions, got " + argTypes.length);
+			}
+			for (var type : argTypes) {
+				if (!type.equals(Type.INT)) {
+					throw new IllegalArgumentException("array lengths must be ints");
+				}
+			}
+			return new FixedCallTarget(owner, "code4jvm_arrayinit", argTypes, Linkage.INIT_ARRAY, new Value[0], owner);
+		} else {
+			return new FixedCallTarget(owner, "<init>", argTypes, Linkage.INIT, new Value[0], owner);
+		}
 	}
 	
 	public static DynamicCallTarget dynamic(FixedCallTarget bootstrapMethod, Type returnType, String name, Type... argTypes) {
@@ -57,7 +69,7 @@ public abstract sealed class CallTarget permits FixedCallTarget, DynamicCallTarg
 	private final Type[] argTypes;
 	private final Linkage linkage;
 	private final Value[] capturedArgs;
-		
+	
 	CallTarget(Type returnType, String name, Type[] argTypes, Linkage linkage, Value[] capturedArgs) {
 		this.returnType = returnType;
 		this.name = name;

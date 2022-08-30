@@ -6,6 +6,7 @@ import java.util.Optional;
 import fi.benjami.code4jvm.call.FixedCallTarget;
 import fi.benjami.code4jvm.internal.CastValue;
 import fi.benjami.code4jvm.internal.StackTop;
+import fi.benjami.code4jvm.statement.ArrayAccess;
 import fi.benjami.code4jvm.statement.Bytecode;
 
 import static org.objectweb.asm.Opcodes.*;
@@ -49,6 +50,18 @@ public interface Value {
 	}
 	
 	default Expression getField(Type fieldType, String name) {
+		if (type().isArray()) {
+			if (!fieldType.equals(Type.INT)) {
+				throw new IllegalArgumentException("array length is an int");
+			}
+			if (name.equals("length")) {
+				// From Java's perspective, length is almost a field
+				// This is not the case for JVM, but we can make it look like that
+				return ArrayAccess.length(this);
+			} else {
+				throw new IllegalArgumentException("arrays have no fields except the length");
+			}
+		}
 		return block -> {
 			return block.add(Bytecode.run(fieldType, new Value[] {this}, ctx -> {
 				ctx.asm().visitFieldInsn(GETFIELD, type().internalName(), name, fieldType.descriptor());
@@ -57,6 +70,9 @@ public interface Value {
 	}
 	
 	default Statement putField(String name, Value value) {
+		if (type().isArray()) {
+			throw new IllegalStateException("arrays have no writable fields");
+		}
 		return block -> {
 			block.add(Bytecode.run(Type.VOID, new Value[] {this, value}, ctx -> {
 				ctx.asm().visitFieldInsn(PUTFIELD, type().internalName(), name, value.type().descriptor());

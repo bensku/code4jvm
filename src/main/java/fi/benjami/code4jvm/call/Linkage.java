@@ -43,6 +43,16 @@ public enum Linkage {
 	INIT,
 	
 	/**
+	 * Target is built-in that creates a new array.
+	 * 
+	 * @implNote Compiles to {@code newarray} for one-dimensional arrays
+	 * of primitive types, {@code anewarray} for one-dimensional arrays
+	 * of references types, or {@code multianewarray} for all multidimensional
+	 * arrays.
+	 */
+	INIT_ARRAY,
+	
+	/**
 	 * Target is determined dynamically by calling a bootstrap method.
 	 * 
 	 * @implNote Compiles to {@code invokedynamic}.
