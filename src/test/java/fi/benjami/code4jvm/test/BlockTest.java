@@ -127,7 +127,7 @@ public class BlockTest {
 		
 		var handler = Block.create();
 		var capturedReturn = Variable.createUnbound(Type.METHOD_RETURN_TYPE);
-		handler.add(Jump.to(endBlock, Jump.Target.START, Condition.equal(capturedReturn.asType(Type.of(String.class)),
+		handler.add(Jump.to(endBlock, Jump.Target.START, Condition.equal(capturedReturn.asType(Type.STRING),
 				Constant.of("ok"))));
 		handler.add(Return.value(Constant.of("fail")));
 		

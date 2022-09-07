@@ -47,8 +47,8 @@ public class StringConcatTest {
 		def.interfaces(Type.of(BiFunction.class));
 		
 		var method = def.addMethod(Type.OBJECT, "apply", Access.PUBLIC);
-		var arg1 = method.arg(Type.OBJECT).cast(Type.of(String.class));
-		var arg2 = method.arg(Type.OBJECT).cast(Type.of(String.class));
+		var arg1 = method.arg(Type.OBJECT).cast(Type.STRING);
+		var arg2 = method.arg(Type.OBJECT).cast(Type.STRING);
 		var value = method.add(StringConcat.concat(arg1, arg2)).value();
 		method.add(Return.value(value));
 		
@@ -65,8 +65,8 @@ public class StringConcatTest {
 		def.interfaces(Type.of(BiFunction.class));
 		
 		var method = def.addMethod(Type.OBJECT, "apply", Access.PUBLIC);
-		var arg1 = method.arg(Type.OBJECT).cast(Type.of(String.class));
-		var arg2 = method.arg(Type.OBJECT).cast(Type.of(String.class));
+		var arg1 = method.arg(Type.OBJECT).cast(Type.STRING);
+		var arg2 = method.arg(Type.OBJECT).cast(Type.STRING);
 		var value = method.add(StringConcat.concat(arg1, Constant.of(false), Constant.of('a'),
 				Constant.of(10), Constant.of(4f), Constant.of(3d), arg2, Constant.of("test"))).value();
 		method.add(Return.value(value));
@@ -84,8 +84,8 @@ public class StringConcatTest {
 		def.interfaces(Type.of(BiFunction.class));
 		
 		var method = def.addMethod(Type.OBJECT, "apply", Access.PUBLIC);
-		var arg1 = method.arg(Type.OBJECT).cast(Type.of(String.class));
-		var arg2 = method.arg(Type.OBJECT).cast(Type.of(String.class));
+		var arg1 = method.arg(Type.OBJECT).cast(Type.STRING);
+		var arg2 = method.arg(Type.OBJECT).cast(Type.STRING);
 		var value = method.add(StringConcat.concat(arg1, Constant.of("\1"), arg2, Constant.of("test"))).value();
 		method.add(Return.value(value));
 		
@@ -121,8 +121,8 @@ public class StringConcatTest {
 		def.interfaces(Type.of(BiFunction.class));
 		
 		var method = def.addMethod(Type.OBJECT, "apply", Access.PUBLIC);
-		var arg1 = method.arg(Type.OBJECT).cast(Type.of(String.class));
-		var arg2 = method.arg(Type.OBJECT).cast(Type.of(String.class));
+		var arg1 = method.arg(Type.OBJECT).cast(Type.STRING);
+		var arg2 = method.arg(Type.OBJECT).cast(Type.STRING);
 		var value = method.add(StringConcat.concat(arg1, Constant.of(false), Constant.of('a'),
 				Constant.of(10), Constant.of(4f), Constant.of(3d), arg2, Constant.of("test"))).value();
 		method.add(Return.value(value));

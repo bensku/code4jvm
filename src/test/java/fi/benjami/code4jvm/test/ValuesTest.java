@@ -49,7 +49,7 @@ public class ValuesTest {
 		var consumer = method.arg(Type.of(Consumer.class));
 		
 		// Call methods on first argument
-		var hello = method.add(provider.callVirtual(Type.of(String.class), "hello")).value();
+		var hello = method.add(provider.callVirtual(Type.STRING, "hello")).value();
 		var number = method.add(provider.callVirtual(Type.INT, "number")).value();
 		
 		// Call the second argument with the string we've got
@@ -153,8 +153,8 @@ public class ValuesTest {
 		def.interfaces(Type.of(ObjectCasts.class));
 		def.addEmptyConstructor(Access.PUBLIC);
 		
-		castTester(def, "string2Object", Type.of(String.class), Type.of(Object.class));
-		castTester(def, "object2String", Type.of(Object.class), Type.of(String.class));
+		castTester(def, "string2Object", Type.STRING, Type.of(Object.class));
+		castTester(def, "object2String", Type.of(Object.class), Type.STRING);
 		
 		var lookup = LOOKUP.defineHiddenClass(def.compile(), true);
 		var instance = (ObjectCasts) TestUtils.newInstance(lookup);
@@ -177,7 +177,7 @@ public class ValuesTest {
 		def.addEmptyConstructor(Access.PUBLIC);
 		
 		var method = def.addMethod(Type.OBJECT, "get", Access.PUBLIC);
-		var value = Variable.createUnbound(Type.of(String.class));
+		var value = Variable.createUnbound(Type.STRING);
 		method.add(value.set(Constant.of("ok")));
 		method.add(Return.value(value));
 		
@@ -193,7 +193,7 @@ public class ValuesTest {
 		def.addEmptyConstructor(Access.PUBLIC);
 		
 		var method = def.addMethod(Type.OBJECT, "get", Access.PUBLIC);
-		var value = Variable.createUnbound(Type.of(String.class));
+		var value = Variable.createUnbound(Type.STRING);
 		value.set(Constant.of("ok")); // Note the missing method.add(...)!
 		method.add(Return.value(value));
 		

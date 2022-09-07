@@ -59,7 +59,7 @@ public class TryBlockTest {
 			block.add(Return.value(Constant.of("fail")));
 		}).addCatch(Type.of(UnsupportedOperationException.class), (block, exception) -> {
 			// Use the exception value to make sure it is correct
-			var errorMsg = block.add(exception.callVirtual(Type.of(String.class), "getMessage")).value();
+			var errorMsg = block.add(exception.callVirtual(Type.STRING, "getMessage")).value();
 			block.add(new IfBlock().branch(Condition.equal(errorMsg, Constant.of("error msg")), inner -> {				
 				inner.add(Return.value(arg));
 			}));
@@ -169,7 +169,7 @@ public class TryBlockTest {
 		var method = def.addMethod(Type.OBJECT, "apply", Access.PUBLIC);
 		var arg = method.arg(Type.OBJECT);
 		method.add(TryBlock.create(block -> {
-			var variable = Variable.createUnbound(Type.of(String.class));
+			var variable = Variable.createUnbound(Type.STRING);
 			block.add(variable.set(Constant.of("fail")));
 			block.add(Return.value(variable));
 		}).addReturnHook((block, value) -> {

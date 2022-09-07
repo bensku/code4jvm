@@ -29,7 +29,7 @@ import fi.benjami.code4jvm.statement.Return;
 import fi.benjami.code4jvm.statement.Throw;
 import fi.benjami.code4jvm.typedef.ClassDef;
 
-public class Block {
+public class Block implements CompileHook.Carrier {
 	
 	public static Block create() {
 		return new Block(new ArrayList<>(), new Scope());
@@ -153,6 +153,17 @@ public class Block {
 		nodes.add(edge);
 		// Reset scope, stack will be gone after the newly added block
 		scope.resetStack();
+	}
+	
+	public void patchToStart(Block block) {
+		if (block.parent != null) {
+			throw new IllegalArgumentException("block cannot be added twice; try copy() instead");
+		}
+		block.parent = this;
+		block.parentNodeIndex = 0;
+		
+		var edge = new EdgeNode(block, Jump.Target.START, EdgeNode.SUB_BLOCK, null);
+		nodes.add(0, edge);
 	}
 	
 	public Label add(Edge edge) {

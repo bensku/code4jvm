@@ -1,5 +1,6 @@
 package fi.benjami.code4jvm;
 
+import fi.benjami.code4jvm.block.Method;
 import fi.benjami.code4jvm.statement.Return;
 import fi.benjami.code4jvm.statement.Throw;
 import fi.benjami.code4jvm.typedef.ClassDef;
@@ -15,8 +16,8 @@ public class MissingReturnException extends RuntimeException {
 
 	private static final long serialVersionUID = 1L;
 	
-	public MissingReturnException() {
-		super("methods must always either throw or return");
+	public MissingReturnException(Method method) {
+		super("missing return/throw in method " + method.name());
 	}
 
 }

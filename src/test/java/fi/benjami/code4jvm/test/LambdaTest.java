@@ -103,8 +103,8 @@ public class LambdaTest {
 		
 		var target = Lambda.create(Type.of(Object.class));
 		var arg1 = target.arg(Type.of(CallMe.class));
-		var arg2 = target.arg(Type.of(Object.class)).cast(Type.of(String.class));
-		var result = target.add(arg1.callVirtual(Type.of(String.class), "callMe", arg2)).value();
+		var arg2 = target.arg(Type.of(Object.class)).cast(Type.STRING);
+		var result = target.add(arg1.callVirtual(Type.STRING, "callMe", arg2)).value();
 		target.add(Return.value(result.cast(Type.OBJECT)));
 		
 		var lambda = Lambda.create(Type.of(Function.class));

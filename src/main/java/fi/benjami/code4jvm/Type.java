@@ -59,6 +59,8 @@ public class Type {
 	
 	// j.l.Object is used so often that a constant is nice to have
 	public static final Type OBJECT = new Type("java.lang.Object", "java/lang/Object", KIND_CLASS, "Ljava/lang/Object;", 0, OBJ_OPCODES);
+	// Same goes for j.l.String, which additionally has some special JVM support (e.g. constants)
+	public static final Type STRING = new Type("java.lang.String", "java/lang/String", KIND_CLASS, "Ljava/lang/String;", 0, OBJ_OPCODES);
 	
 	public static final Type METHOD_RETURN_TYPE = new Type("code4jvm.special.MethodReturn", "code4jvm/special/MethodReturn",
 			new TypeOpcodes(NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP));
@@ -74,6 +76,7 @@ public class Type {
 		case "float" -> FLOAT;
 		case "double" -> DOUBLE;
 		case "java.lang.Object" -> OBJECT;
+		case "java.lang.String" -> STRING;
 		default -> {
 			var internalName = name.replace('.', '/');
 			yield new Type(name, internalName, isInterface ? KIND_INTERFACE : KIND_CLASS,
@@ -101,6 +104,8 @@ public class Type {
 			return DOUBLE;
 		} else if (c == Object.class) {
 			return OBJECT;
+		} else if (c == String.class) {
+			return STRING;
 		} else {
 			var name = c.getName();
 			var internalName = name.replace('.', '/');

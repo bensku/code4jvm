@@ -22,7 +22,7 @@ public sealed interface Method permits AbstractMethod, ConcreteMethod {
 	}
 	
 	public static Method.Instance instanceMethod(Type returnType, String name, Type parentClass, MethodFlag... flags) {
-		return new Method.Instance(Block.create(), returnType, name, parentClass, flags);
+		return new Method.Instance(Block.create(), returnType, name, parentClass, flags, new LocalVar(parentClass, true));
 	}
 	
 	public static AbstractMethod abstractMethod(Type returnType, String name, MethodFlag... flags) {
@@ -55,12 +55,11 @@ public sealed interface Method permits AbstractMethod, ConcreteMethod {
 		 */
 		final LocalVar self;
 		
-		Instance(Block block, Type returnType, String name, Type parentClass, MethodFlag[] flags) {
+		Instance(Block block, Type returnType, String name, Type parentClass, MethodFlag[] flags, LocalVar self) {
 			super(block, returnType, name, getAccess(flags));
 			// this is passed in slot 0
 			// It is NOT present in method signature, so avoid calling arg()
-			this.self = new LocalVar(parentClass, true);
-			argsAllocator.assignSlot(self);
+			this.self = self;
 		}
 		
 		public Value self() {

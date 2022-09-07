@@ -15,6 +15,7 @@ import org.objectweb.asm.util.CheckClassAdapter;
 import fi.benjami.code4jvm.flag.MethodFlag;
 import fi.benjami.code4jvm.internal.DebugOptions;
 import fi.benjami.code4jvm.statement.Return;
+import fi.benjami.code4jvm.CompileHook;
 import fi.benjami.code4jvm.Constant;
 import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.block.AbstractMethod;
@@ -26,14 +27,10 @@ import fi.benjami.code4jvm.flag.Access;
 import fi.benjami.code4jvm.flag.ClassFlag;
 import fi.benjami.code4jvm.flag.FieldFlag;
 
-public class ClassDef {
+public class ClassDef implements CompileHook.Carrier {
 	
 	public static ClassDef create(String name, Access access, ClassFlag... flags) {
-		var acc = access.value();
-		for (var flag : flags) {
-			acc |= flag.value();
-		}
-		return new ClassDef(acc, name);
+		return new ClassDef(name, access, flags);
 	}
 	
 	private record Field(boolean isStatic,
@@ -45,7 +42,6 @@ public class ClassDef {
 	) {}
 
 	private final int access;
-	private final String name;
 	private final Type type;
 	
 	private Type superClass;
@@ -56,27 +52,32 @@ public class ClassDef {
 	
 	private final List<Field> fields;
 	
-	ClassDef(int access, String name) {
-		this.access = access;
-		this.name = name;
-		this.type = Type.of(name, (access & Opcodes.ACC_INTERFACE) != 0);
+	private Map<Object, CompileHook> hooks;
+	
+	protected ClassDef(String name, Access access, ClassFlag... flags) {
+		var acc = access.value();
+		for (var flag : flags) {
+			acc |= flag.value();
+		}
+		this.access = acc;
+		this.type = Type.of(name, (acc & Opcodes.ACC_INTERFACE) != 0);
 		this.methods = new ArrayList<>();
 		this.accessTable = new IdentityHashMap<>();
 		this.fields = new ArrayList<>();
 	}
 	
-	public Type type() {
+	public final Type type() {
 		return type;
 	}
 	
-	public void superClass(Type type) {
+	public final void superClass(Type type) {
 		if (superClass != null) {
 			throw new IllegalStateException("already extends " + superClass);
 		}
 		superClass = type;
 	}
 	
-	public void interfaces(Type... types) {
+	public final void interfaces(Type... types) {
 		if (interfaces != null) {
 			throw new IllegalStateException("already implements interfaces");
 		}
@@ -131,7 +132,7 @@ public class ClassDef {
 	 * @return The method builder.
 	 * @throws IllegalArgumentException See {@link #addMethod(Method, Access)}.
 	 */
-	public Method.Instance addMethod(Type returnType, String name, Access access, MethodFlag... flags) {
+	public final Method.Instance addMethod(Type returnType, String name, Access access, MethodFlag... flags) {
 		var method = Method.instanceMethod(returnType, name, type(), flags);
 		addMethod(method, access);
 		return method;
@@ -146,7 +147,7 @@ public class ClassDef {
 	 * @return The abstract method builder for adding arguments.
 	 * @throws IllegalArgumentException See {@link #addMethod(Method, Access)}.
 	 */
-	public AbstractMethod addAbstractMethod(Type returnType, String name, Access access, MethodFlag... flags) {
+	public final AbstractMethod addAbstractMethod(Type returnType, String name, Access access, MethodFlag... flags) {
 		var method = Method.abstractMethod(returnType, name, flags);
 		addMethod(method, access);
 		return method;
@@ -161,7 +162,7 @@ public class ClassDef {
 	 * @param flags Method flags.
 	 * @return The abstract method builder for adding arguments.
 	 */
-	public AbstractMethod addNativeMethod(boolean isStatic, Type returnType, String name, Access access, MethodFlag... flags) {
+	public final AbstractMethod addNativeMethod(boolean isStatic, Type returnType, String name, Access access, MethodFlag... flags) {
 		// TODO check validation for correct placement of native methods
 		var method = Method.nativeMethod(isStatic, returnType, name, flags);
 		addMethod(method, access);
@@ -177,7 +178,7 @@ public class ClassDef {
 	 * @return The method builder.
 	 * @throws IllegalArgumentException See {@link #addMethod(Method, Access)}.
 	 */
-	public Method.Static addStaticMethod(Type returnType, String name, Access access, MethodFlag... flags) {
+	public final Method.Static addStaticMethod(Type returnType, String name, Access access, MethodFlag... flags) {
 		var method = Method.staticMethod(returnType, name, flags);
 		addMethod(method, access);
 		return method;
@@ -190,7 +191,7 @@ public class ClassDef {
 	 * @return The method builder for constructor.
 	 * @throws IllegalArgumentException See {@link #addMethod(Method, Access)}.
 	 */
-	public Method.Instance addConstructor(Access access, MethodFlag... flags) {
+	public final Method.Instance addConstructor(Access access, MethodFlag... flags) {
 		return addMethod(Type.VOID, "<init>", access, flags);
 	}
 	
@@ -200,6 +201,8 @@ public class ClassDef {
 		constructor.add(constructor.self().callPrivate(superType, Type.VOID, "<init>"));
 		constructor.add(Return.nothing());
 	}
+	
+	// FIXME route all field additions through single addField, make helpers final
 	
 	/**
 	 * Adds a new field to this class definition.
@@ -265,11 +268,25 @@ public class ClassDef {
 		fields.add(new Field(true, access, initialValue.type(), name, flags, initialValue));
 	}
 	
-	public List<Method> methods() {
+	public final void setCompileHook(Object key, CompileHook hook) {
+		if (hooks == null) {
+			hooks = new IdentityHashMap<>(1);
+		}
+		hooks.put(key, hook);
+	}
+	
+	public final List<Method> methods() {
 		return Collections.unmodifiableList(methods);
 	}
 	
 	public byte[] compile(CompileOptions opts) {
+		// Execute compile hooks that were added directly to this class
+		if (hooks != null) {
+			for (var hook : hooks.values()) {
+				hook.onCompile(this);
+			}
+		}
+		
 		// Use COMPUTE_MAXS, because otherwise writing custom bytecode will
 		// get ugly really fast
 		// Frames we'll compute ourself
@@ -283,7 +300,7 @@ public class ClassDef {
 				: null;
 		// TODO customizable Java version (needs more than just this flag, though)
 		cv.visit(opts.get(CoreOptions.JAVA_VERSION).opcode(),
-				access, name.replace('.', '/'), null, superName, interfaceNames);
+				access, type.internalName(), null, superName, interfaceNames);
 
 		// Add fields
 		for (var field : fields) {

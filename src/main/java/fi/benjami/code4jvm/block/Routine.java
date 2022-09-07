@@ -10,7 +10,6 @@ import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.Value;
 import fi.benjami.code4jvm.block.Block.AddExpression;
 import fi.benjami.code4jvm.internal.LocalVar;
-import fi.benjami.code4jvm.internal.SlotAllocator;
 
 /**
  * A callable unit such as a concrete method or a lambda.
@@ -25,13 +24,11 @@ public class Routine {
 	
 	private final Type returnType;
 	final List<LocalVar> args;
-	final SlotAllocator argsAllocator;
 	
 	Routine(Block block, Type returnType) {
 		this.block = block;
 		this.returnType = returnType;
 		this.args = new ArrayList<>();
-		this.argsAllocator = new SlotAllocator(null);
 	}
 	
 	public Block block() {
@@ -46,14 +43,24 @@ public class Routine {
 	 * Adds a named argument to this routine.
 	 * @param type Type of the argument.
 	 * @param name Name of the argument.
+	 * @param index Index of the argument.
+	 * @return Value that represents the argument.
+	 */
+	public Value arg(Type type, String name, int index) {
+		var localVar = new LocalVar(type, true);
+		localVar.name(name);
+		args.add(index, localVar);
+		return localVar;
+	}
+	
+	/**
+	 * Adds a named argument to this routine.
+	 * @param type Type of the argument.
+	 * @param name Name of the argument.
 	 * @return Value that represents the argument.
 	 */
 	public Value arg(Type type, String name) {
-		var localVar = new LocalVar(type, true);
-		localVar.name(name);
-		argsAllocator.assignSlot(localVar);
-		args.add(localVar);
-		return localVar;
+		return arg(type, name, args.size());
 	}
 	
 	/**

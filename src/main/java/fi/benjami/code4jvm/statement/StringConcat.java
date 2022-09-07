@@ -27,11 +27,10 @@ import static org.objectweb.asm.Opcodes.*;
  */
 public class StringConcat {
 	
-	private static final Type STRING = Type.of(String.class);
 	private static final Handle INDY_CONCAT_BOOTSTRAP = CallTarget.staticMethod(Type.of(StringConcatFactory.class),
 					Type.of(CallSite.class), "makeConcatWithConstants",
-					Type.of(MethodHandles.Lookup.class), STRING, Type.of(MethodType.class),
-					STRING, Type.of(Object.class).array(1)
+					Type.of(MethodHandles.Lookup.class), Type.STRING, Type.of(MethodType.class),
+					Type.STRING, Type.of(Object.class).array(1)
 			).toMethodHandle();
 	private static final Type STRING_BUILDER = Type.of(StringBuilder.class);
 	
@@ -43,7 +42,7 @@ public class StringConcat {
 	 */
 	public static Expression concat(Value... values) {
 		return block -> {
-			return block.add(Bytecode.run(STRING, values, ctx -> {
+			return block.add(Bytecode.run(Type.STRING, values, ctx -> {
 				// StringConcatFactory supports at most 199 values
 				// For bigger operations, fall back to StringBuilder for now
 				if (ctx.options().get(CoreOptions.INDY_STRING_CONCAT) && values.length < 200) {
@@ -83,7 +82,7 @@ public class StringConcat {
 		ctx.loadExplicit(inputs.toArray(Value[]::new));
 		
 		// Build the invokedynamic call
-		var descriptor = TypeUtils.methodDescriptor(STRING, inputs.stream()
+		var descriptor = TypeUtils.methodDescriptor(Type.STRING, inputs.stream()
 				.map(Value::type)
 				.toArray(Type[]::new)
 		);
@@ -137,6 +136,6 @@ public class StringConcat {
 		
 		// Leave the final string on stack
 		mv.visitMethodInsn(INVOKEVIRTUAL, STRING_BUILDER.internalName(),
-				"toString", TypeUtils.methodDescriptor(STRING), false);
+				"toString", TypeUtils.methodDescriptor(Type.STRING), false);
 	}
 }

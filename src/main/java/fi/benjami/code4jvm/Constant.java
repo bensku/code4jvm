@@ -38,10 +38,14 @@ public class Constant implements Value {
 		return new Constant(value, Type.DOUBLE);
 	}
 	
-	private static final Type STRING = Type.of(String.class);
-	
 	public static Constant of(String value) {
-		return new Constant(value, STRING);
+		return new Constant(value, Type.STRING);
+	}
+	
+	private static final Type CLASS = Type.of(Class.class);
+	
+	public static Constant of(Type value) {
+		return new Constant(value, CLASS);
 	}
 	
 	// TODO class reference, method handle, constant dynamic
@@ -60,7 +64,12 @@ public class Constant implements Value {
 	
 	public Object asmValue() {
 		// TODO change when dynamic constants are supported
-		return value;
+		if (value instanceof Type type) {
+			// Convert from our Type to ASM Type
+			return org.objectweb.asm.Type.getType(type.descriptor());
+		} else {			
+			return value;
+		}
 	}
 	
 	@Override

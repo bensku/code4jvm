@@ -55,9 +55,9 @@ public class LocalVar implements Variable {
 	 */
 	public int assignedSlot;
 	
-	public LocalVar(Type type, boolean initialized) {
+	public LocalVar(Type type, boolean startInitialized) {
 		this.type = type;
-		this.startInitialized = initialized;
+		this.startInitialized = startInitialized;
 		this.name = null;
 		this.needsSlot = false;
 		this.assignedSlot = -1;

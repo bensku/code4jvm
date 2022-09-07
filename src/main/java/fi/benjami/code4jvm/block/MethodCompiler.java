@@ -12,6 +12,7 @@ import fi.benjami.code4jvm.flag.Access;
 import fi.benjami.code4jvm.internal.DebugOptions;
 import fi.benjami.code4jvm.internal.FrameManager;
 import fi.benjami.code4jvm.internal.MethodCompilerState;
+import fi.benjami.code4jvm.internal.SlotAllocator;
 import fi.benjami.code4jvm.typedef.ClassDef;
 import fi.benjami.code4jvm.util.TypeUtils;
 
@@ -52,12 +53,19 @@ public class MethodCompiler {
 			mv = checker;
 		}
 		
-		if (method instanceof ConcreteMethod concrete) {			
-			var slotAllocator = concrete.argsAllocator; // Start allocating other values after this + args
-			// TODO can we just re-use args allocator safely?
-			// Compute stack map table frames
+		if (method instanceof ConcreteMethod concrete) {
+			var slotAllocator = new SlotAllocator(null);
+			// Assign local variable slots for arguments
+			if (method instanceof Method.Instance instance) {
+				slotAllocator.assignSlot(instance.self); // this is always slot 0
+			}
+			for (var arg : concrete.args) {
+				slotAllocator.assignSlot(arg);
+			}
+			
+			// Compute stack map table frames (and assign rest of local variables slots)
 			if (!concrete.framesComputed) {
-				new FrameBuilder(slotAllocator).trace(concrete);
+				new FrameBuilder(slotAllocator, concrete).trace();
 				concrete.framesComputed = true;
 			}
 			

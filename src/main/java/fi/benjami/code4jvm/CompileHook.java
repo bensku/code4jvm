@@ -10,6 +10,10 @@ import fi.benjami.code4jvm.typedef.ClassDef;
  *
  */
 public interface CompileHook {
+	
+	interface Carrier {
+		void setCompileHook(Object key, CompileHook hook);
+	}
 
 	void onCompile(ClassDef def);
 }

@@ -128,8 +128,8 @@ public class IfBlockTest {
 		method.add(new IfBlock()
 				.branch(block -> {
 					// argument -> local variable, just to see that test block is properly emitted
-					var local = Variable.createUnbound(Type.of(String.class));
-					block.add(local.set(arg.cast(Type.of(String.class))));
+					var local = Variable.createUnbound(Type.STRING);
+					block.add(local.set(arg.cast(Type.STRING)));
 					return Condition.equal(local, Constant.of("ok"));
 				}, block -> {
 					block.add(Return.value(Constant.of("success")));

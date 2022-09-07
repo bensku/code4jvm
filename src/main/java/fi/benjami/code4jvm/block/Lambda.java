@@ -174,7 +174,10 @@ public class Lambda extends Routine {
 	 * @return Instance method builder.
 	 */
 	public Method.Instance asInstanceMethod(Type parentClass, String name, MethodFlag... flags) {
-		var method = new Method.Instance(block(), returnType(), name, parentClass, flags);
+		if (args.isEmpty() || !args.get(0).type().equals(parentClass)) {
+			throw new IllegalArgumentException("lambda must accept 'this' as first argument");
+		}
+		var method = new Method.Instance(block(), returnType(), name, parentClass, flags, args.get(0));
 		// First slot is reserved for this/self(), method doesn't have an argument for it
 		method.args.addAll(args.subList(1, args.size()));
 		return method;

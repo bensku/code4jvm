@@ -6,7 +6,9 @@ public enum ClassFlag {
 
 	ABSTRACT(Opcodes.ACC_ABSTRACT),
 	INTERFACE(Opcodes.ACC_INTERFACE | Opcodes.ACC_ABSTRACT),
-	DEPRECATED(Opcodes.ACC_DEPRECATED);
+	DEPRECATED(Opcodes.ACC_DEPRECATED),
+	FINAL(Opcodes.ACC_FINAL),
+	ENUM(Opcodes.ACC_ENUM);
 	
 	private final int value;
 	

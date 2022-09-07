@@ -47,7 +47,7 @@ public class MethodTest {
 		
 		def.addMethod(Type.INT, "returnInt", Access.PUBLIC).add(Return.value(Constant.of(1337)));
 		def.addMethod(Type.LONG, "returnLong", Access.PUBLIC).add(Return.value(Constant.of(42L)));
-		def.addMethod(Type.of(String.class), "returnString", Access.PUBLIC).add(Return.value(Constant.of("hello")));
+		def.addMethod(Type.STRING, "returnString", Access.PUBLIC).add(Return.value(Constant.of("hello")));
 		
 		var lookup = LOOKUP.defineHiddenClass(def.compile(), true);
 		var instance = TestUtils.newInstance(lookup);
@@ -127,12 +127,12 @@ public class MethodTest {
 		def.addEmptyConstructor(Access.PUBLIC);
 		
 		var method = def.addMethod(Type.BOOLEAN, "apply", Access.PUBLIC);
-		var arg = method.arg(Type.of(String.class));
+		var arg = method.arg(Type.STRING);
 		var bootstrap = Type.of(getClass()).staticMethod(Type.of(CallSite.class), "bootstrap",
-				Type.of(MethodHandles.Lookup.class), Type.of(String.class), Type.of(MethodType.class), Type.of(String.class));
-		CallTarget.dynamic(bootstrap.withCapturedArgs(Constant.of("extraArg")), Type.BOOLEAN, "methodName", Type.of(String.class));
+				Type.of(MethodHandles.Lookup.class), Type.STRING, Type.of(MethodType.class), Type.STRING);
+		CallTarget.dynamic(bootstrap.withCapturedArgs(Constant.of("extraArg")), Type.BOOLEAN, "methodName", Type.STRING);
 		var result = method.add(CallTarget.dynamic(bootstrap.withCapturedArgs(Constant.of("extraArg")),
-				Type.BOOLEAN, "methodName", Type.of(String.class))
+				Type.BOOLEAN, "methodName", Type.STRING)
 				.call(arg)).value();
 		method.add(Return.value(result));
 		

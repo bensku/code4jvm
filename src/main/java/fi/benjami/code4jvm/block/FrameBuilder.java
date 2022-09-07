@@ -20,25 +20,27 @@ import fi.benjami.code4jvm.statement.Jump;
 class FrameBuilder {
 	
 	private final SlotAllocator allocator;
+	private final ConcreteMethod method;
 	private boolean allowMutations;
 	
-	public FrameBuilder(SlotAllocator allocator) {
+	public FrameBuilder(SlotAllocator allocator, ConcreteMethod method) {
 		this.allocator = allocator;
+		this.method = method;
 		this.allowMutations = true;
 	}
 	
 	/**
-	 * Builds {@link Frame frames} for all blocks within given method. This
+	 * Builds {@link Frame frames} for all blocks within our method. This
 	 * is done by recursively tracing the control flow of the method. The
 	 * built frames are attached to blocks ({@link Block#startFrame} and
 	 * {@link Block#endFrame}) and sub-block {@link EdgeNode edges}.
 	 * 
 	 * <p>In addition to building frames required by the JVM, this throws
 	 * {@link UninitializedValueException} if values are used before they were
-	 * defined.
-	 * @param method Method to trace.
+	 * defined and {@link MissingReturnException} if control flow is not
+	 * guaranteed to exit the method.
 	 */
-	public void trace(ConcreteMethod method) {
+	public void trace() {
 		var root = method.block();
 		var rootFrame = new Frame();
 		// 'this'/self and method arguments are visible to entire method
@@ -198,7 +200,7 @@ class FrameBuilder {
 		if (block.parent == null) {
 			// Reaching the end means that this method is not guaranteed to return or throw
 			// This would fail JVM bytecode verification, so better fail now
-			throw new MissingReturnException();
+			throw new MissingReturnException(method);
 		} else {
 			if (modified) {				
 				// Blocks have implicit edge that leads to their parent block
