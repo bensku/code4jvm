@@ -54,7 +54,7 @@ public class TryBlock implements Statement {
 	 * @return A try block.
 	 */
 	public static TryBlock create(Consumer<Block> callback) {
-		var main = Block.create();
+		var main = Block.create("try");
 		callback.accept(main);
 		return new TryBlock(main);
 	}
@@ -85,7 +85,7 @@ public class TryBlock implements Statement {
 	 * @return The caught exception, available inside the handler.
 	 */
 	public Value addCatch(Type exception, Block handler) {
-		var parent = Block.create(); // Wrap handler to make caughtValue available
+		var parent = Block.create("catch " + exception); // Wrap handler to make caughtValue available
 		var caughtValue = Variable.createUnbound(exception);
 		parent.add(caughtValue.set(Value.stackTop(exception))); // Added to stack by VM
 		parent.add(handler);
@@ -138,7 +138,7 @@ public class TryBlock implements Statement {
 	 * @return This for chaining.
 	 */
 	public TryBlock addExitHook(Consumer<Block> callback) {
-		var hook = Block.create();
+		var hook = Block.create("exit hook");
 		callback.accept(hook);
 		addExitHook(hook);
 		return this;
@@ -169,7 +169,7 @@ public class TryBlock implements Statement {
 	 * @return This for chaining.
 	 */
 	public TryBlock addReturnHook(BiConsumer<Block, Value> callback) {
-		var hook = Block.create();
+		var hook = Block.create("return hook");
 		var capturedValue = addReturnHook(hook);
 		callback.accept(hook, capturedValue);
 		return this;
@@ -200,7 +200,7 @@ public class TryBlock implements Statement {
 	 * @return This for chaining.
 	 */
 	public TryBlock addThrowHook(BiConsumer<Block, Value> callback) {
-		var hook = Block.create();
+		var hook = Block.create("throw hook");
 		var capturedValue = addThrowHook(hook);
 		callback.accept(hook, capturedValue);
 		return this;
@@ -208,8 +208,8 @@ public class TryBlock implements Statement {
 	
 	@Override
 	public void emitVoid(Block block) {
-		var root = Block.create();
-		var outer = Block.create();
+		var root = Block.create("try block root");
+		var outer = Block.create("try-catch");
 		
 		// Generate code for exit, return and throw hooks (Java 'finally' block with bells and whistles)
 		// It is assumed that the exit hook is quite short, so we'll just copy it like javac does
@@ -219,7 +219,7 @@ public class TryBlock implements Statement {
 		var hasReturnHandler = hasExitHandler || returnHook != null;
 		var hasThrowHandler = hasExitHandler || throwHook != null;
 		
-		var normalExit = Block.create();
+		var normalExit = Block.create("normal exit");
 		if (exitHook != null) {
 			normalExit.add(exitHook);
 		}
@@ -231,7 +231,7 @@ public class TryBlock implements Statement {
 		ReturnRedirect returnRedirect = null;
 		if (hasReturnHandler) {
 			// Exit via return in main OR any of the catch blocks
-			exitViaReturn = Block.create();
+			exitViaReturn = Block.create("return interceptor");
 
 			// Capture return to a previously created local variable
 			returnRedirect = new ReturnRedirect(exitViaReturn, returnedValue);
@@ -253,7 +253,7 @@ public class TryBlock implements Statement {
 		Block exitViaThrow = null;
 		if (hasThrowHandler) {			
 			// Exit via throw in main OR any of the catch blocks
-			exitViaThrow = Block.create();
+			exitViaThrow = Block.create("throw interceptor");
 			// VM adds thrown value at top of the stack
 			exitViaThrow.add(thrownValue.set(Value.stackTop(Type.of(Throwable.class))));
 			if (exitHook != null) {
@@ -271,7 +271,7 @@ public class TryBlock implements Statement {
 			var handler = outer.add(new Block.Edge(exitViaThrow, Jump.Target.START, true, new Type[] {Type.of(Throwable.class)}));
 			root.add(Bytecode.run(Type.VOID, new Value[0], ctx -> {
 				ctx.asm().visitTryCatchBlock(outerStart, outerEnd, handler, null);
-			}));
+			}, "register catch-all handler"));
 		}
 		
 		// Add edges for exception handlers
@@ -301,7 +301,7 @@ public class TryBlock implements Statement {
 					ctx.asm().visitTryCatchBlock(mainStart, mainEnd, labels[i],
 							catchBlocks.get(i).type().internalName());
 				}
-			}));
+			}, "register exception handlers"));
 			
 			// Add catch blocks
 			for (var clause : catchBlocks) {

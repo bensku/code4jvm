@@ -165,7 +165,7 @@ class FrameBuilder {
 				}
 			} else if (node instanceof CodeNode code) {
 				// Verify that inputs are available
-				code.validateInputs(allocator, frame, block);
+				code.validateInputs(allocator, frame, block, method);
 				// Add output to frame if it needs a local variable slot
 				code.addOutput(allocator, frame);
 				
@@ -175,7 +175,7 @@ class FrameBuilder {
 				if (store.value().original() instanceof LocalVar localVar && localVar.needsSlot) {
 					allocator.assignSlot(localVar); // Make sure slot is available
 					if (!frame.has(localVar)) {
-						throw new UninitializedValueException(localVar, block);
+						throw new UninitializedValueException(localVar, block, method);
 					}
 				}
 				if (!store.target().startInitialized) {

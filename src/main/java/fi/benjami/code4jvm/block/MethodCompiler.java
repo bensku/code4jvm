@@ -67,6 +67,10 @@ public class MethodCompiler {
 			if (!concrete.framesComputed) {
 				new FrameBuilder(slotAllocator, concrete).trace();
 				concrete.framesComputed = true;
+				if (DebugOptions.PRINT_METHODS) {
+					// JVM property code4jvm.debug.printMethods
+					System.out.println(concrete);
+				}
 			}
 			
 			var ctx = new CompileContext(owner, getTarget(accessBits, method.returnType(), method.name(), argTypes), mv, options);

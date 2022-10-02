@@ -58,6 +58,6 @@ public class Return implements Statement {
 				// FrameBuilder has made sure that this label actually exists
 				mv.visitJumpInsn(GOTO, redirect.target().requestLabel(Jump.Target.START));
 			}
-		}));
+		}, "return"));
 	}
 }

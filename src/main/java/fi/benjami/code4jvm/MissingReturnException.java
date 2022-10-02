@@ -17,7 +17,7 @@ public class MissingReturnException extends RuntimeException {
 	private static final long serialVersionUID = 1L;
 	
 	public MissingReturnException(Method method) {
-		super("missing return/throw in method " + method.name());
+		super("missing return/throw in method:\n" + method);
 	}
 
 }

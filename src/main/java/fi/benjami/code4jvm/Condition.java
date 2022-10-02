@@ -86,4 +86,13 @@ public class Condition {
 	public Value[] values() {
 		return values;
 	}
+	
+	@Override
+	public String toString() {
+		if (values.length == 1) {
+			return type + " " + values[0];
+		} else {
+			return values[0] + " " + type + " " + values[1];
+		}
+	}
 }

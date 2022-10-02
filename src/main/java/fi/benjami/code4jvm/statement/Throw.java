@@ -23,7 +23,7 @@ public class Throw implements Statement {
 	public void emitVoid(Block block) {
 		block.add(Bytecode.run(Type.VOID, new Value[] {value}, ctx -> {
 			ctx.asm().visitInsn(ATHROW);
-		}));
+		}, "throw"));
 	}
 	
 	

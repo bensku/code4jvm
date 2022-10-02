@@ -143,12 +143,15 @@ public class Jump implements Statement {
 				case TRUE -> mv.visitJumpInsn(IFNE, label); // true == 1
 				case FALSE -> mv.visitJumpInsn(IFEQ, label); // false == 0
 				}				
-			}));
+			}, "conditional jump"));
 		} else {			
 			block.add(Bytecode.run(Type.VOID, new Value[0], ctx -> {
 				ctx.asm().visitJumpInsn(GOTO, label);
-			}));
+			}, "unconditional jump"));
 		}
+		// Note: debug names are intentionally bare-bones
+		// When printing blocks, JumpNodes get special handling so that
+		// label information from frames can be included in them
 	}
 	
 	private int primitiveCompare(Type type, boolean negativeNan) {

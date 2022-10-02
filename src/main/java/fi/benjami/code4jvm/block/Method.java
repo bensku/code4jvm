@@ -18,11 +18,11 @@ import fi.benjami.code4jvm.internal.LocalVar;
 public sealed interface Method permits AbstractMethod, ConcreteMethod {
 	
 	public static Method.Static staticMethod(Type returnType, String name, MethodFlag... flags) {
-		return new Method.Static(Block.create(), returnType, name, flags);
+		return new Method.Static(Block.create("root"), returnType, name, flags);
 	}
 	
 	public static Method.Instance instanceMethod(Type returnType, String name, Type parentClass, MethodFlag... flags) {
-		return new Method.Instance(Block.create(), returnType, name, parentClass, flags, new LocalVar(parentClass, true));
+		return new Method.Instance(Block.create("root"), returnType, name, parentClass, flags, new LocalVar(parentClass, true));
 	}
 	
 	public static AbstractMethod abstractMethod(Type returnType, String name, MethodFlag... flags) {

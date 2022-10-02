@@ -67,7 +67,7 @@ public class Constant implements Value {
 		if (value instanceof Type type) {
 			// Convert from our Type to ASM Type
 			return org.objectweb.asm.Type.getType(type.descriptor());
-		} else {			
+		} else {
 			return value;
 		}
 	}
@@ -85,6 +85,11 @@ public class Constant implements Value {
 	@Override
 	public Value original() {
 		return this;
+	}
+	
+	@Override
+	public String toString() {
+		return "const{" + type + " " + value + "}";
 	}
 
 }

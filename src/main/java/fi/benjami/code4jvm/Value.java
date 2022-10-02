@@ -65,7 +65,7 @@ public interface Value {
 		return block -> {
 			return block.add(Bytecode.run(fieldType, new Value[] {this}, ctx -> {
 				ctx.asm().visitFieldInsn(GETFIELD, type().internalName(), name, fieldType.descriptor());
-			})).value();
+			}, Bytecode.name("get field %s.%s", type(), name))).value();
 		};
 	}
 	
@@ -76,7 +76,7 @@ public interface Value {
 		return block -> {
 			block.add(Bytecode.run(Type.VOID, new Value[] {this, value}, ctx -> {
 				ctx.asm().visitFieldInsn(PUTFIELD, type().internalName(), name, value.type().descriptor());
-			}));
+			}, Bytecode.name("put field %s.%s", type(), name)));
 		};
 	}
 	

@@ -2,14 +2,18 @@ package fi.benjami.code4jvm.statement;
 
 import static org.objectweb.asm.Opcodes.*;
 
+import java.util.Arrays;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import fi.benjami.code4jvm.Expression;
 import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.Value;
 import fi.benjami.code4jvm.block.Block;
 import fi.benjami.code4jvm.block.CompileContext;
+import fi.benjami.code4jvm.internal.DebugNames;
 import fi.benjami.code4jvm.internal.LocalVar;
 import fi.benjami.code4jvm.internal.MethodCompilerState;
 
@@ -30,40 +34,50 @@ public class Bytecode implements Expression {
 	 */
 	public static final int EXPLICIT_LOAD = 1;
 	
-	public static Bytecode run(Type outputType, Value[] inputs, BiConsumer<CompileContext, Block> emitter, int flags) {
-		return new Bytecode(outputType, inputs, emitter, 0);
+	public static Bytecode run(Type outputType, Value[] inputs, BiConsumer<CompileContext, Block> emitter, int flags, Object debugName) {
+		return new Bytecode(outputType, inputs, emitter, 0, debugName);
 	}
 	
-	public static Bytecode run(Type outputType, Value[] inputs, BiConsumer<CompileContext, Block> emitter) {
-		return run(outputType, inputs, emitter, 0);
+	public static Bytecode run(Type outputType, Value[] inputs, BiConsumer<CompileContext, Block> emitter, Object debugName) {
+		return run(outputType, inputs, emitter, 0, debugName);
 	}
 	
-	public static Bytecode run(Type outputType, Value[] inputs, Consumer<CompileContext> emitter, int flags) {
-		return new Bytecode(outputType, inputs, (ctx, block) -> emitter.accept(ctx), flags);
+	public static Bytecode run(Type outputType, Value[] inputs, Consumer<CompileContext> emitter, int flags, Object debugName) {
+		return new Bytecode(outputType, inputs, (ctx, block) -> emitter.accept(ctx), flags, debugName);
 	}
 	
-	public static Bytecode run(Type outputType, Value[] inputs, Consumer<CompileContext> emitter) {
-		return run(outputType, inputs, emitter, 0);
+	public static Bytecode run(Type outputType, Value[] inputs, Consumer<CompileContext> emitter, Object debugName) {
+		return run(outputType, inputs, emitter, 0, debugName);
 	}
 	
 	public static Bytecode stub(Type outputType, Value[] inputs) {
 		// Flags don't currently make any sense for stub,
 		// because the only thing the stub does is load the inputs to stack
-		return new Bytecode(outputType, inputs, null, 0);
+		return new Bytecode(outputType, inputs, null, 0, "stub");
+	}
+	
+	public static String name(String name) {
+		return name;
+	}
+	
+	public static Supplier<String> name(String fmt, Object... args) {
+		return () -> String.format(fmt, args);
 	}
 	
 	private final Type outputType;
 	private final Value[] inputs;
 	private final BiConsumer<CompileContext, Block> emitter;
 	private final int flags;
+	private final Object debugName;
 	
-	private Bytecode(Type outputType, Value[] inputs, BiConsumer<CompileContext, Block> emitter, int flags) {
+	private Bytecode(Type outputType, Value[] inputs, BiConsumer<CompileContext, Block> emitter, int flags, Object debugName) {
 		this.outputType = outputType;
 		this.inputs = inputs;
 		this.emitter = emitter;
 		this.flags = flags;
+		this.debugName = debugName;
 	}
-
+	
 	@Override
 	public Value emitValue(Block block) {
 		throw new UnsupportedOperationException("bytecode is emitted later");
@@ -117,4 +131,20 @@ public class Bytecode implements Expression {
 			}
 		}
 	}
+	
+	@Override
+	public String toString() {
+		return toString(new DebugNames.Counting("var_"));
+	}
+	
+	public String toString(DebugNames.Counting argsNameGen) {
+		var args = Arrays.stream(inputs)
+				.map(arg -> arg instanceof LocalVar localVar
+						? localVar.toString(argsNameGen) : arg.toString())
+				.collect(Collectors.joining(", "));
+		// If name is supplier, call it; otherwise, just call toString
+		var name = debugName instanceof Supplier<?> supplier ? supplier.get() : debugName;
+		return name + " (" + args + "): " + outputType;
+	}
+
 }

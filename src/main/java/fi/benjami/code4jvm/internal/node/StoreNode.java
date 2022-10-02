@@ -8,6 +8,7 @@ import fi.benjami.code4jvm.Variable;
 import fi.benjami.code4jvm.block.Block;
 import fi.benjami.code4jvm.internal.LocalVar;
 import fi.benjami.code4jvm.internal.MethodCompilerState;
+import fi.benjami.code4jvm.internal.DebugNames;
 
 /**
  * Node that represents storing a value to a variable.
@@ -33,6 +34,11 @@ public record StoreNode(
 			state.ctx().asm().visitVarInsn(target.type().getOpcode(ISTORE, state.ctx()),
 					target.assignedSlot);
 		}
+	}
+	
+	@Override
+	public String toString(DebugNames.Counting debugNameGen) {
+		return target.toString(debugNameGen) + " = " + value;
 	}
 
 }

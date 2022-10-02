@@ -2,9 +2,12 @@ package fi.benjami.code4jvm.block;
 
 import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.objectweb.asm.Label;
 
@@ -15,12 +18,13 @@ import fi.benjami.code4jvm.Statement;
 import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.Value;
 import fi.benjami.code4jvm.Variable;
+import fi.benjami.code4jvm.internal.DebugNames;
 import fi.benjami.code4jvm.internal.Frame;
 import fi.benjami.code4jvm.internal.LocalVar;
 import fi.benjami.code4jvm.internal.MethodCompilerState;
 import fi.benjami.code4jvm.internal.Scope;
-import fi.benjami.code4jvm.internal.node.EdgeNode;
 import fi.benjami.code4jvm.internal.node.CodeNode;
+import fi.benjami.code4jvm.internal.node.EdgeNode;
 import fi.benjami.code4jvm.internal.node.Node;
 import fi.benjami.code4jvm.internal.node.StoreNode;
 import fi.benjami.code4jvm.statement.Bytecode;
@@ -32,7 +36,11 @@ import fi.benjami.code4jvm.typedef.ClassDef;
 public class Block implements CompileHook.Carrier {
 	
 	public static Block create() {
-		return new Block(new ArrayList<>(), new Scope());
+		return create("unnamed");
+	}
+	
+	public static Block create(String debugName) {
+		return new Block(new ArrayList<>(), new Scope(), debugName);
 	}
 	
 	public record Edge(
@@ -92,8 +100,9 @@ public class Block implements CompileHook.Carrier {
 	
 	final List<Node> nodes;
 	final Scope scope;
-	private Map<Object, CompileHook> hooks;
+	final String debugName;
 	
+	private Map<Object, CompileHook> hooks;
 	private Label startLabel, endLabel;	
 	private ReturnRedirect returnRedirect;
 	
@@ -104,9 +113,10 @@ public class Block implements CompileHook.Carrier {
 	final Frame startFrame;
 	final Frame endFrame;
 	
-	private Block(ArrayList<Node> nodes, Scope scope) {
+	private Block(ArrayList<Node> nodes, Scope scope, String debugName) {
 		this.nodes = nodes;
 		this.scope = scope;
+		this.debugName = debugName;
 		this.reachability = new BitSet();
 		this.startFrame = new Frame();
 		this.endFrame = new Frame();
@@ -265,7 +275,51 @@ public class Block implements CompileHook.Carrier {
 	}
 	
 	public Block copy() {
-		return new Block(new ArrayList<>(nodes), new Scope(scope));
+		return new Block(new ArrayList<>(nodes), new Scope(scope), debugName);
+	}
+	
+	record Backlinks(Set<EdgeNode> toStart, Set<EdgeNode> toEnd) {
+		public Backlinks() {
+			this(Collections.newSetFromMap(new IdentityHashMap<>()), Collections.newSetFromMap(new IdentityHashMap<>()));
+		}
+	}
+	
+	/**
+	 * Recursively traverses all sub-blocks to compute where links lead to.
+	 * @param backlinks Map to fill with backlinks.
+	 * @param block Block to process.
+	 */
+	private static void findBacklinks(Map<Block, Backlinks> backlinks, Block block) {
+		for (var node : block.nodes) {
+			if (node instanceof EdgeNode edge) {
+				var links = backlinks.computeIfAbsent(edge.target(), k -> new Backlinks());
+				if (edge.position() == Jump.Target.START) {
+					links.toStart().add(edge);
+				} else {
+					links.toEnd().add(edge);
+				}
+				
+				if (edge.type() == EdgeNode.SUB_BLOCK) {
+					findBacklinks(backlinks, edge.target());
+				}
+			}
+		}
+	}
+	
+	@Override
+	public String toString() {
+		return toString(new DebugNames.Counting("var_"), false, "");
+	}
+	
+	String toString(DebugNames.Counting localNameGen, boolean computeBacklinks, String indent) {
+		Map<Block, Backlinks> backlinks = null;
+		if (computeBacklinks) {
+			backlinks = new HashMap<>();
+			findBacklinks(backlinks, this);
+		}
+		var printer = new BlockPrinter(localNameGen, backlinks);
+		printer.append(this, indent);
+		return printer.toString();
 	}
 			
 }

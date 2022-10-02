@@ -91,8 +91,18 @@ public class LocalVar implements Variable {
 	@Override
 	public String toString() {
 		if (this == EMPTY_MARKER) {
-			return "LocalVar.EMPTY_MARKER";
+			return "EMPTY_MARKER";
 		}
-		return "LocalVar{" + type + " " + assignedSlot + (name != null ? " " + name : "") + "}";
+		return "var{" + type + " "
+				+ name().orElse("UNKNOWN")
+				+ ", " + (needsSlot ? "slot " + assignedSlot : "stack")
+				+ "}";
+	}
+	
+	public String toString(DebugNames.Counting debugNameGen) {
+		return "var{" + type + " "
+				+ name().orElse(debugNameGen.make(this))
+				+ ", " + (needsSlot ? "slot " + assignedSlot : "stack")
+				+ "}";
 	}
 }

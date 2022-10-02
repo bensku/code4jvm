@@ -2,6 +2,7 @@ package fi.benjami.code4jvm.internal.node;
 
 import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.block.Block;
+import fi.benjami.code4jvm.internal.DebugNames;
 import fi.benjami.code4jvm.statement.Jump;
 
 /**
@@ -39,5 +40,11 @@ public record EdgeNode(
 		assert (target == null) == (type == RETURN || type == THROW);
 		assert position == Jump.Target.START || (type == CONDITIONAL_JUMP || type == UNCONDITIONAL_JUMP);
 		assert vmStack == null || type != SUB_BLOCK;
+	}
+	
+	@Override
+	public String toString(DebugNames.Counting debugNameGen) {
+		// Edges need special handling for debug printing, because they can be SUB_BLOCKs
+		throw new UnsupportedOperationException();
 	}
 }

@@ -246,7 +246,7 @@ public class Type {
 		return block -> {
 			return block.add(Bytecode.run(fieldType, new Value[0], ctx -> {
 				ctx.asm().visitFieldInsn(GETSTATIC, internalName(), name, fieldType.descriptor());
-			})).value();
+			}, Bytecode.name("get static %s.%s", this, name))).value();
 		};
 	}
 	
@@ -254,7 +254,7 @@ public class Type {
 		return block -> {
 			block.add(Bytecode.run(Type.VOID, new Value[] {value}, ctx -> {
 				ctx.asm().visitFieldInsn(PUTSTATIC, internalName(), name, fieldType.descriptor());
-			}));
+			}, Bytecode.name("put static %s.%s", this, name)));
 		};
 	}
 	
@@ -311,6 +311,6 @@ public class Type {
 	
 	@Override
 	public String toString() {
-		return descriptor; // TODO more developer-friendly string?
+		return name + "[]".repeat(arrayDimensions);
 	}
 }

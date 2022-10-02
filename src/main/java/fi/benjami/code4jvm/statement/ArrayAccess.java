@@ -27,7 +27,7 @@ public class ArrayAccess {
 		return block -> {
 			return block.add(Bytecode.run(array.type().componentType(1), new Value[] {array, index}, ctx -> {
 				ctx.asm().visitInsn(array.type().getOpcode(Opcodes.IALOAD, ctx));
-			})).value();
+			}, "get array")).value();
 		};
 	}
 	
@@ -42,7 +42,7 @@ public class ArrayAccess {
 		return block -> {
 			block.add(Bytecode.run(Type.VOID, new Value[] {array, index, newValue}, ctx -> {
 				ctx.asm().visitInsn(array.type().getOpcode(Opcodes.IASTORE, ctx));
-			}));
+			}, "set array"));
 		};
 	}
 	
@@ -58,7 +58,7 @@ public class ArrayAccess {
 		return block -> {
 			return block.add(Bytecode.run(Type.INT, new Value[] {array}, ctx -> {
 				ctx.asm().visitInsn(Opcodes.ARRAYLENGTH);
-			})).value();
+			}, "array length")).value();
 		};
 	}
 }

@@ -2,9 +2,11 @@ package fi.benjami.code4jvm.internal.node;
 
 import fi.benjami.code4jvm.UninitializedValueException;
 import fi.benjami.code4jvm.block.Block;
+import fi.benjami.code4jvm.block.Method;
 import fi.benjami.code4jvm.internal.Frame;
 import fi.benjami.code4jvm.internal.LocalVar;
 import fi.benjami.code4jvm.internal.MethodCompilerState;
+import fi.benjami.code4jvm.internal.DebugNames;
 import fi.benjami.code4jvm.internal.SlotAllocator;
 import fi.benjami.code4jvm.statement.Bytecode;
 
@@ -30,14 +32,14 @@ public final class CodeNode implements Node {
 		}
 	}
 	
-	public void validateInputs(SlotAllocator allocator, Frame frame, Block parent) {
+	public void validateInputs(SlotAllocator allocator, Frame frame, Block parent, Method method) {
 		for (var input : statement.inputs()) {
 			// Ignore constants and on-stack variables
 			// Scope makes only variables that are not on stack use slots
 			if (input.original() instanceof LocalVar localVar && localVar.needsSlot) {
 				allocator.assignSlot(localVar); // Make sure slot is available
 				if (!frame.has(localVar)) {
-					throw new UninitializedValueException(localVar, parent);
+					throw new UninitializedValueException(localVar, parent, method);
 				}
 			}
 		}
@@ -47,6 +49,15 @@ public final class CodeNode implements Node {
 		if (assignedVar != null && assignedVar.needsSlot) {
 			allocator.assignSlot(assignedVar); // Make sure slot is available
 			frame.add(assignedVar);
+		}
+	}
+	
+	@Override
+	public String toString(DebugNames.Counting debugNameGen) {
+		if (assignedVar != null && assignedVar.used) {
+			return assignedVar.toString(debugNameGen) + " = " + statement;
+		} else {
+			return statement.toString();
 		}
 	}
 }

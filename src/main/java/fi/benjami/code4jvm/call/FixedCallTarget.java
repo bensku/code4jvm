@@ -45,26 +45,27 @@ public final class FixedCallTarget extends CallTarget {
 	public Expression call(Value... args) {
 		// Concatenate captured and other arguments
 		var allArgs = CallTarget.mergeArgs(capturedArgs(), args);
+		var debugName = Bytecode.name("call %s", this);
 		
 		return block -> {
 			return switch (linkage()) {
 			case STATIC -> block.add(Bytecode.run(returnType(), allArgs, ctx -> {
 					ctx.asm().visitMethodInsn(INVOKESTATIC, owner.internalName(), name(),
 							TypeUtils.methodDescriptor(returnType(), argTypes()), owner.isInterface());
-				})).value();
+				}, debugName)).value();
 			// TODO first arg is this, take it out
 			case VIRTUAL -> block.add(Bytecode.run(returnType(), allArgs, ctx -> {
 					ctx.asm().visitMethodInsn(INVOKEVIRTUAL, owner.internalName(), name(),
 							TypeUtils.instanceMethodDescriptor(returnType(), argTypes()), owner.isInterface());
-				})).value();
+				}, debugName)).value();
 			case INTERFACE -> block.add(Bytecode.run(returnType(), allArgs, ctx -> {
 					ctx.asm().visitMethodInsn(INVOKEINTERFACE, owner.internalName(), name(),
 							TypeUtils.instanceMethodDescriptor(returnType(), argTypes()), owner.isInterface());
-				})).value();
+				}, debugName)).value();
 			case SPECIAL -> block.add(Bytecode.run(returnType(), allArgs, ctx -> {
 					ctx.asm().visitMethodInsn(INVOKESPECIAL, owner.internalName(), name(),
 							TypeUtils.instanceMethodDescriptor(returnType(), argTypes()), owner.isInterface());
-				})).value();
+				}, debugName)).value();
 			case INIT -> {
 				// TODO optimize, this uses unnecessary variables
 				var ownerName = owner().internalName();
@@ -74,7 +75,7 @@ public final class FixedCallTarget extends CallTarget {
 				block.add(Bytecode.run(Type.VOID, new Value[0], ctx -> {
 					ctx.asm().visitTypeInsn(NEW, ownerName);
 					ctx.asm().visitInsn(DUP);
-				}));
+				}, "init object"));
 				
 				// Load arguments to stack on top of them
 				var inputs = new Value[args.length + 1];
@@ -85,7 +86,7 @@ public final class FixedCallTarget extends CallTarget {
 				var instance = block.add(Bytecode.run(returnType(), inputs, ctx -> {
 					ctx.asm().visitMethodInsn(INVOKESPECIAL, ownerName, "<init>",
 							TypeUtils.methodDescriptor(Type.VOID, argTypes()), false);
-				})).value();
+				}, debugName)).value();
 				
 				// Return the other reference to the object, now initialized
 				yield instance;
@@ -97,19 +98,19 @@ public final class FixedCallTarget extends CallTarget {
 					// This could probably be used for other kinds of arrays, but currently we don't
 					yield block.add(Bytecode.run(returnType(), allArgs, ctx -> {
 						ctx.asm().visitMultiANewArrayInsn(type.descriptor(), type.arrayDimensions());
-					})).value();
+					}, debugName)).value();
 				} else if (type.isPrimitive()) {
 					// One-dimensional primitive array
 					yield block.add(Bytecode.run(returnType(), allArgs, ctx -> {
 						// JVM treats many Java primitives as ints, EXCEPT it has array types for them
 						// Each of them needs its own operand
 						ctx.asm().visitIntInsn(NEWARRAY, TypeUtils.getNewarrayOperand(type.componentType(1)));
-					})).value();
+					}, debugName)).value();
 				} else {
 					// One-dimensional object array
 					yield block.add(Bytecode.run(returnType(), allArgs, ctx -> {
 						ctx.asm().visitTypeInsn(ANEWARRAY, type.internalName());
-					})).value();
+					}, debugName)).value();
 				}
 			}
 			case DYNAMIC -> throw new AssertionError();
@@ -134,4 +135,9 @@ public final class FixedCallTarget extends CallTarget {
 		};
 	}
 	
+	@Override
+	public String toString() {
+		return linkage() + " " + owner + "#" + name();
+	}
+
 }

@@ -62,7 +62,7 @@ public class IfBlock implements Statement {
 	private boolean emitted;
 	
 	public IfBlock() {
-		this.root = Block.create();
+		this.root = Block.create("if block root");
 		this.edges = new ArrayList<>();
 	}
 	
@@ -85,7 +85,7 @@ public class IfBlock implements Statement {
 	 */
 	public IfBlock branch(Branch branch) {
 		ensureNotEmitted();
-		var edge = Block.create(); // 1 branch -> 1 edge block
+		var edge = Block.create("if " + branch.condition()); // 1 branch -> 1 edge block
 		
 		// Skip this branch if condition is not met
 		var test = branch.test;
@@ -118,7 +118,7 @@ public class IfBlock implements Statement {
 	 * @return This block for chaining.
 	 */
 	public IfBlock branch(Condition condition, Consumer<Block> callback) {
-		var block = Block.create();
+		var block = Block.create("then");
 		callback.accept(block);
 		branch(new Branch(null, condition, block));
 		return this;
@@ -135,9 +135,9 @@ public class IfBlock implements Statement {
 	 * @return This block for chaining.
 	 */
 	public IfBlock branch(Function<Block, Condition> conditionProvider, Consumer<Block> callback) {
-		var test = Block.create();
+		var test = Block.create("test");
 		var condition = conditionProvider.apply(test);
-		var block = Block.create();
+		var block = Block.create("then");
 		callback.accept(block);
 		branch(new Branch(test, condition, block));
 		return this;
@@ -167,7 +167,7 @@ public class IfBlock implements Statement {
 	 * @return This block for chaining.
 	 */
 	public IfBlock fallback(Consumer<Block> callback) {
-		var block = Block.create();
+		var block = Block.create("else");
 		callback.accept(block);
 		fallback(block);
 		return this;
