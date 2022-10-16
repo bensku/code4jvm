@@ -39,15 +39,9 @@ public final class CodeNode implements Node {
 	}
 	
 	public void storeOutput(MethodCompilerState state, LocalVar localVar) {
-		var inputs = statement.inputs();
-		// Special handling for uninitialized values that should NOT be stored
-		// Currently, they are only created by LocalVar#uninitialized(Type)
-		var initialize = inputs.length != 1 || inputs[0] != LocalVar.EMPTY_MARKER;
 		if (localVar.needsSlot) {
-			if (initialize) {
-				assert localVar.assignedSlot != -1 : "tried to store output to untracked LocalVar";
-				state.ctx().asm().visitVarInsn(localVar.type().getOpcode(ISTORE, state.ctx()), localVar.assignedSlot);
-			}
+			assert localVar.assignedSlot != -1 : "tried to store output to untracked LocalVar";
+			state.ctx().asm().visitVarInsn(localVar.type().getOpcode(ISTORE, state.ctx()), localVar.assignedSlot);
 		}
 	}
 	

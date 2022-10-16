@@ -16,13 +16,6 @@ import fi.benjami.code4jvm.util.TypeCheck;
  */
 public class LocalVar implements Variable {
 	
-	/**
-	 * When used as the only input for {@link Bytecode}, the returned value
-	 * is never stored. Used for
-	 * {@link Value#uninitialized(Type) uninitialized values}.
-	 */
-	public static final LocalVar EMPTY_MARKER = new LocalVar(null, false);
-
 	private final Type type;
 	private String name;
 
@@ -90,9 +83,6 @@ public class LocalVar implements Variable {
 	
 	@Override
 	public String toString() {
-		if (this == EMPTY_MARKER) {
-			return "EMPTY_MARKER";
-		}
 		return "var{" + type + " "
 				+ name().orElse("UNKNOWN")
 				+ ", " + (needsSlot ? "slot " + assignedSlot : "stack")

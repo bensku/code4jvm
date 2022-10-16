@@ -164,9 +164,6 @@ public class StackManager {
 		if (input instanceof Constant constant) {
 			emitConstant(constant);
 		} else if (input instanceof LocalVar localVar) {
-			if (localVar == LocalVar.EMPTY_MARKER) {
-				return; // Ignore and skip unknown input assert
-			}
 			if (localVar.needsSlot) {
 				ctx.asm().visitVarInsn(localVar.type().getOpcode(ILOAD, ctx), localVar.assignedSlot);
 			} // else: already on stack
