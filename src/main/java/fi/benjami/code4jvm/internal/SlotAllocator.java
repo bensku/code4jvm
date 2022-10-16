@@ -42,5 +42,9 @@ public class SlotAllocator {
 	public LocalVar findVar(int slot) {
 		return variables[slot];
 	}
+	
+	public int slotCount() {
+		return nextSlot + 1;
+	}
 
 }

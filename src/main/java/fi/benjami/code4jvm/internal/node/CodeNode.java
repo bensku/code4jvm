@@ -1,7 +1,13 @@
 package fi.benjami.code4jvm.internal.node;
 
+import static org.objectweb.asm.Opcodes.ISTORE;
+import static org.objectweb.asm.Opcodes.POP;
+import static org.objectweb.asm.Opcodes.POP2;
+
+import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.UninitializedValueException;
 import fi.benjami.code4jvm.block.Block;
+import fi.benjami.code4jvm.block.CompileContext;
 import fi.benjami.code4jvm.block.Method;
 import fi.benjami.code4jvm.internal.Frame;
 import fi.benjami.code4jvm.internal.LocalVar;
@@ -26,9 +32,33 @@ public final class CodeNode implements Node {
 	public void emitBytecode(MethodCompilerState state, Block block) {
 		statement.emitBytecode(state, block);
 		if (assignedVar != null && assignedVar.used) {
-			statement.storeOutput(state, assignedVar);
+			storeOutput(state, assignedVar);
 		} else {
-			statement.discardOutput(state.ctx());
+			discardOutput(state.ctx());
+		}
+	}
+	
+	public void storeOutput(MethodCompilerState state, LocalVar localVar) {
+		var inputs = statement.inputs();
+		// Special handling for uninitialized values that should NOT be stored
+		// Currently, they are only created by LocalVar#uninitialized(Type)
+		var initialize = inputs.length != 1 || inputs[0] != LocalVar.EMPTY_MARKER;
+		if (localVar.needsSlot) {
+			if (initialize) {
+				assert localVar.assignedSlot != -1 : "tried to store output to untracked LocalVar";
+				state.ctx().asm().visitVarInsn(localVar.type().getOpcode(ISTORE, state.ctx()), localVar.assignedSlot);
+			}
+		}
+	}
+	
+	private void discardOutput(CompileContext ctx) {
+		var outputType = statement.outputType();
+		if (outputType == Type.VOID) {
+			// No need to pop anything
+		} else if (outputType == Type.LONG || outputType == Type.DOUBLE) {
+			ctx.asm().visitInsn(POP2);
+		} else {			
+			ctx.asm().visitInsn(POP);
 		}
 	}
 	
@@ -50,6 +80,14 @@ public final class CodeNode implements Node {
 			allocator.assignSlot(assignedVar); // Make sure slot is available
 			frame.add(assignedVar);
 		}
+	}
+	
+	public Type outputType() {
+		return statement.outputType();
+	}
+	
+	public boolean outputToStack() {
+		return assignedVar != null && assignedVar.used && !assignedVar.needsSlot;
 	}
 	
 	@Override

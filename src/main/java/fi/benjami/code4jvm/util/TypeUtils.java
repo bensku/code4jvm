@@ -1,13 +1,6 @@
 package fi.benjami.code4jvm.util;
 
-import static org.objectweb.asm.Opcodes.T_BOOLEAN;
-import static org.objectweb.asm.Opcodes.T_BYTE;
-import static org.objectweb.asm.Opcodes.T_CHAR;
-import static org.objectweb.asm.Opcodes.T_DOUBLE;
-import static org.objectweb.asm.Opcodes.T_FLOAT;
-import static org.objectweb.asm.Opcodes.T_INT;
-import static org.objectweb.asm.Opcodes.T_LONG;
-import static org.objectweb.asm.Opcodes.T_SHORT;
+import static org.objectweb.asm.Opcodes.*;
 
 import fi.benjami.code4jvm.Type;
 
@@ -56,6 +49,18 @@ public class TypeUtils {
 			return T_DOUBLE;
 		} else {
 			throw new AssertionError(type);
+		}
+	}
+	
+	public static int slotCount(Type type) {
+		if (type.equals(Type.VOID)) {
+			return 0;
+		} else if (type.equals(Type.LONG) || type.equals(Type.DOUBLE)
+				|| type.equals(Type.METHOD_RETURN_TYPE)) {
+			// We don't actually know what METHOD_RETURN_TYPE is, assume long/double just in case
+			return 2;
+		} else {
+			return 1;
 		}
 	}
 	

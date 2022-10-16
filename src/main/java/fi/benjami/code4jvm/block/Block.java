@@ -263,9 +263,11 @@ public class Block implements CompileHook.Carrier {
 			} else if (node instanceof CodeNode codeNode && reachable) {
 				state.frames().visitCode(ctx.asm());
 				codeNode.emitBytecode(state, this);
+				ctx.stack().releaseStack(codeNode.outputType(), codeNode.outputToStack());
 			} else if (node instanceof StoreNode storeNode && reachable) {
 				state.frames().visitCode(ctx.asm());
 				storeNode.emitBytecode(state);
+				ctx.stack().releaseStack(Type.VOID, false);
 			}
 		}
 		if (endLabel != null) {

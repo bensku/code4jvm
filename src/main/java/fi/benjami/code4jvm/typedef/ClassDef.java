@@ -287,13 +287,10 @@ public class ClassDef implements CompileHook.Carrier {
 			}
 		}
 		
-		// Use COMPUTE_MAXS, because otherwise writing custom bytecode will
-		// get ugly really fast
-		// Frames we'll compute ourself
-		var writer = new ClassWriter(ClassWriter.COMPUTE_MAXS);
+		// We can compute frames, local variable count and maximum stack size ourself!
+		var writer = new ClassWriter(0);
 		// Enable ASM checks if user has requested them
-		// But don't enable data flow checks, can't use them with COMPUTE_MAXS
-		var cv = DebugOptions.ASM_CHECKS ? new CheckClassAdapter(writer, false) : writer;
+		var cv = DebugOptions.ASM_CHECKS ? new CheckClassAdapter(writer, true) : writer;
 		var superName = superClass != null ? superClass.internalName() : "java/lang/Object";
 		var interfaceNames = interfaces != null ? 
 				Arrays.stream(interfaces).map(Type::internalName).toArray(String[]::new)

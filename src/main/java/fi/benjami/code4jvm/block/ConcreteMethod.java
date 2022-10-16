@@ -4,6 +4,7 @@ import java.util.stream.Collectors;
 
 import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.internal.DebugNames;
+import fi.benjami.code4jvm.internal.SlotAllocator;
 
 public sealed class ConcreteMethod extends Routine implements Method
 		permits Method.Static, Method.Instance {
@@ -18,6 +19,12 @@ public sealed class ConcreteMethod extends Routine implements Method
 	final int access;
 	
 	boolean framesComputed;
+	
+	/**
+	 * Slot allocator from first compilation. Frames are built once only, but
+	 * compiling this again needs {@link SlotAllocator#findVar(int)}.
+	 */
+	SlotAllocator slotAllocator;
 	
 	ConcreteMethod(Block block, Type returnType, String name, int access) {
 		super(block, returnType);

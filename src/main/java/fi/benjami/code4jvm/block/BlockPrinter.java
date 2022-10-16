@@ -72,7 +72,7 @@ public record BlockPrinter(
 					var redirect = block.returnRedirect();
 					if (redirect != null) {
 						sb.append("RETURN (redirect to ")
-								.append(blockNameGen.make(block, redirect.target().debugName));
+								.append(blockNameGen.make(redirect.target(), redirect.target().debugName));
 						redirect.valueHolder().ifPresentOrElse(value -> {
 							sb.append(", value saved in ").append(((LocalVar) value).toString(localNameGen));
 						}, () -> {

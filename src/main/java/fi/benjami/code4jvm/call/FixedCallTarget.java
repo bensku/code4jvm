@@ -66,31 +66,19 @@ public final class FixedCallTarget extends CallTarget {
 					ctx.asm().visitMethodInsn(INVOKESPECIAL, owner.internalName(), name(),
 							TypeUtils.instanceMethodDescriptor(returnType(), argTypes()), owner.isInterface());
 				}, debugName)).value();
-			case INIT -> {
-				// TODO optimize, this uses unnecessary variables
-				var ownerName = owner().internalName();
-				
-				// Create new object and leave two references of it to stack
-				// Don't create value yet - it is not initialized
-				block.add(Bytecode.run(Type.VOID, new Value[0], ctx -> {
+			case INIT -> block.add(Bytecode.run(returnType(), allArgs, ctx -> {
+					var ownerName = owner().internalName();
+					
+					// Reserve stack space for two copies of initialized type
+					ctx.stack().reserveStack(TypeUtils.slotCount(returnType()) * 2);
 					ctx.asm().visitTypeInsn(NEW, ownerName);
 					ctx.asm().visitInsn(DUP);
-				}, "init object"));
-				
-				// Load arguments to stack on top of them
-				var inputs = new Value[args.length + 1];
-				inputs[0] = Value.stackTop(returnType()); // Already on stack
-				System.arraycopy(args, 0, inputs, 1, args.length);
-				
-				// Call constructor to consume one reference to object and all arguments
-				var instance = block.add(Bytecode.run(returnType(), inputs, ctx -> {
+					
+					ctx.stack().loadExplicit(allArgs);
 					ctx.asm().visitMethodInsn(INVOKESPECIAL, ownerName, "<init>",
 							TypeUtils.methodDescriptor(Type.VOID, argTypes()), false);
-				}, debugName)).value();
-				
-				// Return the other reference to the object, now initialized
-				yield instance;
-			}
+					// We consumed one of the instances and left another on the stack
+				}, Bytecode.EXPLICIT_LOAD, debugName)).value();
 			case INIT_ARRAY -> {
 				var type = returnType();
 				if (type.arrayDimensions() > 1) {

@@ -79,7 +79,7 @@ public class StringConcat {
 			}
 		}
 		// Load non-constant values to stack for invokedynamic call
-		ctx.loadExplicit(inputs.toArray(Value[]::new));
+		ctx.stack().loadExplicit(inputs.toArray(Value[]::new));
 		
 		// Build the invokedynamic call
 		var descriptor = TypeUtils.methodDescriptor(Type.STRING, inputs.stream()
@@ -105,7 +105,7 @@ public class StringConcat {
 		
 		for (var value : values) {
 			var type = value.type();
-			ctx.loadExplicit(value);
+			ctx.stack().loadExplicit(value);
 			if (type.equals(Type.BOOLEAN)) {
 				mv.visitMethodInsn(INVOKEVIRTUAL, STRING_BUILDER.internalName(),
 						"append", TypeUtils.methodDescriptor(STRING_BUILDER, Type.BOOLEAN), false);

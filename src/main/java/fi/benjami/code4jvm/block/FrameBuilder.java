@@ -133,6 +133,8 @@ class FrameBuilder {
 						// Additionally, if the return value is captured to uninitialized variable
 						// it also becomes available
 						var redirectFrame = block.startFrame.copy();
+						// Start frame might have VM stack that is removed by the first node
+						redirectFrame.setVmStack(null);
 						var holder = redirect.valueHolder().orElse(null);
 						if (holder != null) {
 							// This doesn't use the normal Scope system, so we'll have to

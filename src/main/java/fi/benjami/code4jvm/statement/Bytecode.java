@@ -1,7 +1,5 @@
 package fi.benjami.code4jvm.statement;
 
-import static org.objectweb.asm.Opcodes.*;
-
 import java.util.Arrays;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -96,39 +94,18 @@ public class Bytecode implements Expression {
 	}
 	
 	public void emitBytecode(MethodCompilerState state, Block block) {
-		// Load inputs that are not in stack:
+		// Load inputs that are not in stack (and keep track of stack size)
 		// - Inputs that are not on stack directly before this statement
 		// - Inputs that are in right place on stack, but need to be stored as local variables
 		var ctx = state.ctx();
+		ctx.stack().reserveStack(inputs);
 		if ((flags & EXPLICIT_LOAD) == 0) {
 			// If explicit loads are disabled, we'll automatically load inputs
 			// It just happens that we can use the same API as user code
-			ctx.loadExplicit(inputs);
+			ctx.stack().loadExplicit(inputs);
 		}
 		if (emitter != null) {
 			emitter.accept(ctx, block); // Emit user bytecode
-		}
-	}
-	
-	public void discardOutput(CompileContext ctx) {
-		if (outputType == Type.VOID) {
-			// No need to pop anything
-		} else if (outputType == Type.LONG || outputType == Type.DOUBLE) {
-			ctx.asm().visitInsn(POP2);
-		} else {			
-			ctx.asm().visitInsn(POP);
-		}
-	}
-	
-	public void storeOutput(MethodCompilerState state, LocalVar localVar) {
-		// Special handling for uninitialized values that should NOT be stored
-		// Currently, they are only created by LocalVar#uninitialized(Type)
-		var initialize = inputs.length != 1 || inputs[0] != LocalVar.EMPTY_MARKER;
-		if (localVar.needsSlot) {
-			if (initialize) {
-				assert localVar.assignedSlot != -1 : "tried to store output to untracked LocalVar";
-				state.ctx().asm().visitVarInsn(localVar.type().getOpcode(ISTORE, state.ctx()), localVar.assignedSlot);
-			}
 		}
 	}
 	

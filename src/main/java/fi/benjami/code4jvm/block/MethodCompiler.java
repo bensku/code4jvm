@@ -54,7 +54,11 @@ public class MethodCompiler {
 		}
 		
 		if (method instanceof ConcreteMethod concrete) {
-			var slotAllocator = new SlotAllocator(null);
+			var slotAllocator = concrete.slotAllocator;
+			if (slotAllocator == null) {
+				slotAllocator = new SlotAllocator(null);
+				concrete.slotAllocator = slotAllocator;
+			}
 			// Assign local variable slots for arguments
 			if (method instanceof Method.Instance instance) {
 				slotAllocator.assignSlot(instance.self); // this is always slot 0
@@ -79,7 +83,7 @@ public class MethodCompiler {
 			// Emit method content
 			mv.visitCode();
 			concrete.block().emitBytecode(state);
-			mv.visitMaxs(0, 0);
+			mv.visitMaxs(ctx.stack().maxStackSize(), slotAllocator.slotCount());
 		}
 		mv.visitEnd();
 	}
