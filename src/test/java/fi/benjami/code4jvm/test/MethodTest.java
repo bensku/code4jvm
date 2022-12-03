@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 import fi.benjami.code4jvm.Constant;
+import fi.benjami.code4jvm.InvalidReturnTypeException;
 import fi.benjami.code4jvm.MissingReturnException;
 import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.call.CallTarget;
@@ -85,7 +86,7 @@ public class MethodTest {
 		def.interfaces(Type.of(Supplier.class));
 		def.addEmptyConstructor(Access.PUBLIC);
 		
-		var method = def.addMethod(Type.of(Object.class), "get", Access.PUBLIC);
+		var method = def.addMethod(Type.OBJECT, "get", Access.PUBLIC);
 		var obj = method.add(Type.of(Constructable.class).newInstance(Constant.of("ok")));
 		method.add(Return.value(obj));
 		
@@ -155,5 +156,16 @@ public class MethodTest {
 		def.addMethod(Type.VOID, "doNothing", Access.PUBLIC);
 		
 		assertThrows(MissingReturnException.class, () -> def.compile());
+	}
+	
+	@Test
+	public void wrongReturnType() throws Throwable {
+		var def = ClassDef.create("fi.benjami.code4jvm.test.WrongReturnType", Access.PUBLIC);
+		def.addEmptyConstructor(Access.PUBLIC);
+		
+		var method = def.addMethod(Type.SHORT, "fail1", Access.PUBLIC);
+		method.add(Return.nothing());
+		
+		assertThrows(InvalidReturnTypeException.class, () -> def.compile());
 	}
 }

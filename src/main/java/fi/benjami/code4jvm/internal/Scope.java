@@ -25,7 +25,6 @@ public class Scope {
 		// Find if stack at least one of the requested inputs
 		// In case there are multiple occurrences, search for the last one
 		var matchStart = stack.lastIndexOf(inputs[0]);
-		System.out.println(matchStart);
 		
 		// Count how many matches there are on stack
 		// If stack usage is not allowed, ignore whatever is on stack

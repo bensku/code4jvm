@@ -1,10 +1,13 @@
 package fi.benjami.code4jvm.statement;
 
+import fi.benjami.code4jvm.InvalidReturnTypeException;
 import fi.benjami.code4jvm.Statement;
 import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.Value;
 import fi.benjami.code4jvm.block.Block;
+import fi.benjami.code4jvm.call.Linkage;
 import fi.benjami.code4jvm.internal.LocalVar;
+import fi.benjami.code4jvm.util.TypeUtils;
 
 import static org.objectweb.asm.Opcodes.*;
 
@@ -31,6 +34,15 @@ public class Return implements Statement {
 	public void emitVoid(Block block) {
 		var inputs = value != null ? new Value[] {value} : new Value[0];
 		block.add(Bytecode.run(Type.VOID, inputs, (ctx, currentBlock) -> {
+			// When checking expected return type, remember that INIT linkage
+			// adds a "fake" return type, and constructor should actually return nothing
+			var expectedType = ctx.method().linkage() == Linkage.INIT ? Type.VOID : ctx.method().returnType();
+			var actualType = value != null ? value.type() : Type.VOID;
+			if (actualType != Type.METHOD_RETURN_TYPE &&
+					!TypeUtils.isAssignableTo(actualType, expectedType)) {
+				throw new InvalidReturnTypeException(value, expectedType);
+			}
+			
 			// Nodes may be emitted in different block they were added to
 			// e.g. when copy() is used
 			var redirect = currentBlock.returnRedirect();

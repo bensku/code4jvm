@@ -65,4 +65,14 @@ public class TypeUtils {
 		}
 	}
 	
+	public static boolean isAssignableTo(Type from, Type to) {
+		if (from.equals(to)) {
+			return true;
+		}
+		if (from.isObject() && to.equals(Type.OBJECT)) {
+			return true;
+		}
+		return false;
+	}
+	
 }
