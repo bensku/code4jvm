@@ -26,6 +26,7 @@ import fi.benjami.code4jvm.internal.node.CodeNode;
 import fi.benjami.code4jvm.internal.node.EdgeNode;
 import fi.benjami.code4jvm.internal.node.Node;
 import fi.benjami.code4jvm.internal.node.StoreNode;
+import fi.benjami.code4jvm.internal.node.VarMarkerNode;
 import fi.benjami.code4jvm.statement.Bytecode;
 import fi.benjami.code4jvm.statement.Jump;
 import fi.benjami.code4jvm.statement.Return;
@@ -103,15 +104,24 @@ public class Block implements CompileHook.Carrier {
 	}
 	
 	public Variable add(Variable output, Expression expr) {
+		nodes.add(new VarMarkerNode(true, (LocalVar) output));
 		var value = add(expr);
 		add(output.set(value));
+		nodes.add(new VarMarkerNode(false, (LocalVar) output));
 		return output;
 	}
 	
 	public Variable add(String outputName, Expression expr) {
+		// Insert the marker without local variable, because we need it before
+		// initializer of the local variable, but it needs the type returned by
+		// the initializer
+		var firstMarker = new VarMarkerNode(true, null);
+		nodes.add(firstMarker);
 		var value = add(expr);
 		var output = Variable.create(value.type(), outputName);
+		firstMarker.localVar = (LocalVar) output; // Fill in the local variable
 		add(output.set(value));
+		nodes.add(new VarMarkerNode(false, (LocalVar) output));
 		return output;
 	}
 	
@@ -231,6 +241,8 @@ public class Block implements CompileHook.Carrier {
 				state.frames().visitCode(ctx.asm());
 				storeNode.emitBytecode(state);
 				ctx.stack().releaseStack(Type.VOID, false);
+			} else if (node instanceof VarMarkerNode markerNode && state.emitVarMarkers()) {
+				markerNode.visitLabels(ctx.asm());
 			}
 		}
 		if (endLabel != null) {

@@ -1,6 +1,7 @@
 package fi.benjami.code4jvm.block;
 
 import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.util.CheckMethodAdapter;
 
 import fi.benjami.code4jvm.Type;
@@ -11,12 +12,15 @@ import fi.benjami.code4jvm.config.CoreOptions;
 import fi.benjami.code4jvm.flag.Access;
 import fi.benjami.code4jvm.internal.DebugOptions;
 import fi.benjami.code4jvm.internal.FrameManager;
+import fi.benjami.code4jvm.internal.LocalVar;
 import fi.benjami.code4jvm.internal.MethodCompilerState;
 import fi.benjami.code4jvm.internal.SlotAllocator;
 import fi.benjami.code4jvm.typedef.ClassDef;
 import fi.benjami.code4jvm.util.TypeUtils;
 
 import static org.objectweb.asm.Opcodes.*;
+
+import java.util.stream.Stream;
 
 /**
  * Compiles methods to JVM bytecode with ASM.
@@ -56,7 +60,7 @@ public class MethodCompiler {
 		if (method instanceof ConcreteMethod concrete) {
 			var slotAllocator = concrete.slotAllocator;
 			if (slotAllocator == null) {
-				slotAllocator = new SlotAllocator(null);
+				slotAllocator = new SlotAllocator();
 				concrete.slotAllocator = slotAllocator;
 			}
 			// Assign local variable slots for arguments
@@ -78,16 +82,24 @@ public class MethodCompiler {
 			}
 			
 			var ctx = new CompileContext(owner, getTarget(accessBits, method.returnType(), method.name(), argTypes), mv, options);
-			var state = new MethodCompilerState(ctx, slotAllocator, new FrameManager(method, slotAllocator));
+			var state = new MethodCompilerState(ctx, slotAllocator, new FrameManager(method, slotAllocator), options.get(CoreOptions.LOCAL_VAR_TABLE));
+			
 			
 			// Emit method content
 			mv.visitCode();
 			concrete.block().emitBytecode(state);
+			
+			// Emit local variable table if it is enabled
+			if (state.emitVarMarkers()) {
+				emitLocalVarTable(mv, slotAllocator.variables());
+			}
+			
+			// Set stack and 
 			mv.visitMaxs(ctx.stack().maxStackSize(), slotAllocator.slotCount());
 		}
 		mv.visitEnd();
 	}
-	
+
 	private FixedCallTarget getTarget(int access, Type returnType, String name, Type[] argTypes) {
 		// Static method, static linkage
 		if ((access & ACC_STATIC) != 0) {
@@ -103,5 +115,18 @@ public class MethodCompiler {
 		
 		// Virtual/interface linkage depending on owner type
 		return CallTarget.virtualMethod(owner.type(), returnType, name, argTypes);
+	}
+	
+	private void emitLocalVarTable(MethodVisitor mv, Stream<LocalVar> variables) {
+		variables.forEach(localVar -> {
+			// Ignore local variables that we don't have enough information to
+			// generate this information for
+			if (localVar.needsSlot && localVar.definitionStart != null) {
+				var name = localVar.name().orElse("<unnamed>");
+				mv.visitLocalVariable(name, localVar.type().descriptor(), null, localVar.definitionStart,
+						localVar.definitionEnd, localVar.assignedSlot);
+			}
+			// TODO local variable annotations
+		});
 	}
 }

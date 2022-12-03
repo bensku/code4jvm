@@ -1,5 +1,9 @@
 package fi.benjami.code4jvm.internal;
 
+import java.util.Arrays;
+import java.util.Objects;
+import java.util.stream.Stream;
+
 import fi.benjami.code4jvm.Type;
 
 public class SlotAllocator {
@@ -7,14 +11,8 @@ public class SlotAllocator {
 	private int nextSlot;
 	private LocalVar[] variables;
 	
-	public SlotAllocator(SlotAllocator parent) {
-		if (parent != null) {
-			this.nextSlot = parent.nextSlot;
-			this.variables = new LocalVar[parent.variables.length + 8];
-			System.arraycopy(parent.variables, 0, variables, 0, parent.nextSlot);
-		} else {
-			this.variables = new LocalVar[8];
-		}
+	public SlotAllocator() {
+		this.variables = new LocalVar[8];
 	}
 	
 	public void assignSlot(LocalVar localVar) {
@@ -45,6 +43,12 @@ public class SlotAllocator {
 	
 	public int slotCount() {
 		return nextSlot + 1;
+	}
+	
+	public Stream<LocalVar> variables() {
+		return Arrays.stream(variables)
+				.limit(nextSlot)
+				.filter(Objects::nonNull);
 	}
 
 }

@@ -18,6 +18,8 @@ import fi.benjami.code4jvm.UninitializedValueException;
 import fi.benjami.code4jvm.Variable;
 import fi.benjami.code4jvm.block.Block;
 import fi.benjami.code4jvm.block.Method;
+import fi.benjami.code4jvm.config.CompileOptions;
+import fi.benjami.code4jvm.config.CoreOptions;
 import fi.benjami.code4jvm.flag.Access;
 import fi.benjami.code4jvm.statement.Arithmetic;
 import fi.benjami.code4jvm.statement.Jump;
@@ -261,5 +263,22 @@ public class ValuesTest {
 		var instance = TestUtils.newInstance(lookup);
 		assertEquals((short) -5, (short) lookup.findVirtual(lookup.lookupClass(), "get", MethodType.methodType(short.class))
 				.invoke(instance));
+	}
+	
+	@Test
+	public void localVariableTable() throws Throwable {
+		var def = ClassDef.create("fi.benjami.code4jvm.test.LocalVariableTable", Access.PUBLIC);
+		
+		var method = def.addMethod(Type.VOID, "test", Access.PUBLIC);
+		var first = method.add("first", Arithmetic.add(Constant.of(1), Constant.of(2)));
+		assertEquals("first", first.name().orElseThrow());
+		var second = method.add(Variable.create(Type.INT, "second"), Arithmetic.add(first, Constant.of(3)));
+		assertEquals("second", second.name().orElseThrow());
+		method.add(Return.nothing());
+		
+		LOOKUP.defineHiddenClass(def.compile(CompileOptions.builder()
+				.set(CoreOptions.LOCAL_VAR_TABLE, true)
+				.build()), true);
+		// TODO no tools for checking that the bytecode output is correct
 	}
 }

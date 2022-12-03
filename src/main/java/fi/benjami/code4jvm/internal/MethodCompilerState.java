@@ -10,5 +10,7 @@ public record MethodCompilerState(
 		
 		SlotAllocator slotAllocator,
 		
-		FrameManager frames
+		FrameManager frames,
+		
+		boolean emitVarMarkers
 ) {}

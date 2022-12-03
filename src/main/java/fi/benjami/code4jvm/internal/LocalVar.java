@@ -2,6 +2,8 @@ package fi.benjami.code4jvm.internal;
 
 import java.util.Optional;
 
+import org.objectweb.asm.Label;
+
 import fi.benjami.code4jvm.Statement;
 import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.Value;
@@ -40,10 +42,13 @@ public class LocalVar implements Variable {
 	 */
 	public int assignedSlot;
 	
+	public Label definitionStart, definitionEnd;
+	
 	public LocalVar(Type type, String name) {
 		this.type = type;
 		this.name = name;
-		this.needsSlot = false;
+		// Variable name might need to be emitted in bytecode
+		this.needsSlot = name != null;
 		this.assignedSlot = -1;
 	}
 
