@@ -18,14 +18,6 @@ public class LocalVar implements Variable {
 	
 	private final Type type;
 	private String name;
-
-	/**
-	 * If this value starts as initialized.
-	 * 
-	 * <p>Values that are NOT initialized are added to frames only after
-	 * something is stored into them.
-	 */
-	public final boolean startInitialized;
 	
 	/**
 	 * Whether or not this value is used as an input. Unused values are
@@ -48,9 +40,8 @@ public class LocalVar implements Variable {
 	 */
 	public int assignedSlot;
 	
-	public LocalVar(Type type, boolean startInitialized) {
+	public LocalVar(Type type) {
 		this.type = type;
-		this.startInitialized = startInitialized;
 		this.name = null;
 		this.needsSlot = false;
 		this.assignedSlot = -1;

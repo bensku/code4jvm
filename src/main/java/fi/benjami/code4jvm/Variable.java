@@ -13,7 +13,7 @@ public interface Variable extends Value {
 	 * @return A new variable that does not yet have a value.
 	 */
 	static Variable createUnbound(Type type) {
-		return new LocalVar(type, false);
+		return new LocalVar(type);
 	}
 	
 	/**

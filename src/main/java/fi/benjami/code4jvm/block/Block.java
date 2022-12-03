@@ -144,7 +144,7 @@ public class Block implements CompileHook.Carrier {
 			// Output is added in AddExpression if it is called
 			
 			var node = new CodeNode(bc);
-			var tempValue = new LocalVar(bc.outputType(), true);
+			var tempValue = new LocalVar(bc.outputType());
 			nodes.add(node);
 			return new AddExpression(tempValue, node);
 		} else {

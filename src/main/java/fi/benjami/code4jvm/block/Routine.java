@@ -47,7 +47,7 @@ public class Routine {
 	 * @return Value that represents the argument.
 	 */
 	public Value arg(Type type, String name, int index) {
-		var localVar = new LocalVar(type, true);
+		var localVar = new LocalVar(type);
 		localVar.name(name);
 		args.add(index, localVar);
 		return localVar;

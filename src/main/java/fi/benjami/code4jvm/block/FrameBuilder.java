@@ -180,12 +180,11 @@ class FrameBuilder {
 						throw new UninitializedValueException(localVar, block, method);
 					}
 				}
-				if (!store.target().startInitialized) {
-					// Variables that start uninitialized are added to frame
-					// only when something is stored to them
-					allocator.assignSlot(store.target());
-					frame.add(store.target());
-				}
+				// If the variable started as uninitialized, it won't appear
+				// in frames until something is stored to it
+				// (if it is already part of frame, this does nothing)
+				allocator.assignSlot(store.target());
+				frame.add(store.target());
 				
 				// For simplicity, the first node MUST consume VM stack
 				// by e.g. setting it to a variable tracked by us
@@ -204,7 +203,7 @@ class FrameBuilder {
 			// This would fail JVM bytecode verification, so better fail now
 			throw new MissingReturnException(method);
 		} else {
-			if (modified) {				
+			if (modified) {
 				// Blocks have implicit edge that leads to their parent block
 				// This is done so that sub-blocks can make new variables visible
 				// to their parent blocks
