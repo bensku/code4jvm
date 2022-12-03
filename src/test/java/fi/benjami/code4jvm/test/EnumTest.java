@@ -73,7 +73,7 @@ public class EnumTest {
 		
 		def.addEnumConstant("FOO", Constant.of(100), Constant.of("foo"));
 		def.addEnumConstant("BAR", block -> {
-			var result = block.add(Arithmetic.add(Constant.of(10), Constant.of(20))).value();
+			var result = block.add(Arithmetic.add(Constant.of(10), Constant.of(20)));
 			return new Value[] {result, Constant.of("bar")};
 		});
 		

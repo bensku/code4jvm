@@ -74,8 +74,8 @@ public class TryBlock implements Statement {
 	private TryBlock(Block main) {
 		this.main = main;
 		this.catchBlocks = new ArrayList<>();
-		this.returnedValue = Variable.createUnbound(Type.METHOD_RETURN_TYPE);
-		this.thrownValue = Variable.createUnbound(Type.of(Throwable.class));
+		this.returnedValue = Variable.create(Type.METHOD_RETURN_TYPE);
+		this.thrownValue = Variable.create(Type.of(Throwable.class));
 	}
 	
 	/**
@@ -86,7 +86,7 @@ public class TryBlock implements Statement {
 	 */
 	public Value addCatch(Type exception, Block handler) {
 		var parent = Block.create("catch " + exception); // Wrap handler to make caughtValue available
-		var caughtValue = Variable.createUnbound(exception);
+		var caughtValue = Variable.create(exception);
 		parent.add(caughtValue.set(Value.stackTop(exception))); // Added to stack by VM
 		parent.add(handler);
 		catchBlocks.add(new Catch(exception, parent, caughtValue));
@@ -103,7 +103,7 @@ public class TryBlock implements Statement {
 	 */
 	public TryBlock addCatch(Type exception, BiConsumer<Block, Value> callback) {
 		var handler = Block.create();
-		var caughtValue = Variable.createUnbound(exception);
+		var caughtValue = Variable.create(exception);
 		handler.add(caughtValue.set(Value.stackTop(exception))); // Added to stack by VM
 		
 		// Don't call addCatch(Type, Block) to avoid unnecessary extra block

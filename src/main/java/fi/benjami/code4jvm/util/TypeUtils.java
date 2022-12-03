@@ -22,6 +22,7 @@ public class TypeUtils {
 	
 	public static String instanceMethodDescriptor(Type returnType, Type... argTypes) {
 		var sb = new StringBuilder("(");
+		// Ignore first argument (it is 'this', and doesn't appear in descriptor)
 		for (int i = 1; i < argTypes.length; i++) {
 			sb.append(argTypes[i].descriptor());
 		}

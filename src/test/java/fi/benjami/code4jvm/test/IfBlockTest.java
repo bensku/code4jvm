@@ -128,7 +128,7 @@ public class IfBlockTest {
 		method.add(new IfBlock()
 				.branch(block -> {
 					// argument -> local variable, just to see that test block is properly emitted
-					var local = Variable.createUnbound(Type.STRING);
+					var local = Variable.create(Type.STRING);
 					block.add(local.set(arg.cast(Type.STRING)));
 					return Condition.equal(local, Constant.of("ok"));
 				}, block -> {

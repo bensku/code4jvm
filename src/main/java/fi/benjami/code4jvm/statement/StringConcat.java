@@ -50,7 +50,7 @@ public class StringConcat {
 				} else {
 					stringBuilderConcat(ctx, values);
 				}
-			}, Bytecode.EXPLICIT_LOAD, "string concat")).value();
+			}, Bytecode.EXPLICIT_LOAD, "string concat"));
 		};
 	}
 	

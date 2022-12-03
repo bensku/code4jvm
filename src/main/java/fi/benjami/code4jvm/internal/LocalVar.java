@@ -17,7 +17,7 @@ import fi.benjami.code4jvm.util.TypeCheck;
 public class LocalVar implements Variable {
 	
 	private final Type type;
-	private String name;
+	private final String name;
 	
 	/**
 	 * Whether or not this value is used as an input. Unused values are
@@ -40,9 +40,9 @@ public class LocalVar implements Variable {
 	 */
 	public int assignedSlot;
 	
-	public LocalVar(Type type) {
+	public LocalVar(Type type, String name) {
 		this.type = type;
-		this.name = null;
+		this.name = name;
 		this.needsSlot = false;
 		this.assignedSlot = -1;
 	}
@@ -55,10 +55,6 @@ public class LocalVar implements Variable {
 	@Override
 	public Optional<String> name() {
 		return Optional.ofNullable(name);
-	}
-	
-	public void name(String name) {
-		this.name = name;
 	}
 	
 	@Override

@@ -8,7 +8,7 @@ import fi.benjami.code4jvm.Expression;
 import fi.benjami.code4jvm.Statement;
 import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.Value;
-import fi.benjami.code4jvm.block.Block.AddExpression;
+import fi.benjami.code4jvm.Variable;
 import fi.benjami.code4jvm.internal.LocalVar;
 
 /**
@@ -47,8 +47,7 @@ public class Routine {
 	 * @return Value that represents the argument.
 	 */
 	public Value arg(Type type, String name, int index) {
-		var localVar = new LocalVar(type);
-		localVar.name(name);
+		var localVar = new LocalVar(type, name);
 		args.add(index, localVar);
 		return localVar;
 	}
@@ -88,8 +87,16 @@ public class Routine {
 		block.add(stmt);
 	}
 	
-	public AddExpression add(Expression expr) {
+	public Value add(Expression expr) {
 		return block.add(expr);
+	}
+	
+	public Variable add(Variable output, Expression expr) {
+		return block.add(output, expr);
+	}
+	
+	public Variable add(String outputName, Expression expr) {
+		return block.add(outputName, expr);
 	}
 	
 	public void add(Block block) {

@@ -12,7 +12,6 @@ import java.util.Set;
 import org.objectweb.asm.Label;
 
 import fi.benjami.code4jvm.CompileHook;
-import fi.benjami.code4jvm.Constant;
 import fi.benjami.code4jvm.Expression;
 import fi.benjami.code4jvm.Statement;
 import fi.benjami.code4jvm.Type;
@@ -49,54 +48,6 @@ public class Block implements CompileHook.Carrier {
 			boolean conditional,
 			Type[] vmStack
 	) {}
-
-	public class AddExpression {
-		
-		private final Value value;
-		private final CodeNode node;
-		
-		AddExpression(Value value, CodeNode node) {
-			this.value = value;
-			this.node = node;
-		}
-		
-		public Value value(String name) {
-			if (value instanceof Constant) {
-				// Constants can be used as immutable values as-is
-				return value;
-			}
-			return variable(name);
-		}
-		
-		public Value value() {
-			return value(null);
-		}
-		
-		public Variable variable(String name) {
-			if (value instanceof LocalVar localVar) {				
-				// Assign name to the underlying value
-				assert localVar.name().isEmpty() : "internal code should not assign names";
-				if (name != null) {
-					localVar.name(name);
-				}
-				
-				if (node != null) {
-					// This is Bytecode expression, nothing else has Node
-					// Assign our variable to node to not discard it during bytecode generation
-					node.assignVar(localVar);
-					// Keep track of stack
-					scope.addOutput(localVar);
-				}
-				return localVar;
-			} else {
-				throw new UnsupportedOperationException("constant -> var");
-			}
-		}
-		
-		public Variable variable() {
-			return variable(null);
-		}
-	}
 	
 	final List<Node> nodes;
 	final Scope scope;
@@ -138,18 +89,30 @@ public class Block implements CompileHook.Carrier {
 		}
 	}
 	
-	public AddExpression add(Expression expr) {
+	public Value add(Expression expr) {
 		if (expr instanceof Bytecode bc) {
 			scope.checkInputs(bc.inputs(), (bc.flags() & Bytecode.EXPLICIT_LOAD) == 0);
-			// Output is added in AddExpression if it is called
 			
-			var node = new CodeNode(bc);
-			var tempValue = new LocalVar(bc.outputType());
+			var output = new LocalVar(bc.outputType(), null);
+			var node = new CodeNode(bc, output);
 			nodes.add(node);
-			return new AddExpression(tempValue, node);
+			return output;
 		} else {
-			return new AddExpression(expr.emitValue(this), null);
+			return expr.emitValue(this);
 		}
+	}
+	
+	public Variable add(Variable output, Expression expr) {
+		var value = add(expr);
+		add(output.set(value));
+		return output;
+	}
+	
+	public Variable add(String outputName, Expression expr) {
+		var value = add(expr);
+		var output = Variable.create(value.type(), outputName);
+		add(output.set(value));
+		return output;
 	}
 	
 	public void add(Block block) {
@@ -224,7 +187,7 @@ public class Block implements CompileHook.Carrier {
 	 * {@link ReturnRedirect#target() redirect target}, and the value that
 	 * would have been returned is stored in
 	 * {@link ReturnRedirect#valueHolder() holder variable}. This is a good
-	 * use-case for {@link Variable#createUnbound(Type) unbound variables}.
+	 * use-case for {@link Variable#create(Type) unbound variables}.
 	 * @param redirect Return redirect.
 	 */
 	public void setReturnRedirect(ReturnRedirect redirect) {

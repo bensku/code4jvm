@@ -27,7 +27,7 @@ public class ArithmeticTest {
 		var method = def.addMethod(type, name, Access.PUBLIC);
 		var a = method.arg(type);
 		var b = method.arg(type);
-		var sum = method.add(op.apply(a, b)).value();
+		var sum = method.add(op.apply(a, b));
 		method.add(Return.value(sum));
 	}
 	

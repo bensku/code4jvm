@@ -82,7 +82,7 @@ public class EnumDef extends ClassDef {
 		var valuesType = type().array(1);
 		var classInit = addStaticMethod(Type.VOID, "<clinit>", Access.PRIVATE, MethodFlag.SYNTHETIC);
 		// Store values array we'll put fields to as $VALUES
-		var values = classInit.add(valuesType.newInstance(Constant.of(constants.size()))).value();
+		var values = classInit.add(valuesType.newInstance(Constant.of(constants.size())));
 		classInit.add(type().putStatic(valuesType, "$VALUES", values));
 		for (int i = 0; i < constants.size(); i++) {
 			var constant = constants.get(i);
@@ -96,7 +96,7 @@ public class EnumDef extends ClassDef {
 			allArgs[0] = Constant.of(constant.name);
 			allArgs[1] = Constant.of(i);
 			System.arraycopy(constant.args, 0, allArgs, 2, constant.args.length);
-			var enumInstance = classInit.add(type().newInstance(allArgs)).value();
+			var enumInstance = classInit.add(type().newInstance(allArgs));
 			classInit.add(type().putStatic(type(), constant.name, enumInstance));
 			classInit.add(ArrayAccess.set(values, allArgs[1], enumInstance));
 		}
@@ -106,7 +106,7 @@ public class EnumDef extends ClassDef {
 	private void addValuesMethod() {
 		var valuesType = type().array(1);
 		var method = addStaticMethod(valuesType, "values", Access.PUBLIC);
-		var values = method.add(type().getStatic(valuesType, "$VALUES")).value();
+		var values = method.add(type().getStatic(valuesType, "$VALUES"));
 		method.add(Return.value(values));
 	}
 	
@@ -115,7 +115,7 @@ public class EnumDef extends ClassDef {
 		var name = method.arg(Type.STRING);
 		// valueOf(String) of all enums is implemented by calling Enum#valueOf(Class, String)
 		var value = method.add(Type.of(Enum.class).callStatic(Type.of(Enum.class), "valueOf",
-				Constant.of(type()), name)).value();
+				Constant.of(type()), name));
 		method.add(Return.value(value.cast(type())));
 	}
 	

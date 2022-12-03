@@ -246,7 +246,7 @@ public class Type {
 		return block -> {
 			return block.add(Bytecode.run(fieldType, new Value[0], ctx -> {
 				ctx.asm().visitFieldInsn(GETSTATIC, internalName(), name, fieldType.descriptor());
-			}, Bytecode.name("get static %s.%s", this, name))).value();
+			}, Bytecode.name("get static %s.%s", this, name)));
 		};
 	}
 	

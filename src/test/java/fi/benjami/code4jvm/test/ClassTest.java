@@ -82,7 +82,7 @@ public class ClassTest {
 		{
 			var method = def.addStaticMethod(Type.OBJECT, "publicStatic", Access.PUBLIC);
 			var arg = method.arg(Type.OBJECT);
-			var value = method.add(def.type().callStatic(Type.OBJECT, "privateStatic", arg)).value();
+			var value = method.add(def.type().callStatic(Type.OBJECT, "privateStatic", arg));
 			method.add(Return.value(value));
 		}
 		{

@@ -90,7 +90,7 @@ public class Lambda extends Routine {
 			return block.add(Bytecode.run(returnType(), args, ctx -> {
 				ctx.asm().visitMethodInsn(INVOKESTATIC, backingMethod.owner().internalName(), backingMethod.name(),
 						TypeUtils.methodDescriptor(returnType(), backingMethod.argTypes()), backingMethod.owner().isInterface());
-			}, Bytecode.name("call lambda %s", backingMethod))).value();
+			}, Bytecode.name("call lambda %s", backingMethod)));
 		};
 	}
 	
@@ -145,7 +145,7 @@ public class Lambda extends Routine {
 						TypeUtils.methodDescriptor(interfaceType, capturedTypes),
 						LAMBDA_METAFACTORY,
 						bootstrapArgs);
-			}, "new lambda")).value();
+			}, "new lambda"));
 			// TODO improve debug name (but still try to keep it short)
 		};
 	}

@@ -86,7 +86,7 @@ public class MethodTest {
 		def.addEmptyConstructor(Access.PUBLIC);
 		
 		var method = def.addMethod(Type.of(Object.class), "get", Access.PUBLIC);
-		var obj = method.add(Type.of(Constructable.class).newInstance(Constant.of("ok"))).value();
+		var obj = method.add(Type.of(Constructable.class).newInstance(Constant.of("ok")));
 		method.add(Return.value(obj));
 		
 		var lookup = LOOKUP.defineHiddenClass(def.compile(), true);
@@ -133,7 +133,7 @@ public class MethodTest {
 		CallTarget.dynamic(bootstrap.withCapturedArgs(Constant.of("extraArg")), Type.BOOLEAN, "methodName", Type.STRING);
 		var result = method.add(CallTarget.dynamic(bootstrap.withCapturedArgs(Constant.of("extraArg")),
 				Type.BOOLEAN, "methodName", Type.STRING)
-				.call(arg)).value();
+				.call(arg));
 		method.add(Return.value(result));
 		
 		var lookup = LOOKUP.defineHiddenClass(def.compile(), true);

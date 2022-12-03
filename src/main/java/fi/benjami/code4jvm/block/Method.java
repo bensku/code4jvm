@@ -22,7 +22,7 @@ public sealed interface Method permits AbstractMethod, ConcreteMethod {
 	}
 	
 	public static Method.Instance instanceMethod(Type returnType, String name, Type parentClass, MethodFlag... flags) {
-		return new Method.Instance(Block.create("root"), returnType, name, parentClass, flags, new LocalVar(parentClass));
+		return new Method.Instance(Block.create("root"), returnType, name, parentClass, flags, new LocalVar(parentClass, null));
 	}
 	
 	public static AbstractMethod abstractMethod(Type returnType, String name, MethodFlag... flags) {

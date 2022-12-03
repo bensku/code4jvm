@@ -137,7 +137,7 @@ public abstract sealed class CallTarget permits FixedCallTarget, DynamicCallTarg
 		}
 		
 		// Call the target and return what it returned
-		var result = method.add(call(bridgeArgs)).value();
+		var result = method.add(call(bridgeArgs));
 		method.add(Return.value(result));
 		
 		return CallTarget.staticMethod(def.type(), returnType, bridgeName, argTypes);

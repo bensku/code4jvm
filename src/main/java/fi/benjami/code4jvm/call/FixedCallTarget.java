@@ -52,20 +52,19 @@ public final class FixedCallTarget extends CallTarget {
 			case STATIC -> block.add(Bytecode.run(returnType(), allArgs, ctx -> {
 					ctx.asm().visitMethodInsn(INVOKESTATIC, owner.internalName(), name(),
 							TypeUtils.methodDescriptor(returnType(), argTypes()), owner.isInterface());
-				}, debugName)).value();
-			// TODO first arg is this, take it out
+				}, debugName));
 			case VIRTUAL -> block.add(Bytecode.run(returnType(), allArgs, ctx -> {
 					ctx.asm().visitMethodInsn(INVOKEVIRTUAL, owner.internalName(), name(),
 							TypeUtils.instanceMethodDescriptor(returnType(), argTypes()), owner.isInterface());
-				}, debugName)).value();
+				}, debugName));
 			case INTERFACE -> block.add(Bytecode.run(returnType(), allArgs, ctx -> {
 					ctx.asm().visitMethodInsn(INVOKEINTERFACE, owner.internalName(), name(),
 							TypeUtils.instanceMethodDescriptor(returnType(), argTypes()), owner.isInterface());
-				}, debugName)).value();
+				}, debugName));
 			case SPECIAL -> block.add(Bytecode.run(returnType(), allArgs, ctx -> {
 					ctx.asm().visitMethodInsn(INVOKESPECIAL, owner.internalName(), name(),
 							TypeUtils.instanceMethodDescriptor(returnType(), argTypes()), owner.isInterface());
-				}, debugName)).value();
+				}, debugName));
 			case INIT -> block.add(Bytecode.run(returnType(), allArgs, ctx -> {
 					var ownerName = owner().internalName();
 					
@@ -78,7 +77,7 @@ public final class FixedCallTarget extends CallTarget {
 					ctx.asm().visitMethodInsn(INVOKESPECIAL, ownerName, "<init>",
 							TypeUtils.methodDescriptor(Type.VOID, argTypes()), false);
 					// We consumed one of the instances and left another on the stack
-				}, Bytecode.EXPLICIT_LOAD, debugName)).value();
+				}, Bytecode.EXPLICIT_LOAD, debugName));
 			case INIT_ARRAY -> {
 				var type = returnType();
 				if (type.arrayDimensions() > 1) {
@@ -86,19 +85,19 @@ public final class FixedCallTarget extends CallTarget {
 					// This could probably be used for other kinds of arrays, but currently we don't
 					yield block.add(Bytecode.run(returnType(), allArgs, ctx -> {
 						ctx.asm().visitMultiANewArrayInsn(type.descriptor(), type.arrayDimensions());
-					}, debugName)).value();
+					}, debugName));
 				} else if (type.isPrimitive()) {
 					// One-dimensional primitive array
 					yield block.add(Bytecode.run(returnType(), allArgs, ctx -> {
 						// JVM treats many Java primitives as ints, EXCEPT it has array types for them
 						// Each of them needs its own operand
 						ctx.asm().visitIntInsn(NEWARRAY, TypeUtils.getNewarrayOperand(type.componentType(1)));
-					}, debugName)).value();
+					}, debugName));
 				} else {
 					// One-dimensional object array
 					yield block.add(Bytecode.run(returnType(), allArgs, ctx -> {
 						ctx.asm().visitTypeInsn(ANEWARRAY, type.internalName());
-					}, debugName)).value();
+					}, debugName));
 				}
 			}
 			case DYNAMIC -> throw new AssertionError();

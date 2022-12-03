@@ -62,7 +62,7 @@ public class LambdaTest {
 				
 		var redirect = Lambda.create(Type.OBJECT);
 		var arg = redirect.arg(Type.OBJECT);
-		var value = redirect.add(returnArg().call(arg)).value();
+		var value = redirect.add(returnArg().call(arg));
 		redirect.add(Return.value(value));
 		var method = redirect.addStaticMethod(def);
 		
@@ -77,7 +77,7 @@ public class LambdaTest {
 		def.addEmptyConstructor(Access.PUBLIC);
 		
 		var lambda = Lambda.create(Type.of(Function.class));
-		var instance = lambda.add(returnArg().newInstance(Lambda.shape(Type.of(Function.class), "apply", Type.OBJECT, Type.OBJECT))).value();
+		var instance = lambda.add(returnArg().newInstance(Lambda.shape(Type.of(Function.class), "apply", Type.OBJECT, Type.OBJECT)));
 		lambda.add(Return.value(instance));
 		var method = lambda.addStaticMethod(def);
 		
@@ -104,12 +104,12 @@ public class LambdaTest {
 		var target = Lambda.create(Type.of(Object.class));
 		var arg1 = target.arg(Type.of(CallMe.class));
 		var arg2 = target.arg(Type.of(Object.class)).cast(Type.STRING);
-		var result = target.add(arg1.callVirtual(Type.STRING, "callMe", arg2)).value();
+		var result = target.add(arg1.callVirtual(Type.STRING, "callMe", arg2));
 		target.add(Return.value(result.cast(Type.OBJECT)));
 		
 		var lambda = Lambda.create(Type.of(Function.class));
 		var callMe = lambda.arg(Type.of(CallMe.class));
-		var instance = lambda.add(target.newInstance(Type.of(Function.class), "apply", callMe)).value();
+		var instance = lambda.add(target.newInstance(Type.of(Function.class), "apply", callMe));
 		lambda.add(Return.value(instance));
 		var method = lambda.addStaticMethod(def);
 		

@@ -87,10 +87,9 @@ public class BlockTest {
 		def.interfaces(Type.of(IntSupplier.class));
 		
 		var method = def.addMethod(Type.INT, "getAsInt", Access.PUBLIC);
-		var counter = method.add(Constant.of(0).copy()).variable("counter");
+		var counter = method.add("counter", Constant.of(0).copy());
 		var loop = Block.create();
-		var next = loop.add(Arithmetic.add(counter, Constant.of(1))).value();
-		loop.add(counter.set(next));
+		loop.add(counter, Arithmetic.add(counter, Constant.of(1)));
 		loop.add(Jump.to(loop, Jump.Target.START, Condition.lessThan(counter, Constant.of(100))));
 		method.add(loop);
 		method.add(Return.value(counter));
@@ -126,7 +125,7 @@ public class BlockTest {
 		var endBlock = block.copy();
 		
 		var handler = Block.create();
-		var capturedReturn = Variable.createUnbound(Type.METHOD_RETURN_TYPE);
+		var capturedReturn = Variable.create(Type.METHOD_RETURN_TYPE);
 		handler.add(Jump.to(endBlock, Jump.Target.START, Condition.equal(capturedReturn.asType(Type.STRING),
 				Constant.of("ok"))));
 		handler.add(Return.value(Constant.of("fail")));

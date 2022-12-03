@@ -17,7 +17,7 @@ import fi.benjami.code4jvm.internal.DebugNames;
 /**
  * Node that represents storing a value to a variable.
  *
- * <p>Storing to {@link Variable#createUnbound(fi.benjami.code4jvm.Type)
+ * <p>Storing to {@link Variable#create(fi.benjami.code4jvm.Type)
  * unbound variables} makes them available. For this reason, we need to track
  * stores while building stack map frames, which requires a custom node type.
  */

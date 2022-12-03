@@ -35,7 +35,7 @@ public class FieldTest {
 		def.addInstanceField(Access.PRIVATE, Type.OBJECT, "data");
 		
 		var getter = def.addMethod(Type.OBJECT, "get", Access.PUBLIC);
-		var storedValue = getter.add(getter.self().getField(Type.OBJECT, "data")).value();
+		var storedValue = getter.add(getter.self().getField(Type.OBJECT, "data"));
 		getter.add(Return.value(storedValue));
 		
 		var setter = def.addMethod(Type.VOID, "set", Access.PUBLIC);

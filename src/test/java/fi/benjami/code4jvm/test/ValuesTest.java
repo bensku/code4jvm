@@ -49,8 +49,8 @@ public class ValuesTest {
 		var consumer = method.arg(Type.of(Consumer.class));
 		
 		// Call methods on first argument
-		var hello = method.add(provider.callVirtual(Type.STRING, "hello")).value();
-		var number = method.add(provider.callVirtual(Type.INT, "number")).value();
+		var hello = method.add(provider.callVirtual(Type.STRING, "hello"));
+		var number = method.add(provider.callVirtual(Type.INT, "number"));
 		
 		// Call the second argument with the string we've got
 		method.add(consumer.callVirtual(Type.VOID, "accept", hello.cast(Type.of(Object.class))));
@@ -177,7 +177,7 @@ public class ValuesTest {
 		def.addEmptyConstructor(Access.PUBLIC);
 		
 		var method = def.addMethod(Type.OBJECT, "get", Access.PUBLIC);
-		var value = Variable.createUnbound(Type.STRING);
+		var value = Variable.create(Type.STRING);
 		method.add(value.set(Constant.of("ok")));
 		method.add(Return.value(value));
 		
@@ -193,7 +193,7 @@ public class ValuesTest {
 		def.addEmptyConstructor(Access.PUBLIC);
 		
 		var method = def.addMethod(Type.OBJECT, "get", Access.PUBLIC);
-		var value = Variable.createUnbound(Type.STRING);
+		var value = Variable.create(Type.STRING);
 		value.set(Constant.of("ok")); // Note the missing method.add(...)!
 		method.add(Return.value(value));
 		
@@ -208,7 +208,7 @@ public class ValuesTest {
 		
 		var method = def.addMethod(Type.OBJECT, "get", Access.PUBLIC);
 		var block = Block.create();
-		var value = block.add(Arithmetic.add(Constant.of(1), Constant.of(2))).value();
+		var value = block.add(Arithmetic.add(Constant.of(1), Constant.of(2)));
 		method.add(Arithmetic.add(value, Constant.of(3)));
 		method.add(block);
 		method.add(Return.value(Constant.of("ok")));
@@ -224,7 +224,7 @@ public class ValuesTest {
 		
 		var method = def.addMethod(Type.OBJECT, "get", Access.PUBLIC);
 		var a = Block.create();
-		var value = a.add(Arithmetic.add(Constant.of(1), Constant.of(2))).value();
+		var value = a.add(Arithmetic.add(Constant.of(1), Constant.of(2)));
 		var b = Block.create();
 		method.add(Jump.to(b, Jump.Target.START, Condition.isTrue(Constant.of(true))));
 		method.add(a);

@@ -45,7 +45,7 @@ public interface Value {
 		return block -> {
 			// Load to stack and keep it there
 			// Block and Bytecode handle slot allocation
-			return block.add(Bytecode.stub(type(), new Value[] {this})).value();
+			return block.add(Bytecode.stub(type(), new Value[] {this}));
 		};
 	}
 	
@@ -65,7 +65,7 @@ public interface Value {
 		return block -> {
 			return block.add(Bytecode.run(fieldType, new Value[] {this}, ctx -> {
 				ctx.asm().visitFieldInsn(GETFIELD, type().internalName(), name, fieldType.descriptor());
-			}, Bytecode.name("get field %s.%s", type(), name))).value();
+			}, Bytecode.name("get field %s.%s", type(), name)));
 		};
 	}
 	

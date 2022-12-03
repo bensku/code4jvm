@@ -20,7 +20,7 @@ public class Arithmetic {
 		return block -> {
 			return block.add(Bytecode.run(type, new Value[] {lhs, rhs}, ctx -> {
 				ctx.asm().visitInsn(type.getOpcode(IADD, ctx));
-			}, "add")).value();
+			}, "add"));
 		};
 	}
 	
@@ -30,7 +30,7 @@ public class Arithmetic {
 		return block -> {
 			return block.add(Bytecode.run(type, new Value[] {lhs, rhs}, ctx -> {
 				ctx.asm().visitInsn(type.getOpcode(ISUB, ctx));
-			}, "subtract")).value();
+			}, "subtract"));
 		};
 	}
 	
@@ -40,7 +40,7 @@ public class Arithmetic {
 		return block -> {
 			return block.add(Bytecode.run(type, new Value[] {lhs, rhs}, ctx -> {
 				ctx.asm().visitInsn(type.getOpcode(IMUL, ctx));
-			}, "multiply")).value();
+			}, "multiply"));
 		};
 	}
 	
@@ -50,7 +50,7 @@ public class Arithmetic {
 		return block -> {
 			return block.add(Bytecode.run(type, new Value[] {lhs, rhs}, ctx -> {
 				ctx.asm().visitInsn(type.getOpcode(IDIV, ctx));
-			}, "divide")).value();
+			}, "divide"));
 		};
 	}
 	
@@ -60,7 +60,7 @@ public class Arithmetic {
 		return block -> {
 			return block.add(Bytecode.run(type, new Value[] {lhs, rhs}, ctx -> {
 				ctx.asm().visitInsn(type.getOpcode(ISUB, ctx));
-			}, "remainder")).value();
+			}, "remainder"));
 		};
 	}
 }

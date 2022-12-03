@@ -45,7 +45,7 @@ public class ArrayTest {
 	private void addCreator(ClassDef def, String name, Type type, int... lengths) {
 		var method = def.addMethod(type, name, Access.PUBLIC);
 		var constants = Arrays.stream(lengths).mapToObj(len -> Constant.of(len)).toArray(Value[]::new);
-		var instance = method.add(type.newInstance(constants)).value();
+		var instance = method.add(type.newInstance(constants));
 		method.add(Return.value(instance));
 	}
 	
@@ -107,7 +107,7 @@ public class ArrayTest {
 		var method = def.addMethod(type.componentType(1), "get", Access.PUBLIC);
 		var array = method.arg(type);
 		var index = method.arg(Type.INT);
-		var value = method.add(ArrayAccess.get(array, index)).value();
+		var value = method.add(ArrayAccess.get(array, index));
 		method.add(Return.value(value));
 	}
 	
@@ -253,14 +253,14 @@ public class ArrayTest {
 		{
 			var method = def.addMethod(Type.INT, "direct", Access.PUBLIC);
 			var arg = method.arg(Type.OBJECT.array(1));
-			var length = method.add(ArrayAccess.length(arg)).value();
+			var length = method.add(ArrayAccess.length(arg));
 			method.add(Return.value(length));
 		}
 		
 		{
 			var method = def.addMethod(Type.INT, "field", Access.PUBLIC);
 			var arg = method.arg(Type.OBJECT.array(1));
-			var length = method.add(arg.getField(Type.INT, "length")).value();
+			var length = method.add(arg.getField(Type.INT, "length"));
 			method.add(Return.value(length));
 		}
 		

@@ -27,7 +27,7 @@ public class ArrayAccess {
 		return block -> {
 			return block.add(Bytecode.run(array.type().componentType(1), new Value[] {array, index}, ctx -> {
 				ctx.asm().visitInsn(array.type().getOpcode(Opcodes.IALOAD, ctx));
-			}, "get array")).value();
+			}, "get array"));
 		};
 	}
 	
@@ -58,7 +58,7 @@ public class ArrayAccess {
 		return block -> {
 			return block.add(Bytecode.run(Type.INT, new Value[] {array}, ctx -> {
 				ctx.asm().visitInsn(Opcodes.ARRAYLENGTH);
-			}, "array length")).value();
+			}, "array length"));
 		};
 	}
 }

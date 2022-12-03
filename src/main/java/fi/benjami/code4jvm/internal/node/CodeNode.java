@@ -19,30 +19,27 @@ import fi.benjami.code4jvm.statement.Bytecode;
 public final class CodeNode implements Node {
 	
 	private final Bytecode statement;
-	private LocalVar assignedVar;
+	private final LocalVar output;
 	
-	public CodeNode(Bytecode statement) {
+	public CodeNode(Bytecode statement, LocalVar output) {
 		this.statement = statement;
-	}
-	
-	public void assignVar(LocalVar localVar) {
-		this.assignedVar = localVar;
+		this.output = output;
 	}
 	
 	public void emitBytecode(MethodCompilerState state, Block block) {
 		statement.emitBytecode(state, block);
-		if (assignedVar != null && assignedVar.used) {
-			storeOutput(state, assignedVar);
+		if (output.used) {
+			storeOutput(state);
 		} else {
 			discardOutput(state.ctx());
 		}
 	}
 	
-	public void storeOutput(MethodCompilerState state, LocalVar localVar) {
-		if (localVar.needsSlot) {
-			assert localVar.assignedSlot != -1 : "tried to store output to untracked LocalVar";
-			state.ctx().asm().visitVarInsn(localVar.type().getOpcode(ISTORE, state.ctx()), localVar.assignedSlot);
-		}
+	private void storeOutput(MethodCompilerState state) {
+		if (output.needsSlot) {
+			assert output.assignedSlot != -1 : "tried to store output to untracked LocalVar";
+			state.ctx().asm().visitVarInsn(output.type().getOpcode(ISTORE, state.ctx()), output.assignedSlot);
+		} // else: used but can be left on stack, do nothing
 	}
 	
 	private void discardOutput(CompileContext ctx) {
@@ -70,9 +67,9 @@ public final class CodeNode implements Node {
 	}
 	
 	public void addOutput(SlotAllocator allocator, Frame frame) {
-		if (assignedVar != null && assignedVar.needsSlot) {
-			allocator.assignSlot(assignedVar); // Make sure slot is available
-			frame.add(assignedVar);
+		if (output != null && output.needsSlot) {
+			allocator.assignSlot(output); // Make sure slot is available
+			frame.add(output);
 		}
 	}
 	
@@ -81,13 +78,13 @@ public final class CodeNode implements Node {
 	}
 	
 	public boolean outputToStack() {
-		return assignedVar != null && assignedVar.used && !assignedVar.needsSlot;
+		return output != null && output.used && !output.needsSlot;
 	}
 	
 	@Override
 	public String toString(DebugNames.Counting debugNameGen) {
-		if (assignedVar != null && assignedVar.used) {
-			return assignedVar.toString(debugNameGen) + " = " + statement;
+		if (output != null && output.used) {
+			return output.toString(debugNameGen) + " = " + statement;
 		} else {
 			return statement.toString();
 		}

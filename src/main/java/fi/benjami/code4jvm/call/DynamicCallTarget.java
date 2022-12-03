@@ -55,7 +55,7 @@ public final class DynamicCallTarget extends CallTarget {
 						TypeUtils.methodDescriptor(returnType(), argTypes),
 						bootstrapMethod.toMethodHandle(),
 						bootstrapArgs);
-			}, Bytecode.name("call dynamic, bootstrap %s", bootstrapMethod))).value();
+			}, Bytecode.name("call dynamic, bootstrap %s", bootstrapMethod)));
 		};
 	}
 

@@ -32,7 +32,7 @@ public class StringConcatTest {
 		def.interfaces(Type.of(Supplier.class));
 		
 		var method = def.addMethod(Type.OBJECT, "get", Access.PUBLIC);
-		var value = method.add(StringConcat.concat()).value();
+		var value = method.add(StringConcat.concat());
 		method.add(Return.value(value));
 		
 		var lookup = LOOKUP.defineHiddenClass(def.compile(), true);
@@ -49,7 +49,7 @@ public class StringConcatTest {
 		var method = def.addMethod(Type.OBJECT, "apply", Access.PUBLIC);
 		var arg1 = method.arg(Type.OBJECT).cast(Type.STRING);
 		var arg2 = method.arg(Type.OBJECT).cast(Type.STRING);
-		var value = method.add(StringConcat.concat(arg1, arg2)).value();
+		var value = method.add(StringConcat.concat(arg1, arg2));
 		method.add(Return.value(value));
 		
 		var lookup = LOOKUP.defineHiddenClass(def.compile(), true);
@@ -68,7 +68,7 @@ public class StringConcatTest {
 		var arg1 = method.arg(Type.OBJECT).cast(Type.STRING);
 		var arg2 = method.arg(Type.OBJECT).cast(Type.STRING);
 		var value = method.add(StringConcat.concat(arg1, Constant.of(false), Constant.of('a'),
-				Constant.of(10), Constant.of(4f), Constant.of(3d), arg2, Constant.of("test"))).value();
+				Constant.of(10), Constant.of(4f), Constant.of(3d), arg2, Constant.of("test")));
 		method.add(Return.value(value));
 		
 		var lookup = LOOKUP.defineHiddenClass(def.compile(), true);
@@ -86,7 +86,7 @@ public class StringConcatTest {
 		var method = def.addMethod(Type.OBJECT, "apply", Access.PUBLIC);
 		var arg1 = method.arg(Type.OBJECT).cast(Type.STRING);
 		var arg2 = method.arg(Type.OBJECT).cast(Type.STRING);
-		var value = method.add(StringConcat.concat(arg1, Constant.of("\1"), arg2, Constant.of("test"))).value();
+		var value = method.add(StringConcat.concat(arg1, Constant.of("\1"), arg2, Constant.of("test")));
 		method.add(Return.value(value));
 		
 		var lookup = LOOKUP.defineHiddenClass(def.compile(), true);
@@ -106,7 +106,7 @@ public class StringConcatTest {
 		
 		var method = def.addMethod(Type.OBJECT, "get", Access.PUBLIC);
 		var values = Collections.nCopies(300, Constant.of("foo")).toArray(Value[]::new);
-		var value = method.add(StringConcat.concat(values)).value();
+		var value = method.add(StringConcat.concat(values));
 		method.add(Return.value(value));
 		
 		var lookup = LOOKUP.defineHiddenClass(def.compile(), true);
@@ -124,7 +124,7 @@ public class StringConcatTest {
 		var arg1 = method.arg(Type.OBJECT).cast(Type.STRING);
 		var arg2 = method.arg(Type.OBJECT).cast(Type.STRING);
 		var value = method.add(StringConcat.concat(arg1, Constant.of(false), Constant.of('a'),
-				Constant.of(10), Constant.of(4f), Constant.of(3d), arg2, Constant.of("test"))).value();
+				Constant.of(10), Constant.of(4f), Constant.of(3d), arg2, Constant.of("test")));
 		method.add(Return.value(value));
 		
 		var options = CompileOptions.builder()

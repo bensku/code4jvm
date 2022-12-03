@@ -54,12 +54,12 @@ public class TryBlockTest {
 		var arg = method.arg(Type.OBJECT);
 		method.add(TryBlock.create(block -> {
 			var exception = block.add(Type.of(UnsupportedOperationException.class)
-					.newInstance(Constant.of("error msg"))).value();
+					.newInstance(Constant.of("error msg")));
 			block.add(Throw.value(exception));
 			block.add(Return.value(Constant.of("fail")));
 		}).addCatch(Type.of(UnsupportedOperationException.class), (block, exception) -> {
 			// Use the exception value to make sure it is correct
-			var errorMsg = block.add(exception.callVirtual(Type.STRING, "getMessage")).value();
+			var errorMsg = block.add(exception.callVirtual(Type.STRING, "getMessage"));
 			block.add(new IfBlock().branch(Condition.equal(errorMsg, Constant.of("error msg")), inner -> {				
 				inner.add(Return.value(arg));
 			}));
@@ -103,7 +103,7 @@ public class TryBlockTest {
 		method.arg(Type.OBJECT);
 		method.add(TryBlock.create(block -> {
 			var exception = block.add(Type.of(UnsupportedOperationException.class)
-					.newInstance(Constant.of("error msg"))).value();
+					.newInstance(Constant.of("error msg")));
 			block.add(Throw.value(exception));
 		}).addExitHook(block -> {
 			// No-op
@@ -147,7 +147,7 @@ public class TryBlockTest {
 		var arg = method.arg(Type.OBJECT);
 		method.add(TryBlock.create(block -> {
 			var exception = block.add(Type.of(UnsupportedOperationException.class)
-					.newInstance(Constant.of("error msg"))).value();
+					.newInstance(Constant.of("error msg")));
 			block.add(Throw.value(exception));
 		}).addExitHook(block -> {
 			block.add(Return.value(arg));
@@ -169,7 +169,7 @@ public class TryBlockTest {
 		var method = def.addMethod(Type.OBJECT, "apply", Access.PUBLIC);
 		var arg = method.arg(Type.OBJECT);
 		method.add(TryBlock.create(block -> {
-			var variable = Variable.createUnbound(Type.STRING);
+			var variable = Variable.create(Type.STRING);
 			block.add(variable.set(Constant.of("fail")));
 			block.add(Return.value(variable));
 		}).addReturnHook((block, value) -> {
@@ -214,7 +214,7 @@ public class TryBlockTest {
 		var arg = method.arg(Type.OBJECT);
 		method.add(TryBlock.create(block -> {
 			var exception = block.add(Type.of(UnsupportedOperationException.class)
-					.newInstance(Constant.of("error msg"))).value();
+					.newInstance(Constant.of("error msg")));
 			block.add(Throw.value(exception));
 		}).addThrowHook((block, value) -> {
 			// No-op
@@ -237,7 +237,7 @@ public class TryBlockTest {
 		method.arg(Type.OBJECT);
 		method.add(TryBlock.create(block -> {
 			var exception = block.add(Type.of(UnsupportedOperationException.class)
-					.newInstance(Constant.of("error msg"))).value();
+					.newInstance(Constant.of("error msg")));
 			block.add(Throw.value(exception));
 		}).addThrowHook((block, value) -> {
 			block.add(Throw.value(value));
@@ -260,7 +260,7 @@ public class TryBlockTest {
 		var arg = method.arg(Type.OBJECT);
 		method.add(TryBlock.create(block -> {
 			var exception = block.add(Type.of(UnsupportedOperationException.class)
-					.newInstance(Constant.of("error msg"))).value();
+					.newInstance(Constant.of("error msg")));
 			block.add(Throw.value(exception));
 			block.add(Return.value(Constant.of("fail")));
 		}).addCatch(Type.of(UnsupportedOperationException.class), (block, exception) -> {
@@ -286,12 +286,12 @@ public class TryBlockTest {
 		var arg = method.arg(Type.OBJECT);
 		method.add(TryBlock.create(block -> {
 			var exception = block.add(Type.of(UnsupportedOperationException.class)
-					.newInstance(Constant.of("error msg"))).value();
+					.newInstance(Constant.of("error msg")));
 			block.add(Throw.value(exception));
 			block.add(Return.value(Constant.of("fail")));
 		}).addCatch(Type.of(UnsupportedOperationException.class), (block, exception) -> {
 			var exception2 = block.add(Type.of(IllegalStateException.class)
-					.newInstance(Constant.of("error msg"))).value();
+					.newInstance(Constant.of("error msg")));
 			block.add(Throw.value(exception2));
 		}).addThrowHook((block, value) -> {
 			// No-op, fall through
