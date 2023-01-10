@@ -3,12 +3,11 @@ package fi.benjami.code4jvm.test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import java.lang.invoke.MethodHandles;
 import java.util.function.IntSupplier;
 import java.util.function.Supplier;
 
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
 
 import fi.benjami.code4jvm.Condition;
 import fi.benjami.code4jvm.Constant;
@@ -16,6 +15,7 @@ import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.Variable;
 import fi.benjami.code4jvm.block.Block;
 import fi.benjami.code4jvm.block.ReturnRedirect;
+import fi.benjami.code4jvm.config.CompileOptions;
 import fi.benjami.code4jvm.flag.Access;
 import fi.benjami.code4jvm.statement.Arithmetic;
 import fi.benjami.code4jvm.statement.Jump;
@@ -25,10 +25,9 @@ import fi.benjami.code4jvm.typedef.ClassDef;
 @ExtendWith({EnableDebugExtension.class})
 public class BlockTest {
 
-	private static final MethodHandles.Lookup LOOKUP = MethodHandles.lookup();
-
-	@Test
-	public void simpleBlock() throws Throwable {
+	@ParameterizedTest
+	@OptionsSource
+	public void simpleBlock(CompileOptions opts) throws Throwable {
 		var def = ClassDef.create("fi.benjami.code4jvm.test.SimpleBlock", Access.PUBLIC);
 		def.addEmptyConstructor(Access.PUBLIC);
 		def.interfaces(Type.of(Supplier.class));
@@ -39,13 +38,13 @@ public class BlockTest {
 		method.add(block);
 		method.add(Return.nothing()); // Verifier should error if this is reachable
 		
-		var lookup = LOOKUP.defineHiddenClass(def.compile(), true);
-		var instance = (Supplier<?>) TestUtils.newInstance(lookup);
+		var instance = (Supplier<?>) TestUtils.newInstance(def, opts);
 		assertEquals("ok", instance.get());
 	}
 	
-	@Test
-	public void jumpToEnd() throws Throwable {
+	@ParameterizedTest
+	@OptionsSource
+	public void jumpToEnd(CompileOptions opts) throws Throwable {
 		var def = ClassDef.create("fi.benjami.code4jvm.test.JumpToEnd", Access.PUBLIC);
 		def.addEmptyConstructor(Access.PUBLIC);
 		def.interfaces(Type.of(Supplier.class));
@@ -57,13 +56,13 @@ public class BlockTest {
 		method.add(block);
 		method.add(Return.value(Constant.of("ok")));
 		
-		var lookup = LOOKUP.defineHiddenClass(def.compile(), true);
-		var instance = (Supplier<?>) TestUtils.newInstance(lookup);
+		var instance = (Supplier<?>) TestUtils.newInstance(def, opts);
 		assertEquals("ok", instance.get());
 	}
 	
-	@Test
-	public void conditionalJump() throws Throwable {
+	@ParameterizedTest
+	@OptionsSource
+	public void conditionalJump(CompileOptions opts) throws Throwable {
 		var def = ClassDef.create("fi.benjami.code4jvm.test.JumpToEnd", Access.PUBLIC);
 		def.addEmptyConstructor(Access.PUBLIC);
 		def.interfaces(Type.of(Supplier.class));
@@ -75,13 +74,13 @@ public class BlockTest {
 		method.add(block);
 		method.add(Return.value(Constant.of("ok")));
 		
-		var lookup = LOOKUP.defineHiddenClass(def.compile(), true);
-		var instance = (Supplier<?>) TestUtils.newInstance(lookup);
+		var instance = (Supplier<?>) TestUtils.newInstance(def, opts);
 		assertEquals("ok", instance.get());
 	}
 	
-	@Test
-	public void simpleLoop() throws Throwable {
+	@ParameterizedTest
+	@OptionsSource
+	public void simpleLoop(CompileOptions opts) throws Throwable {
 		var def = ClassDef.create("fi.benjami.code4jvm.test.SimpleLoop", Access.PUBLIC);
 		def.addEmptyConstructor(Access.PUBLIC);
 		def.interfaces(Type.of(IntSupplier.class));
@@ -94,13 +93,13 @@ public class BlockTest {
 		method.add(loop);
 		method.add(Return.value(counter));
 		
-		var lookup = LOOKUP.defineHiddenClass(def.compile(), true);
-		var instance = (IntSupplier) TestUtils.newInstance(lookup);
+		var instance = (IntSupplier) TestUtils.newInstance(def, opts);
 		assertEquals(100, instance.getAsInt());
 	}
 	
-	@Test
-	public void blockAddedTwice() throws Throwable {
+	@ParameterizedTest
+	@OptionsSource
+	public void blockAddedTwice(CompileOptions opts) throws Throwable {
 		var def = ClassDef.create("fi.benjami.code4jvm.test.BlockAddedTwice", Access.PUBLIC);
 		def.interfaces(Type.of(Supplier.class));
 		def.addEmptyConstructor(Access.PUBLIC);
@@ -111,8 +110,9 @@ public class BlockTest {
 		assertThrows(IllegalArgumentException.class, () -> method.add(a));
 	}
 	
-	@Test
-	public void rawReturnRedirect() throws Throwable {
+	@ParameterizedTest
+	@OptionsSource
+	public void rawReturnRedirect(CompileOptions opts) throws Throwable {
 		// See also TryBlockTest for high-level API tests
 		var def = ClassDef.create("fi.benjami.code4jvm.test.RawReturnRedirect", Access.PUBLIC);
 		def.interfaces(Type.of(Supplier.class));
@@ -136,8 +136,7 @@ public class BlockTest {
 		method.add(handler);
 		method.add(endBlock);
 		
-		var lookup = LOOKUP.defineHiddenClass(def.compile(), true);
-		var instance = (Supplier<?>) TestUtils.newInstance(lookup);
+		var instance = (Supplier<?>) TestUtils.newInstance(def, opts);
 		assertEquals("ok", instance.get());
 	}
 	

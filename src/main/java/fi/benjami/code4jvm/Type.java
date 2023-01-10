@@ -157,6 +157,10 @@ public class Type {
 		return name;
 	}
 	
+	public String simpleName() {
+		return name.substring(name.lastIndexOf('.') + 1);
+	}
+	
 	public String internalName() {
 		// FIXME doesn't work for METHOD_RETURN_TYPE, oops
 		return internalName;

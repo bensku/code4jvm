@@ -24,6 +24,8 @@ import fi.benjami.code4jvm.typedef.ClassDef;
 public class StringConcatTest {
 	
 	private static final MethodHandles.Lookup LOOKUP = MethodHandles.lookup();
+	
+	// TODO maybe parameterize (needs support for merging options)
 
 	@Test
 	public void noArgsConcat() throws Throwable {

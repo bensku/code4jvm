@@ -4,16 +4,15 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.lang.invoke.MethodHandles;
-
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
 
 import fi.benjami.code4jvm.Condition;
 import fi.benjami.code4jvm.Constant;
 import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.block.Block;
 import fi.benjami.code4jvm.block.ConcreteMethod;
+import fi.benjami.code4jvm.config.CompileOptions;
 import fi.benjami.code4jvm.flag.Access;
 import fi.benjami.code4jvm.statement.Jump;
 import fi.benjami.code4jvm.statement.Return;
@@ -22,15 +21,14 @@ import fi.benjami.code4jvm.typedef.ClassDef;
 @ExtendWith({EnableDebugExtension.class})
 public class ConditionTest {
 
-	private static final MethodHandles.Lookup LOOKUP = MethodHandles.lookup();
-
 	interface BooleanChecker {
 		boolean isTrue(boolean v);
 		boolean isFalse(boolean v);
 	}
 	
-	@Test
-	public void booleans() throws Throwable {
+	@ParameterizedTest
+	@OptionsSource
+	public void booleans(CompileOptions opts) throws Throwable {
 		var def = ClassDef.create("fi.benjami.code4jvm.test.Booleans", Access.PUBLIC);
 		def.addEmptyConstructor(Access.PUBLIC);
 		def.interfaces(Type.of(BooleanChecker.class));
@@ -46,8 +44,7 @@ public class ConditionTest {
 			setupJump(method, Condition.isFalse(arg));
 		}
 		
-		var lookup = LOOKUP.defineHiddenClass(def.compile(), true);
-		var instance = (BooleanChecker) TestUtils.newInstance(lookup);
+		var instance = (BooleanChecker) TestUtils.newInstance(def, opts);
 		
 		assertTrue(instance.isTrue(true));
 		assertFalse(instance.isTrue(false));
@@ -60,8 +57,9 @@ public class ConditionTest {
 		boolean notEqual(Object a, Object b);
 	}
 	
-	@Test
-	public void refEquality() throws Throwable {
+	@ParameterizedTest
+	@OptionsSource
+	public void refEquality(CompileOptions opts) throws Throwable {
 		assertThrows(IllegalArgumentException.class, () -> Condition.refEqual(Constant.of(false), Constant.of(false)));
 		
 		var def = ClassDef.create("fi.benjami.code4jvm.test.RefEquality", Access.PUBLIC);
@@ -81,8 +79,7 @@ public class ConditionTest {
 			setupJump(method, Condition.refEqual(a, b).not());
 		}
 		
-		var lookup = LOOKUP.defineHiddenClass(def.compile(), true);
-		var instance = (ObjectEqualChecker) TestUtils.newInstance(lookup);
+		var instance = (ObjectEqualChecker) TestUtils.newInstance(def, opts);
 		
 		var obj = new Object();
 		record HasEquals(String text) {}
@@ -94,8 +91,9 @@ public class ConditionTest {
 		assertTrue(instance.notEqual(new HasEquals("foo"), new HasEquals("foo")));
 	}
 	
-	@Test
-	public void objectEquality() throws Throwable {
+	@ParameterizedTest
+	@OptionsSource
+	public void objectEquality(CompileOptions opts) throws Throwable {
 		var def = ClassDef.create("fi.benjami.code4jvm.test.ObjectEquality", Access.PUBLIC);
 		def.addEmptyConstructor(Access.PUBLIC);
 		def.interfaces(Type.of(ObjectEqualChecker.class));
@@ -113,8 +111,7 @@ public class ConditionTest {
 			setupJump(method, Condition.equal(a, b).not());
 		}
 		
-		var lookup = LOOKUP.defineHiddenClass(def.compile(), true);
-		var instance = (ObjectEqualChecker) TestUtils.newInstance(lookup);
+		var instance = (ObjectEqualChecker) TestUtils.newInstance(def, opts);
 		
 		var obj = new Object();
 		record HasEquals(String text) {}
@@ -142,8 +139,9 @@ public class ConditionTest {
 		boolean greaterOrEq(CompTest a, CompTest b);
 	}
 	
-	@Test
-	public void objectComparisons() throws Throwable {
+	@ParameterizedTest
+	@OptionsSource
+	public void objectComparisons(CompileOptions opts) throws Throwable {
 		var def = ClassDef.create("fi.benjami.code4jvm.test.ObjectComparisons", Access.PUBLIC);
 		def.addEmptyConstructor(Access.PUBLIC);
 		def.interfaces(Type.of(ObjectCompareChecker.class));
@@ -173,8 +171,7 @@ public class ConditionTest {
 			setupJump(method, Condition.greaterOrEqual(a, b));
 		}
 		
-		var lookup = LOOKUP.defineHiddenClass(def.compile(), true);
-		var instance = (ObjectCompareChecker) TestUtils.newInstance(lookup);
+		var instance = (ObjectCompareChecker) TestUtils.newInstance(def, opts);
 		
 		assertTrue(instance.lessThan(new CompTest(0), new CompTest(1)));
 		assertTrue(instance.lessOrEq(new CompTest(0), new CompTest(1)));
@@ -197,8 +194,9 @@ public class ConditionTest {
 		boolean notEqual(int a, int b);
 	}
 	
-	@Test
-	public void intEquality() throws Throwable {
+	@ParameterizedTest
+	@OptionsSource
+	public void intEquality(CompileOptions opts) throws Throwable {
 		// JVM treats many primitives (almost) like ints
 		// Our code path is same for boolean, byte, short, char and int
 		var def = ClassDef.create("fi.benjami.code4jvm.test.IntEquality", Access.PUBLIC);
@@ -218,8 +216,7 @@ public class ConditionTest {
 			setupJump(method, Condition.equal(a, b).not());
 		}
 		
-		var lookup = LOOKUP.defineHiddenClass(def.compile(), true);
-		var instance = (IntEqualChecker) TestUtils.newInstance(lookup);
+		var instance = (IntEqualChecker) TestUtils.newInstance(def, opts);
 		
 		assertTrue(instance.equal(0, 0));
 		assertFalse(instance.notEqual(0, 0));
@@ -239,8 +236,9 @@ public class ConditionTest {
 		boolean greaterOrEq(int a, int b);
 	}
 	
-	@Test
-	public void intComparisons() throws Throwable {
+	@ParameterizedTest
+	@OptionsSource
+	public void intComparisons(CompileOptions opts) throws Throwable {
 		// JVM treats many primitives (almost) like ints
 		// Our code path is same for boolean, byte, short, char and int
 		var def = ClassDef.create("fi.benjami.code4jvm.test.IntComparisons", Access.PUBLIC);
@@ -272,8 +270,7 @@ public class ConditionTest {
 			setupJump(method, Condition.greaterOrEqual(a, b));
 		}
 		
-		var lookup = LOOKUP.defineHiddenClass(def.compile(), true);
-		var instance = (IntCompareChecker) TestUtils.newInstance(lookup);
+		var instance = (IntCompareChecker) TestUtils.newInstance(def, opts);
 		
 		assertTrue(instance.lessThan(0, 1));
 		assertTrue(instance.lessOrEq(0, 1));
@@ -296,8 +293,9 @@ public class ConditionTest {
 		boolean notEqual(long a, long b);
 	}
 	
-	@Test
-	public void longEquality() throws Throwable {
+	@ParameterizedTest
+	@OptionsSource
+	public void longEquality(CompileOptions opts) throws Throwable {
 		// Long shares most of the code path with float and double
 		var def = ClassDef.create("fi.benjami.code4jvm.test.LongEquality", Access.PUBLIC);
 		def.addEmptyConstructor(Access.PUBLIC);
@@ -316,8 +314,7 @@ public class ConditionTest {
 			setupJump(method, Condition.equal(a, b).not());
 		}
 		
-		var lookup = LOOKUP.defineHiddenClass(def.compile(), true);
-		var instance = (LongEqualChecker) TestUtils.newInstance(lookup);
+		var instance = (LongEqualChecker) TestUtils.newInstance(def, opts);
 		
 		assertTrue(instance.equal(0, 0));
 		assertFalse(instance.notEqual(0, 0));
@@ -340,8 +337,9 @@ public class ConditionTest {
 		boolean greaterOrEq(long a, long b);
 	}
 	
-	@Test
-	public void longComparisons() throws Throwable {
+	@ParameterizedTest
+	@OptionsSource
+	public void longComparisons(CompileOptions opts) throws Throwable {
 		// Long shares most of the code path with float and double
 		var def = ClassDef.create("fi.benjami.code4jvm.test.LongComparisons", Access.PUBLIC);
 		def.addEmptyConstructor(Access.PUBLIC);
@@ -372,8 +370,7 @@ public class ConditionTest {
 			setupJump(method, Condition.greaterOrEqual(a, b));
 		}
 		
-		var lookup = LOOKUP.defineHiddenClass(def.compile(), true);
-		var instance = (LongCompareChecker) TestUtils.newInstance(lookup);
+		var instance = (LongCompareChecker) TestUtils.newInstance(def, opts);
 		
 		assertTrue(instance.lessThan(0, 1));
 		assertTrue(instance.lessOrEq(0, 1));

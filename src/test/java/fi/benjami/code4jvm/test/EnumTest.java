@@ -22,6 +22,7 @@ public class EnumTest {
 	
 	// Note: hidden classes cannot be used here, because enums reference themself
 	// (e.g. $VALUES array)
+	// TODO parameterize tests, need to do something to avoid duplicate classes
 	
 	@Test
 	public void emptyEnum() throws Throwable {

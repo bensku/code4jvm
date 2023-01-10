@@ -9,7 +9,8 @@ public class EnableDebugExtension implements BeforeAllCallback {
 
 	@Override
 	public void beforeAll(ExtensionContext context) throws Exception {
-		DebugOptions.enableAll();
+		DebugOptions.ASM_CHECKS = true;
+		// Do not print methods, way too much noise with parameterized tests!
 	}
 
 }

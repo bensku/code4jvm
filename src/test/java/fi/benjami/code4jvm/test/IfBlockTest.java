@@ -2,16 +2,16 @@ package fi.benjami.code4jvm.test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import java.lang.invoke.MethodHandles;
 import java.util.function.Function;
 
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
 
 import fi.benjami.code4jvm.Condition;
 import fi.benjami.code4jvm.Constant;
 import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.Variable;
+import fi.benjami.code4jvm.config.CompileOptions;
 import fi.benjami.code4jvm.flag.Access;
 import fi.benjami.code4jvm.statement.Return;
 import fi.benjami.code4jvm.structure.IfBlock;
@@ -19,11 +19,10 @@ import fi.benjami.code4jvm.typedef.ClassDef;
 
 @ExtendWith({EnableDebugExtension.class})
 public class IfBlockTest {
-
-	private static final MethodHandles.Lookup LOOKUP = MethodHandles.lookup();
 	
-	@Test
-	public void simpleIf() throws Throwable {
+	@ParameterizedTest
+	@OptionsSource
+	public void simpleIf(CompileOptions opts) throws Throwable {
 		var def = ClassDef.create("fi.benjami.code4jvm.test.SimpleIf", Access.PUBLIC);
 		def.addEmptyConstructor(Access.PUBLIC);
 		def.interfaces(Type.of(Function.class));
@@ -36,16 +35,16 @@ public class IfBlockTest {
 				}));
 		method.add(Return.value(Constant.of("fail")));
 		
-		var lookup = LOOKUP.defineHiddenClass(def.compile(), true);
 		@SuppressWarnings("unchecked")
-		var instance = (Function<Object, Object>) TestUtils.newInstance(lookup);
+		var instance = (Function<Object, Object>) TestUtils.newInstance(def, opts);
 		assertEquals("success", instance.apply("ok"));
 		assertEquals("fail", instance.apply("foo"));
 		assertEquals("fail", instance.apply(null));
 	}
 	
-	@Test
-	public void ifElse() throws Throwable {
+	@ParameterizedTest
+	@OptionsSource
+	public void ifElse(CompileOptions opts) throws Throwable {
 		var def = ClassDef.create("fi.benjami.code4jvm.test.IfElse", Access.PUBLIC);
 		def.addEmptyConstructor(Access.PUBLIC);
 		def.interfaces(Type.of(Function.class));
@@ -60,16 +59,16 @@ public class IfBlockTest {
 				}));
 		method.add(Return.value(Constant.of("fail")));
 		
-		var lookup = LOOKUP.defineHiddenClass(def.compile(), true);
 		@SuppressWarnings("unchecked")
-		var instance = (Function<Object, Object>) TestUtils.newInstance(lookup);
+		var instance = (Function<Object, Object>) TestUtils.newInstance(def, opts);
 		assertEquals("success", instance.apply("ok"));
 		assertEquals("else", instance.apply("foo"));
 		assertEquals("else", instance.apply(null));
 	}
 	
-	@Test
-	public void complexIf() throws Throwable {
+	@ParameterizedTest
+	@OptionsSource
+	public void complexIf(CompileOptions opts) throws Throwable {
 		var def = ClassDef.create("fi.benjami.code4jvm.test.ComplexIf", Access.PUBLIC);
 		def.addEmptyConstructor(Access.PUBLIC);
 		def.interfaces(Type.of(Function.class));
@@ -86,17 +85,17 @@ public class IfBlockTest {
 				}));
 		method.add(Return.value(Constant.of("fail")));
 		
-		var lookup = LOOKUP.defineHiddenClass(def.compile(), true);
 		@SuppressWarnings("unchecked")
-		var instance = (Function<Object, Object>) TestUtils.newInstance(lookup);
+		var instance = (Function<Object, Object>) TestUtils.newInstance(def, opts);
 		assertEquals("success", instance.apply("ok"));
 		assertEquals("elif", instance.apply("alt"));
 		assertEquals("else", instance.apply("foo"));
 		assertEquals("else", instance.apply(null));
 	}
 	
-	@Test
-	public void onlyElse() throws Throwable {
+	@ParameterizedTest
+	@OptionsSource
+	public void onlyElse(CompileOptions opts) throws Throwable {
 		var def = ClassDef.create("fi.benjami.code4jvm.test.OnlyElse", Access.PUBLIC);
 		def.addEmptyConstructor(Access.PUBLIC);
 		def.interfaces(Type.of(Function.class));
@@ -109,16 +108,16 @@ public class IfBlockTest {
 				}));
 		method.add(Return.value(Constant.of("fail")));
 		
-		var lookup = LOOKUP.defineHiddenClass(def.compile(), true);
 		@SuppressWarnings("unchecked")
-		var instance = (Function<Object, Object>) TestUtils.newInstance(lookup);
+		var instance = (Function<Object, Object>) TestUtils.newInstance(def, opts);
 		assertEquals("success", instance.apply("ok"));
 		assertEquals("success", instance.apply("foo"));
 		assertEquals("success", instance.apply(null));
 	}
 	
-	@Test
-	public void testCode() throws Throwable {
+	@ParameterizedTest
+	@OptionsSource
+	public void testCode(CompileOptions opts) throws Throwable {
 		var def = ClassDef.create("fi.benjami.code4jvm.test.TestCode", Access.PUBLIC);
 		def.addEmptyConstructor(Access.PUBLIC);
 		def.interfaces(Type.of(Function.class));
@@ -136,9 +135,8 @@ public class IfBlockTest {
 				}));
 		method.add(Return.value(Constant.of("fail")));
 		
-		var lookup = LOOKUP.defineHiddenClass(def.compile(), true);
 		@SuppressWarnings("unchecked")
-		var instance = (Function<Object, Object>) TestUtils.newInstance(lookup);
+		var instance = (Function<Object, Object>) TestUtils.newInstance(def, opts);
 		assertEquals("success", instance.apply("ok"));
 		assertEquals("fail", instance.apply("foo"));
 		assertEquals("fail", instance.apply(null));

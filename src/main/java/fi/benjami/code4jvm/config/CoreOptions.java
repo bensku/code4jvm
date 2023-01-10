@@ -19,13 +19,13 @@ public class CoreOptions {
 	 * itself requires Java 17.
 	 */
 	public static final CompileOption<JavaVersion> JAVA_VERSION =
-			new CompileOption<>("core.java-version", JavaVersion.JAVA_17);
+			new CompileOption<>("java-version", JavaVersion.JAVA_17);
 	
 	/**
 	 * Enables emitting the local variable table that includes their types,
 	 * names and positions where they are defined.
 	 */
-	public static final CompileOption<Boolean> LOCAL_VAR_TABLE = new CompileOption<>("core.local-var-table", false);
+	public static final CompileOption<Boolean> LOCAL_VAR_TABLE = new CompileOption<>("local-var-table", false);
 	
 	// TODO this was actually in Java 9, but we might add Java 8 support at some point
 	/**
@@ -34,7 +34,7 @@ public class CoreOptions {
 	 * {@link StringBuilder} is used.
 	 */
 	public static final CompileOption<Boolean> INDY_STRING_CONCAT =
-			new CompileOption<Boolean>("core.indy-string-concat",
+			new CompileOption<Boolean>("indy-string-concat",
 					options -> options.get(JAVA_VERSION).isAtLeast(JavaVersion.JAVA_17),
 					new Requirement<>(true, JAVA_VERSION, Condition.Type.GREATER_OR_EQUAL, JavaVersion.JAVA_17));
 }

@@ -2,6 +2,7 @@ package fi.benjami.code4jvm.config;
 
 import java.util.IdentityHashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import fi.benjami.code4jvm.statement.Bytecode;
 
@@ -61,5 +62,34 @@ public class CompileOptions {
 	public <T> T get(CompileOption<T> option) {
 		// To avoid computing default value multiple times, save results to our map
 		return (T) options.computeIfAbsent(option, (k) -> k.defaultValue.apply(this));
+	}
+	
+	@Override
+	public boolean equals(Object o) {
+		if (o instanceof CompileOptions opts) {
+			boolean same = true;
+			for (var entry : this.options.entrySet()) {
+				if (!opts.get(entry.getKey()).equals(entry.getValue())) {
+					same = false;
+				}
+			}
+			for (var entry : opts.options.entrySet()) {
+				if (!this.get(entry.getKey()).equals(entry.getValue())) {
+					same = false;
+				}
+			}
+			return same;
+		}
+		return false;
+	}
+	
+	@Override
+	public String toString() {
+		var values = options.entrySet().stream()
+				.sorted((a, b) -> a.getKey().name().compareTo(b.getKey().name()))
+				.map(entry -> entry.getKey().name() + "=" + entry.getValue())
+				.collect(Collectors.joining(","));
+		
+		return "CompileOptions{" + values + "}";
 	}
 }

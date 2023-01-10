@@ -10,6 +10,7 @@ import java.util.function.Supplier;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
 
 import fi.benjami.code4jvm.Condition;
 import fi.benjami.code4jvm.Constant;
@@ -40,8 +41,9 @@ public class ValuesTest {
 		}
 	}
 
-	@Test
-	public void simpleValues() throws Throwable {
+	@ParameterizedTest
+	@OptionsSource
+	public void simpleValues(CompileOptions opts) throws Throwable {
 		var def = ClassDef.create("fi.benjami.code4jvm.test.SimpleValues", Access.PUBLIC);
 		def.addEmptyConstructor(Access.PUBLIC);
 		
@@ -64,7 +66,7 @@ public class ValuesTest {
 		};
 		Consumer<String> callback = (str) -> holder.value = str;
 		
-		var lookup = LOOKUP.defineHiddenClass(def.compile(), true);
+		var lookup = TestUtils.loadHidden(def, opts);
 		int returnValue = (int) lookup.findVirtual(lookup.lookupClass(),
 				"test", MethodType.methodType(int.class, ValueProvider.class, Consumer.class))
 				.invoke(TestUtils.newInstance(lookup), new ValueProvider(), callback);
@@ -89,8 +91,9 @@ public class ValuesTest {
 		double float2Double(float value);
 	}
 	
-	@Test
-	public void primitiveCasts() throws Throwable {
+	@ParameterizedTest
+	@OptionsSource
+	public void primitiveCasts(CompileOptions opts) throws Throwable {
 		var def = ClassDef.create("fi.benjami.code4jvm.test.PrimitiveCasts", Access.PUBLIC);
 		def.interfaces(Type.of(PrimitiveCasts.class));
 		def.addEmptyConstructor(Access.PUBLIC);
@@ -114,7 +117,7 @@ public class ValuesTest {
 		castTester(def, "long2Double", Type.LONG, Type.DOUBLE);
 		castTester(def, "float2Double", Type.FLOAT, Type.DOUBLE);
 		
-		var lookup = LOOKUP.defineHiddenClass(def.compile(), true);
+		var lookup = TestUtils.loadHidden(def, opts);
 		// JVM verifier should catch missing casts etc.
 		
 		// But let's test everything ourself just to be sure
@@ -149,8 +152,9 @@ public class ValuesTest {
 		String object2String(Object value);
 	}
 	
-	@Test
-	public void objectCasts() throws Throwable {
+	@ParameterizedTest
+	@OptionsSource
+	public void objectCasts(CompileOptions opts) throws Throwable {
 		var def = ClassDef.create("fi.benjami.code4jvm.test.ObjectCasts", Access.PUBLIC);
 		def.interfaces(Type.of(ObjectCasts.class));
 		def.addEmptyConstructor(Access.PUBLIC);
@@ -158,8 +162,7 @@ public class ValuesTest {
 		castTester(def, "string2Object", Type.STRING, Type.of(Object.class));
 		castTester(def, "object2String", Type.of(Object.class), Type.STRING);
 		
-		var lookup = LOOKUP.defineHiddenClass(def.compile(), true);
-		var instance = (ObjectCasts) TestUtils.newInstance(lookup);
+		var instance = (ObjectCasts) TestUtils.newInstance(def, opts);
 		assertEquals("test", instance.string2Object("test"));
 		assertEquals("test", instance.object2String("test"));
 		assertThrows(ClassCastException.class, () -> instance.object2String(new Object()));
@@ -172,8 +175,9 @@ public class ValuesTest {
 		return method;
 	}
 	
-	@Test
-	public void unboundValue() throws Throwable {
+	@ParameterizedTest
+	@OptionsSource
+	public void unboundValue(CompileOptions opts) throws Throwable {
 		var def = ClassDef.create("fi.benjami.code4jvm.test.UnboundValue", Access.PUBLIC);
 		def.interfaces(Type.of(Supplier.class));
 		def.addEmptyConstructor(Access.PUBLIC);
@@ -183,13 +187,13 @@ public class ValuesTest {
 		method.add(value.set(Constant.of("ok")));
 		method.add(Return.value(value));
 		
-		var lookup = LOOKUP.defineHiddenClass(def.compile(), true);
-		var instance = (Supplier<?>) TestUtils.newInstance(lookup);
+		var instance = (Supplier<?>) TestUtils.newInstance(def, opts);
 		assertEquals("ok", instance.get());
 	}
 	
-	@Test
-	public void unboundValueError() throws Throwable {
+	@ParameterizedTest
+	@OptionsSource
+	public void unboundValueError(CompileOptions opts) throws Throwable {
 		var def = ClassDef.create("fi.benjami.code4jvm.test.UnboundValueError", Access.PUBLIC);
 		def.interfaces(Type.of(Supplier.class));
 		def.addEmptyConstructor(Access.PUBLIC);
@@ -199,11 +203,12 @@ public class ValuesTest {
 		value.set(Constant.of("ok")); // Note the missing method.add(...)!
 		method.add(Return.value(value));
 		
-		assertThrows(UninitializedValueException.class, () -> def.compile());
+		assertThrows(UninitializedValueException.class, () -> def.compile(opts));
 	}
 	
-	@Test
-	public void useBeforeDefinition() {
+	@ParameterizedTest
+	@OptionsSource
+	public void useBeforeDefinition(CompileOptions opts) {
 		var def = ClassDef.create("fi.benjami.code4jvm.test.UseBeforeDefinition", Access.PUBLIC);
 		def.interfaces(Type.of(Supplier.class));
 		def.addEmptyConstructor(Access.PUBLIC);
@@ -215,11 +220,12 @@ public class ValuesTest {
 		method.add(block);
 		method.add(Return.value(Constant.of("ok")));
 		
-		assertThrows(UninitializedValueException.class, () -> def.compile());
+		assertThrows(UninitializedValueException.class, () -> def.compile(opts));
 	}
 	
-	@Test
-	public void maybeUninitialized() {
+	@ParameterizedTest
+	@OptionsSource
+	public void maybeUninitialized(CompileOptions opts) {
 		var def = ClassDef.create("fi.benjami.code4jvm.test.MaybeUninitialized", Access.PUBLIC);
 		def.interfaces(Type.of(Supplier.class));
 		def.addEmptyConstructor(Access.PUBLIC);
@@ -234,32 +240,34 @@ public class ValuesTest {
 		method.add(Arithmetic.add(value, Constant.of(3)));
 		method.add(Return.value(Constant.of("ok")));
 		
-		assertThrows(UninitializedValueException.class, () -> def.compile());
+		assertThrows(UninitializedValueException.class, () -> def.compile(opts));
 	}
 	
-	@Test
-	public void charConstant() throws Throwable {
+	@ParameterizedTest
+	@OptionsSource
+	public void charConstant(CompileOptions opts) throws Throwable {
 		var def = ClassDef.create("fi.benjami.code4jvm.test.NonIntConstant", Access.PUBLIC);
 		def.addEmptyConstructor(Access.PUBLIC);
 		
 		var method = def.addMethod(Type.CHAR, "get", Access.PUBLIC);
 		method.add(Return.value(Constant.of('x')));
 		
-		var lookup = LOOKUP.defineHiddenClass(def.compile(), true);
+		var lookup = TestUtils.loadHidden(def, opts);
 		var instance = TestUtils.newInstance(lookup);
 		assertEquals('x', (char) lookup.findVirtual(lookup.lookupClass(), "get", MethodType.methodType(char.class))
 				.invoke(instance));
 	}
 	
-	@Test
-	public void shortConstant() throws Throwable {
+	@ParameterizedTest
+	@OptionsSource
+	public void shortConstant(CompileOptions opts) throws Throwable {
 		var def = ClassDef.create("fi.benjami.code4jvm.test.ShortConstant", Access.PUBLIC);
 		def.addEmptyConstructor(Access.PUBLIC);
 		
 		var method = def.addMethod(Type.SHORT, "get", Access.PUBLIC);
 		method.add(Return.value(Constant.of((short) -5)));
 		
-		var lookup = LOOKUP.defineHiddenClass(def.compile(), true);
+		var lookup = TestUtils.loadHidden(def, opts);
 		var instance = TestUtils.newInstance(lookup);
 		assertEquals((short) -5, (short) lookup.findVirtual(lookup.lookupClass(), "get", MethodType.methodType(short.class))
 				.invoke(instance));
@@ -267,6 +275,8 @@ public class ValuesTest {
 	
 	@Test
 	public void localVariableTable() throws Throwable {
+		// Somewhat redundant, as all tests now include a local variable table
+		// But keeping it doesn't cost much, so it can stay for now
 		var def = ClassDef.create("fi.benjami.code4jvm.test.LocalVariableTable", Access.PUBLIC);
 		
 		var method = def.addMethod(Type.VOID, "test", Access.PUBLIC);

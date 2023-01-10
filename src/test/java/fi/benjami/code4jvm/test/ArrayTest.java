@@ -13,10 +13,12 @@ import java.util.Random;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
 
 import fi.benjami.code4jvm.Constant;
 import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.Value;
+import fi.benjami.code4jvm.config.CompileOptions;
 import fi.benjami.code4jvm.flag.Access;
 import fi.benjami.code4jvm.statement.ArrayAccess;
 import fi.benjami.code4jvm.statement.Return;
@@ -49,8 +51,9 @@ public class ArrayTest {
 		method.add(Return.value(instance));
 	}
 	
-	@Test
-	public void createArrays() throws Throwable {
+	@ParameterizedTest
+	@OptionsSource
+	public void createArrays(CompileOptions opts) throws Throwable {
 		var def = ClassDef.create("fi.benjami.code4jvm.test.CreateArrays", Access.PUBLIC);
 		def.interfaces(Type.of(ArrayCreator.class));
 		def.addEmptyConstructor(Access.PUBLIC);
@@ -67,8 +70,7 @@ public class ArrayTest {
 		addCreator(def, "multiInts", Type.INT.array(2), 20, 10);
 		addCreator(def, "multiObjects", Type.OBJECT.array(3), 20, 10, 5);
 		
-		var lookup = LOOKUP.defineHiddenClass(def.compile(), true);
-		var instance = (ArrayCreator) TestUtils.newInstance(lookup);
+		var instance = (ArrayCreator) TestUtils.newInstance(def, opts);
 		assertEquals(20, instance.booleans().length);
 		assertEquals(20, instance.bytes().length);
 		assertEquals(20, instance.shorts().length);
@@ -128,8 +130,9 @@ public class ArrayTest {
 		}
 	}
 	
-	@Test
-	public void getArrays() throws Throwable {
+	@ParameterizedTest
+	@OptionsSource
+	public void getArrays(CompileOptions opts) throws Throwable {
 		var def = ClassDef.create("fi.benjami.code4jvm.test.GetArrays", Access.PUBLIC);
 		def.interfaces(Type.of(ArrayGetter.class));
 		def.addEmptyConstructor(Access.PUBLIC);
@@ -146,8 +149,7 @@ public class ArrayTest {
 		addGetter(def, Type.INT.array(2));
 		addGetter(def, Type.OBJECT.array(3));
 		
-		var lookup = LOOKUP.defineHiddenClass(def.compile(), true);
-		var instance = (ArrayGetter) TestUtils.newInstance(lookup);
+		var instance = (ArrayGetter) TestUtils.newInstance(def, opts);
 		
 		var booleans = new boolean[20];
 		booleans[19] = true;
@@ -205,8 +207,9 @@ public class ArrayTest {
 		}
 	}
 	
-	@Test
-	public void setArrays() throws Throwable {
+	@ParameterizedTest
+	@OptionsSource
+	public void setArrays(CompileOptions opts) throws Throwable {
 		var def = ClassDef.create("fi.benjami.code4jvm.test.SetArrays", Access.PUBLIC);
 		def.interfaces(Type.of(ArraySetter.class));
 		def.addEmptyConstructor(Access.PUBLIC);
@@ -223,8 +226,7 @@ public class ArrayTest {
 		addSetter(def, Type.INT.array(2));
 		addSetter(def, Type.OBJECT.array(3));
 		
-		var lookup = LOOKUP.defineHiddenClass(def.compile(), true);
-		var instance = (ArraySetter) TestUtils.newInstance(lookup);
+		var instance = (ArraySetter) TestUtils.newInstance(def, opts);
 		
 		var booleans = new boolean[20];
 		instance.set(booleans, 19, true);
@@ -244,8 +246,9 @@ public class ArrayTest {
 		int field(Object[] array);
 	}
 	
-	@Test
-	public void arrayLength() throws Throwable {
+	@ParameterizedTest
+	@OptionsSource
+	public void arrayLength(CompileOptions opts) throws Throwable {
 		var def = ClassDef.create("fi.benjami.code4jvm.test.ArrayLength", Access.PUBLIC);
 		def.interfaces(Type.of(LengthGetter.class));
 		def.addEmptyConstructor(Access.PUBLIC);
@@ -264,8 +267,7 @@ public class ArrayTest {
 			method.add(Return.value(length));
 		}
 		
-		var lookup = LOOKUP.defineHiddenClass(def.compile(), true);
-		var instance = (LengthGetter) TestUtils.newInstance(lookup);
+		var instance = (LengthGetter) TestUtils.newInstance(def, opts);
 		
 		assertEquals(80, instance.direct(new Object[80]));
 		assertEquals(20, instance.field(new Object[20]));

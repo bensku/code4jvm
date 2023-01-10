@@ -8,9 +8,11 @@ import java.util.function.Function;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
 
 import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.block.Lambda;
+import fi.benjami.code4jvm.config.CompileOptions;
 import fi.benjami.code4jvm.flag.Access;
 import fi.benjami.code4jvm.statement.Return;
 import fi.benjami.code4jvm.typedef.ClassDef;
@@ -27,20 +29,22 @@ public class LambdaTest {
 		return lambda;
 	}
 	
-	@Test
-	public void staticMethod() throws Throwable {
+	@ParameterizedTest
+	@OptionsSource
+	public void staticMethod(CompileOptions opts) throws Throwable {
 		var def = ClassDef.create("fi.benjami.code4jvm.test.LambdaStaticMethod", Access.PUBLIC);
 		def.addEmptyConstructor(Access.PUBLIC);
 		
 		var method = returnArg().addStaticMethod(def);
 		
-		var lookup = LOOKUP.defineHiddenClass(def.compile(), true);
+		var lookup = TestUtils.loadHidden(def, opts);
 		assertEquals("ok", lookup.findStatic(lookup.lookupClass(), method.name(), MethodType.methodType(Object.class, Object.class))
 				.invoke("ok"));
 	}
 	
 	@Test
 	public void instanceMethod() throws Throwable {
+		// TODO parameterize once duplicate class problem has been figured out
 		var def = ClassDef.create("fi.benjami.code4jvm.test.LambdaInstanceMethod", Access.PUBLIC);
 		def.addEmptyConstructor(Access.PUBLIC);
 		
@@ -55,8 +59,9 @@ public class LambdaTest {
 				.invoke(instance));
 	}
 	
-	@Test
-	public void directCall() throws Throwable {
+	@ParameterizedTest
+	@OptionsSource
+	public void directCall(CompileOptions opts) throws Throwable {
 		var def = ClassDef.create("fi.benjami.code4jvm.test.LambdaDirectCall", Access.PUBLIC);
 		def.addEmptyConstructor(Access.PUBLIC);
 				
@@ -66,13 +71,14 @@ public class LambdaTest {
 		redirect.add(Return.value(value));
 		var method = redirect.addStaticMethod(def);
 		
-		var lookup = LOOKUP.defineHiddenClass(def.compile(), true);
+		var lookup = TestUtils.loadHidden(def, opts);
 		assertEquals("ok", lookup.findStatic(lookup.lookupClass(), method.name(), MethodType.methodType(Object.class, Object.class))
 				.invoke("ok"));
 	}
 	
 	@Test
 	public void lambdaInstance() throws Throwable {
+		// TODO parameterize once duplicate class problem has been figured out
 		var def = ClassDef.create("fi.benjami.code4jvm.test.LambdaNewInstance", Access.PUBLIC);
 		def.addEmptyConstructor(Access.PUBLIC);
 		
@@ -98,6 +104,7 @@ public class LambdaTest {
 	
 	@Test
 	public void variableCapture() throws Throwable {
+		// TODO parameterize once duplicate class problem has been figured out
 		var def = ClassDef.create("fi.benjami.code4jvm.test.LambdaVariableCapture", Access.PUBLIC);
 		def.addEmptyConstructor(Access.PUBLIC);
 		
