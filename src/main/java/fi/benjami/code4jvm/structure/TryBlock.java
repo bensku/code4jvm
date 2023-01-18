@@ -63,7 +63,7 @@ public class TryBlock implements Statement {
 	
 	private final List<Catch> catchBlocks;
 	
-	private Block exitHook;
+	private Consumer<Block> exitHookSource;
 	
 	private Block returnHook;
 	private final Variable returnedValue;
@@ -120,27 +120,12 @@ public class TryBlock implements Statement {
 	 * thrown and caught) catch blocks have finished execution. If the exit
 	 * occurs by returning or throwing, the exit hook is executed but does not
 	 * prevent the method from returning or throwing.
-	 * @param hook Exit hook.
-	 */
-	public void addExitHook(Block hook) {
-		exitHook = hook;
-	}
-	
-	/**
-	 * Adds an exit hook to this try block. Exit hooks are very similar to
-	 * Java's finally blocks.
-	 * 
-	 * <p>Exit hooks are called after the main block and (if an exception was
-	 * thrown and caught) catch blocks have finished execution. If the exit
-	 * occurs by returning or throwing, the exit hook is executed but does not
-	 * prevent the method from returning or throwing.
-	 * @param hook Callback to receive the exit hook.
+	 * @param hook Callback to that builds the exit hook. It may be called more
+	 * than once!
 	 * @return This for chaining.
 	 */
 	public TryBlock addExitHook(Consumer<Block> callback) {
-		var hook = Block.create("exit hook");
-		callback.accept(hook);
-		addExitHook(hook);
+		exitHookSource = callback;
 		return this;
 	}
 	
@@ -215,12 +200,14 @@ public class TryBlock implements Statement {
 		// It is assumed that the exit hook is quite short, so we'll just copy it like javac does
 		// In any case, jumping around would be difficult without jsr/ret
 		
-		var hasExitHandler = exitHook != null;
+		var hasExitHandler = exitHookSource != null;
 		var hasReturnHandler = hasExitHandler || returnHook != null;
 		var hasThrowHandler = hasExitHandler || throwHook != null;
 		
 		var normalExit = Block.create("normal exit");
-		if (exitHook != null) {
+		if (exitHookSource != null) {
+			var exitHook = Block.create();
+			exitHookSource.accept(exitHook);
 			normalExit.add(exitHook);
 		}
 		if (hasReturnHandler || hasThrowHandler) {
@@ -236,8 +223,10 @@ public class TryBlock implements Statement {
 			// Capture return to a previously created local variable
 			returnRedirect = new ReturnRedirect(exitViaReturn, returnedValue);
 			
-			if (exitHook != null) {
-				exitViaReturn.add(exitHook.copy());
+			if (exitHookSource != null) {
+				var exitHook = Block.create();
+				exitHookSource.accept(exitHook);
+				exitViaReturn.add(exitHook);
 			}
 			if (returnHook != null) {
 				exitViaReturn.add(returnHook);
@@ -256,8 +245,10 @@ public class TryBlock implements Statement {
 			exitViaThrow = Block.create("throw interceptor");
 			// VM adds thrown value at top of the stack
 			exitViaThrow.add(thrownValue.set(Value.stackTop(Type.of(Throwable.class))));
-			if (exitHook != null) {
-				exitViaThrow.add(exitHook.copy());
+			if (exitHookSource != null) {
+				var exitHook = Block.create();
+				exitHookSource.accept(exitHook);
+				exitViaThrow.add(exitHook);
 			}
 			if (throwHook != null) {
 				exitViaThrow.add(throwHook);

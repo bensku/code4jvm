@@ -48,6 +48,7 @@ public class Routine {
 	 */
 	public Value arg(Type type, String name, int index) {
 		var localVar = new LocalVar(type, name);
+		localVar.needsSlot = true; // It is passed to method in a slot
 		args.add(index, localVar);
 		return localVar;
 	}

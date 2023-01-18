@@ -60,6 +60,7 @@ public sealed interface Method permits AbstractMethod, ConcreteMethod {
 			// this is passed in slot 0
 			// It is NOT present in method signature, so avoid calling arg()
 			this.self = self;
+			self.needsSlot = true;
 		}
 		
 		public Value self() {

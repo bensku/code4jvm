@@ -180,11 +180,14 @@ class FrameBuilder {
 						throw new UninitializedValueException(localVar, block, method);
 					}
 				}
-				// If the variable started as uninitialized, it won't appear
-				// in frames until something is stored to it
-				// (if it is already part of frame, this does nothing)
-				allocator.assignSlot(store.target());
-				frame.add(store.target());
+				// If the target variable doesn't need a slot, it shouldn't appear in frame
+				if (store.target().needsSlot) {
+					// If the variable started as uninitialized, it won't appear
+					// in frames until something is stored to it
+					// (if it is already part of frame, this does nothing)
+					allocator.assignSlot(store.target());
+					frame.add(store.target());
+				}
 				
 				// For simplicity, the first node MUST consume VM stack
 				// by e.g. setting it to a variable tracked by us

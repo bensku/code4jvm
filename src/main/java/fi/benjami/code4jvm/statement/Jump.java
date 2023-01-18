@@ -11,8 +11,6 @@ import fi.benjami.code4jvm.util.TypeUtils;
 
 import static org.objectweb.asm.Opcodes.*;
 
-import java.util.Optional;
-
 public class Jump implements Statement {
 	
 	public enum Target {
@@ -25,7 +23,7 @@ public class Jump implements Statement {
 	}
 	
 	public static Jump to(Block block, Target target) {
-		return to(block, target, null);
+		return to(block, target, Condition.always(true));
 	}
 	
 	private final Block targetBlock;
@@ -46,14 +44,18 @@ public class Jump implements Statement {
 		return target;
 	}
 	
-	public Optional<Condition> condition() {
-		return Optional.ofNullable(condition);
+	public Condition condition() {
+		return condition;
 	}
 
 	@Override
 	public void emitVoid(Block block) {
-		var label = block.add(new Block.Edge(targetBlock, target, condition != null, new Type[0]));
-		if (condition != null) {
+		if (condition.type() == Condition.Type.ALWAYS_FALSE) {
+			return; // Emit nothing, not even the edge
+		}
+		var isConditional = condition.values().length != 0;
+		var label = block.add(new Block.Edge(targetBlock, target, isConditional, new Type[0]));
+		if (isConditional) {
 			var type = condition.values()[0].type();
 			var isObject = type.isObject();
 			var intLike = TypeUtils.isIntLike(type);
@@ -142,6 +144,8 @@ public class Jump implements Statement {
 				case NOT_NULL -> mv.visitJumpInsn(IFNONNULL, label);
 				case TRUE -> mv.visitJumpInsn(IFNE, label); // true == 1
 				case FALSE -> mv.visitJumpInsn(IFEQ, label); // false == 0
+				case ALWAYS_TRUE -> throw new AssertionError(); // Handled below
+				case ALWAYS_FALSE -> throw new AssertionError(); // Handled at start of method
 				}				
 			}, "conditional jump"));
 		} else {			
@@ -149,6 +153,7 @@ public class Jump implements Statement {
 				ctx.asm().visitJumpInsn(GOTO, label);
 			}, "unconditional jump"));
 		}
+		// FIXME JumpNode -> EdgeNode
 		// Note: debug names are intentionally bare-bones
 		// When printing blocks, JumpNodes get special handling so that
 		// label information from frames can be included in them

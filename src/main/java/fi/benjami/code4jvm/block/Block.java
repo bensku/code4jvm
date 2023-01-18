@@ -251,10 +251,6 @@ public class Block implements CompileHook.Carrier {
 		state.frames().visitFrame(endFrame);
 	}
 	
-	public Block copy() {
-		return new Block(new ArrayList<>(nodes), new Scope(scope), debugName);
-	}
-	
 	record Backlinks(Set<EdgeNode> toStart, Set<EdgeNode> toEnd) {
 		public Backlinks() {
 			this(Collections.newSetFromMap(new IdentityHashMap<>()), Collections.newSetFromMap(new IdentityHashMap<>()));

@@ -122,7 +122,8 @@ public class BlockTest {
 		
 		var block = Block.create();
 		block.add(Return.value(Constant.of("ok")));
-		var endBlock = block.copy();
+		var endBlock = Block.create();
+		endBlock.add(Return.value(Constant.of("ok")));
 		
 		var handler = Block.create();
 		var capturedReturn = Variable.create(Type.METHOD_RETURN_TYPE);

@@ -24,15 +24,13 @@ public class TestUtils {
 		// Make sure compilation results are stable when options don't change
 		assertArrayEquals(code, code2);
 		
-		var lookup = LOOKUP.defineHiddenClass(code, true);
-		
 		// Use short name for class that was compiled with default options
 		var fileId = def.type().simpleName() + (opts.equals(CompileOptions.DEFAULT) ? "" : opts.toString().substring(14));
 		Files.createDirectories(TEST_CLASSES);
 		Files.write(TEST_CLASSES.resolve(fileId + ".class"), code,
 				StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
 		
-		return lookup;
+		return LOOKUP.defineHiddenClass(code, true);
 	}
 	
 	public static final Object newInstance(MethodHandles.Lookup lookup) throws Throwable {

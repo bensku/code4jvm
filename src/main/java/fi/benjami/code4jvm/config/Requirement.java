@@ -25,6 +25,8 @@ public record Requirement<A, B>(
 		// Boolean comparisons don't actually use the "expected" value at all
 		case TRUE -> actual.equals(true);
 		case FALSE -> actual.equals(false);
+		case ALWAYS_TRUE -> true;
+		case ALWAYS_FALSE -> false;
 		};
 	}
 	

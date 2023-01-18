@@ -16,6 +16,7 @@ public class SlotAllocator {
 	}
 	
 	public void assignSlot(LocalVar localVar) {
+		assert localVar.needsSlot; // Caller should check for needsSlot
 		var slot = localVar.assignedSlot;
 		if (slot == -1) {
 			slot = nextSlot;

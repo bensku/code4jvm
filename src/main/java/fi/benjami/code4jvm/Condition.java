@@ -16,7 +16,9 @@ public class Condition {
 		NULL,
 		NOT_NULL,
 		TRUE,
-		FALSE
+		FALSE,
+		ALWAYS_TRUE,
+		ALWAYS_FALSE
 	}
 	
 	public static Condition refEqual(Value lhs, Value rhs) {
@@ -63,6 +65,15 @@ public class Condition {
 	public static Condition isFalse(Value value) {
 		TypeCheck.mustBe(value, fi.benjami.code4jvm.Type.BOOLEAN);
 		return new Condition(Type.FALSE, Type.TRUE, value);
+	}
+	
+	// TODO fold constants into ALWAYS_TRUE/FALSE when possible
+	
+	private static final Condition ALWAYS_TRUE = new Condition(Type.ALWAYS_TRUE, Type.ALWAYS_FALSE),
+			ALWAYS_FALSE = new Condition(Type.ALWAYS_FALSE, Type.ALWAYS_TRUE);
+	
+	public static Condition always(boolean value) {
+		return value ? ALWAYS_TRUE : ALWAYS_FALSE;
 	}
 		
 	private final Type type;
