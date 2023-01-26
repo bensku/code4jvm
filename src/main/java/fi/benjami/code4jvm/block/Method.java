@@ -1,11 +1,14 @@
 package fi.benjami.code4jvm.block;
 
 import java.util.List;
+import java.util.Map;
 
 import org.objectweb.asm.Opcodes;
 
+import fi.benjami.code4jvm.Constant;
 import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.Value;
+import fi.benjami.code4jvm.annotation.AnnotationTarget;
 import fi.benjami.code4jvm.flag.MethodFlag;
 import fi.benjami.code4jvm.internal.LocalVar;
 
@@ -15,7 +18,7 @@ import fi.benjami.code4jvm.internal.LocalVar;
  * @see Lambda
  *
  */
-public sealed interface Method permits AbstractMethod, ConcreteMethod {
+public sealed interface Method extends AnnotationTarget permits AbstractMethod, ConcreteMethod {
 	
 	public static Method.Static staticMethod(Type returnType, String name, MethodFlag... flags) {
 		return new Method.Static(Block.create("root"), returnType, name, flags);

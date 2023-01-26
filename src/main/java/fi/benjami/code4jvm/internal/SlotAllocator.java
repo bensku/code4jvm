@@ -1,6 +1,7 @@
 package fi.benjami.code4jvm.internal;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 import java.util.stream.Stream;
 
@@ -10,6 +11,11 @@ public class SlotAllocator {
 
 	private int nextSlot;
 	private LocalVar[] variables;
+	
+	/**
+	 * Slot count of this + argument slots.
+	 */
+	private int argSlotCount;
 	
 	public SlotAllocator() {
 		this.variables = new LocalVar[8];
@@ -38,6 +44,13 @@ public class SlotAllocator {
 		}
 	}
 	
+	public void assignArgSlots(List<LocalVar> args) {
+		for (var localVar : args) {
+			assignSlot(localVar);
+		}
+		argSlotCount = nextSlot;
+	}
+	
 	public LocalVar findVar(int slot) {
 		return variables[slot];
 	}
@@ -50,6 +63,10 @@ public class SlotAllocator {
 		return Arrays.stream(variables)
 				.limit(nextSlot)
 				.filter(Objects::nonNull);
+	}
+	
+	public boolean isMethodArg(LocalVar localVar) {
+		return localVar.assignedSlot != -1 && localVar.assignedSlot < argSlotCount;
 	}
 
 }

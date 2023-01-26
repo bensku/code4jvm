@@ -18,6 +18,7 @@ import fi.benjami.code4jvm.statement.Return;
 import fi.benjami.code4jvm.CompileHook;
 import fi.benjami.code4jvm.Constant;
 import fi.benjami.code4jvm.Type;
+import fi.benjami.code4jvm.annotation.AnnotationTarget;
 import fi.benjami.code4jvm.block.AbstractMethod;
 import fi.benjami.code4jvm.block.Method;
 import fi.benjami.code4jvm.block.MethodCompiler;
@@ -27,7 +28,7 @@ import fi.benjami.code4jvm.flag.Access;
 import fi.benjami.code4jvm.flag.ClassFlag;
 import fi.benjami.code4jvm.flag.FieldFlag;
 
-public class ClassDef implements CompileHook.Carrier {
+public class ClassDef implements CompileHook.Carrier, AnnotationTarget {
 	
 	public static ClassDef create(String name, Access access, ClassFlag... flags) {
 		return new ClassDef(name, access, flags);

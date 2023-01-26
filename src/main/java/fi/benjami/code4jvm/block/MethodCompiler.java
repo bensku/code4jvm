@@ -1,10 +1,13 @@
 package fi.benjami.code4jvm.block;
 
 import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.TypeReference;
 import org.objectweb.asm.util.CheckMethodAdapter;
 
 import fi.benjami.code4jvm.Type;
+import fi.benjami.code4jvm.annotation.Annotation;
 import fi.benjami.code4jvm.call.CallTarget;
 import fi.benjami.code4jvm.call.FixedCallTarget;
 import fi.benjami.code4jvm.config.CompileOptions;
@@ -67,9 +70,7 @@ public class MethodCompiler {
 			if (method instanceof Method.Instance instance) {
 				slotAllocator.assignSlot(instance.self); // this is always slot 0
 			}
-			for (var arg : concrete.args) {
-				slotAllocator.assignSlot(arg);
-			}
+			slotAllocator.assignArgSlots(concrete.args);
 			
 			// Compute stack map table frames (and assign rest of local variables slots)
 			if (!concrete.framesComputed) {
@@ -90,9 +91,7 @@ public class MethodCompiler {
 			concrete.block().emitBytecode(state);
 			
 			// Emit local variable table if it is enabled
-			if (state.emitVarMarkers()) {
-				emitLocalVarTable(mv, slotAllocator.variables());
-			}
+			slotAllocator.variables();
 			
 			// Set stack and 
 			mv.visitMaxs(ctx.stack().maxStackSize(), slotAllocator.slotCount());
@@ -117,16 +116,43 @@ public class MethodCompiler {
 		return CallTarget.virtualMethod(owner.type(), returnType, name, argTypes);
 	}
 	
-	private void emitLocalVarTable(MethodVisitor mv, Stream<LocalVar> variables) {
+	private void emitVariableMetadata(MethodCompilerState state, Stream<LocalVar> variables) {
+		var mv = state.ctx().asm();
 		variables.forEach(localVar -> {
-			// Ignore local variables that we don't have enough information to
-			// generate this information for
-			if (localVar.needsSlot && localVar.definitionStart != null) {
+			var annotations = localVar.annotations();
+			var methodArg = state.slotAllocator().isMethodArg(localVar);
+			
+			// Emit method argument name, modifiers and annotations
+			if (methodArg) {
+				// TODO final, synthetic, mandated (last of which is also missing from other places)
+				mv.visitParameter(localVar.name().orElse(null), 0);
+				for (Annotation ann : annotations) {
+					// FIXME method parameter count, this is NOT SAME as slot
+					mv.visitParameterAnnotation(-1, ann.type().descriptor(), ann.visibleRuntime());
+				}
+			}
+			
+			// If local variable table is enabled, generate it for variables for which
+			// we have enough information
+			if (state.emitVarMarkers() && localVar.needsSlot && localVar.definitionStart != null) {
 				var name = localVar.name().orElse("<unnamed>");
 				mv.visitLocalVariable(name, localVar.type().descriptor(), null, localVar.definitionStart,
 						localVar.definitionEnd, localVar.assignedSlot);
+				if (!methodArg) {
+					// Local variable, not method argument -> add annotations to table
+					for (Annotation ann : annotations) {
+						// TODO RESOURCE_VARIABLE?
+						// TODO array member annotations?
+						// TODO runtime visibility?
+						// We're not reusing slots, which makes this much easier
+						mv.visitLocalVariableAnnotation(TypeReference.LOCAL_VARIABLE, null,
+								new Label[] {localVar.definitionStart}, new Label[] {localVar.definitionEnd},
+								new int[] {localVar.assignedSlot}, ann.type().descriptor(), ann.visibleRuntime());
+					}
+				}
 			}
-			// TODO local variable annotations
+			
 		});
 	}
+
 }

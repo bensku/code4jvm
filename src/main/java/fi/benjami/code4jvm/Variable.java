@@ -1,9 +1,10 @@
 package fi.benjami.code4jvm;
 
+import fi.benjami.code4jvm.annotation.AnnotationTarget;
 import fi.benjami.code4jvm.block.Block;
 import fi.benjami.code4jvm.internal.LocalVar;
 
-public interface Variable extends Value {
+public interface Variable extends Value, AnnotationTarget {
 	
 	/**
 	 * Creates a variable that has no value until it is {@link #set(Value) set}.
