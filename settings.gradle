@@ -1,0 +1,3 @@
+rootProject.name = 'code4jvm'
+
+include 'parserkit'
