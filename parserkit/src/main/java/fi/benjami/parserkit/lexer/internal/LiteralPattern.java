@@ -1,7 +1,7 @@
 package fi.benjami.parserkit.lexer.internal;
 
-import fi.benjami.parserkit.lexer.Pattern;
+import fi.benjami.parserkit.lexer.LexerPattern;
 
 public record LiteralPattern(
 	String text	
-) implements Pattern {}
+) implements LexerPattern {}

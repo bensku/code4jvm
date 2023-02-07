@@ -8,7 +8,7 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
-import fi.benjami.parserkit.lexer.Pattern;
+import fi.benjami.parserkit.lexer.LexerPattern;
 
 public class LexerState {
 	
@@ -22,7 +22,7 @@ public class LexerState {
 		this.transitions = new HashMap<>();
 	}
 	
-	public Stream<LexerState> add(Pattern pattern) {
+	public Stream<LexerState> add(LexerPattern pattern) {
 		if (pattern instanceof LiteralPattern literal) {
 			return Stream.of(addLiteral(literal.text(), 0));
 		} else if (pattern instanceof CompoundPattern compound) {
@@ -80,7 +80,7 @@ public class LexerState {
 		}
 	}
 	
-	private Stream<LexerState> addConcat(Pattern[] patterns, int index) {
+	private Stream<LexerState> addConcat(LexerPattern[] patterns, int index) {
 		var paths = add(patterns[index]);
 		var newIndex = index + 1;
 		if (newIndex != patterns.length) {
