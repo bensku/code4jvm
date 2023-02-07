@@ -52,7 +52,7 @@ public class TokenList {
 		}
 		
 		public boolean hasNext() {
-			return list != null;
+			return list != null && tokenIndex <= list.lastIndex;
 		}
 		
 		public Token peek() {
@@ -213,6 +213,7 @@ public class TokenList {
 			}
 			
 			if (current.next == null) {
+				// TODO should this just add the token?
 				return null; // Reached the end
 			}
 			current = current.next;

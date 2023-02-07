@@ -11,6 +11,7 @@ public class LexerInput {
 	}
 	
 	public void advance(int count) {
+		assert count > 0;
 		pos += count;
 	}
 	

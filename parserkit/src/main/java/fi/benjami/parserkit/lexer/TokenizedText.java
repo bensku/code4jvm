@@ -22,28 +22,31 @@ public class TokenizedText {
 		text = text.substring(0, start) + newText + text.substring(end);
 		int newEnd = end + indicesAfterMod;
 		
-		// Set start to end of previous token to include it in selection
-		// This should avoid violations of maximal munch
-		// In contrast, the end passed to select(...) is just a guess
-		int tokenStart = start;
+		// Go back to nearest whitespace
+		// This is required to support the correct ordering of rules
+		// For example, if token A=a, B=b and C=ab could otherwise cause
+		// lexing to start in middle of C, leading to inconsistent results
 		for (;;) {
-			var ch = text.codePointAt(tokenStart);
-			if (lexer.isWhitespace(tokenStart) || tokenStart == 0) {
+			var ch = text.codePointAt(start);
+			if (lexer.isWhitespace(ch) || start == 0) {
 				break;
 			}
-			tokenStart -= Character.charCount(ch);
-		}
-		if (tokenStart != 0) {
-			tokenStart--;
+			start -= Character.charCount(ch);
 		}
 		
 		// Select existing tokens and overwrite (some of) them
 		// Selection detects the old tokens that are after end -> (old)end
-		var slice = tokens.select(tokenStart, end);
-		var input = new LexerInput(text, start);
+		var slice = tokens.select(start, end);
+		// select() may backtrack from start if there are existing tokens
+		var lexerStart = slice.hasNext() ? slice.peek().start() : start;
+		var input = new LexerInput(text, lexerStart);
 		// Lexer uses indices in the new text -> newEnd
-		while (input.pos() < newEnd) {
-			tokens.add(lexer.getToken(input));
+		while (input.pos() <= newEnd) {
+			var token = lexer.getToken(input);
+			if (token == null) {
+				break; // End of file
+			}
+			tokens.add(token);
 		}
 		
 		// In case the lexer produced less tokens than the selection had before
@@ -55,9 +58,12 @@ public class TokenizedText {
 		// Keep tokenizing until exactly same token is produced
 		// If this doesn't happen at all, tokenize to end of file
 		// TODO test with error recovery
-		Token tokenAfter;
+		Token tokenAfter = null;
 		for (;;) {
 			var token = lexer.getToken(input);
+			if (token == null) {
+				break; // End of file
+			}
 			var oldToken = tokens.replaceNext(token);
 			if (oldToken == null) {
 				// Reached end of the file, but there is no EOF token
@@ -80,7 +86,8 @@ public class TokenizedText {
 		
 		// Create view for parser
 		int modifiedStart = slice.peek().start();
-		int modifiedEnd = tokenAfter.start() - indicesAfterMod;
+		// End is EOF, or the start of first token after modified area
+		int modifiedEnd = tokenAfter == null ? text.length() :  tokenAfter.start() - indicesAfterMod;
 		return new View(modifiedStart, modifiedEnd, slice);
 	}
 	

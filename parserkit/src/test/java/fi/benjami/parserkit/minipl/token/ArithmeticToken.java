@@ -21,6 +21,11 @@ public class ArithmeticToken extends Token {
 		super(start, length);
 		this.op = op;
 	}
+	
+	@Override
+	public boolean equals(Object o) {
+		return o instanceof ArithmeticToken token && token.op == op && super.equals(token);
+	}
 
 	@Override
 	public String toString() {

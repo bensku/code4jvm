@@ -17,5 +17,10 @@ public class LogicalOpToken extends Token {
 		super(start, length);
 		this.type = type;
 	}
+	
+	@Override
+	public boolean equals(Object o) {
+		return o instanceof LogicalOpToken token && token.type == type && super.equals(o);
+	}
 
 }

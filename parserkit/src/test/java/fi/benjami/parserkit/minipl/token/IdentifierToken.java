@@ -10,10 +10,15 @@ public class IdentifierToken extends Token {
 		super(start, id.length());
 		this.id = id;
 	}
+	
+	@Override
+	public boolean equals(Object o) {
+		return o instanceof IdentifierToken token && token.id.equals(id) && super.equals(o);
+	}
 
 	@Override
 	public String toString() {
-		return "IdentifierToken [id=" + id + "]";
+		return "IdentifierToken [start=" + start() + ", id='" + id + "']";
 	}
 
 }

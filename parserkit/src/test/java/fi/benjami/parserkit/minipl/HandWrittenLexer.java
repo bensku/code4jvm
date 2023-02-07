@@ -5,7 +5,6 @@ import fi.benjami.parserkit.lexer.LexerInput;
 import fi.benjami.parserkit.lexer.Token;
 import fi.benjami.parserkit.minipl.token.ArithmeticToken;
 import fi.benjami.parserkit.minipl.token.AssignmentToken;
-import fi.benjami.parserkit.minipl.token.EndToken;
 import fi.benjami.parserkit.minipl.token.ErrorToken;
 import fi.benjami.parserkit.minipl.token.IdentifierToken;
 import fi.benjami.parserkit.minipl.token.IntLiteralToken;
@@ -20,11 +19,11 @@ public class HandWrittenLexer implements Lexer {
 		skipWhitespace(input);
 		
 		if (input.codepointsLeft() == 0) {
-			return new EndToken(input.pos());
+			return null;
 		}
 		
 		var ch = input.getCodepoint(0);
-		var pos = input.pos(); 
+		var pos = input.pos();
 		var token = switch (ch) {
 		case '+' -> new ArithmeticToken(pos, 1, ArithmeticToken.Op.ADD);
 		case '-' -> new ArithmeticToken(pos, 1, ArithmeticToken.Op.SUBTRACT);
