@@ -14,7 +14,7 @@ public class TokenListTest {
 	public void simpleList() {
 		var list = new TokenList();
 		
-		var token = new TestToken(0, 5);
+		var token = new Token(0, 5, 0, null);
 		list.add(token);
 		var slice = list.everything();
 		assertEquals(token, slice.pop());
@@ -30,7 +30,7 @@ public class TokenListTest {
 		// Add MANY tokens to list to check multi-array behavior
 		var tokens = new Token[1000];
 		for (var i = 0; i < 1000; i++) {
-			var token = new TestToken(i * 5, 5);
+			var token = new Token(i * 5, 5, 0, null);
 			tokens[i] = token;
 			list.add(token);
 		}
@@ -48,7 +48,7 @@ public class TokenListTest {
 		
 		var tokens = new Token[1000];
 		for (var i = 0; i < 1000; i++) {
-			var token = new TestToken(i * 5, 5);
+			var token = new Token(i * 5, 5, 0, null);
 			tokens[i] = token;
 			list.add(token);
 		}
@@ -59,7 +59,7 @@ public class TokenListTest {
 		
 		// Add new tokens, replacing existing ones
 		for (var i = 0; i < 100; i++) {
-			var token = new TestToken(2500 + i * 6, 6);
+			var token = new Token(2500 + i * 6, 6, 0, null);
 			tokens[500 + i] = token;
 			list.add(token);
 		}
@@ -89,7 +89,7 @@ public class TokenListTest {
 		
 		var tokens = new Token[1000];
 		for (var i = 0; i < 1000; i++) {
-			var token = new TestToken(i * 5, 5);
+			var token = new Token(i * 5, 5, 0, null);
 			tokens[i] = token;
 			list.add(token);
 		}
@@ -98,7 +98,7 @@ public class TokenListTest {
 		
 		// Add new tokens, but less than what was selected
 		for (var i = 0; i < 100; i++) {
-			var token = new TestToken(2500 + i * 6, 6);
+			var token = new Token(2500 + i * 6, 6, 0, null);
 			tokens[500 + i] = token;
 			list.add(token);
 		}
@@ -127,9 +127,9 @@ public class TokenListTest {
 	public void selectGrow() {
 		var list = new TokenList();
 		
-		var tokens = new ArrayList<TestToken>(1900);
+		var tokens = new ArrayList<Token>(1900);
 		for (var i = 0; i < 1000; i++) {
-			var token = new TestToken(i * 5, 5);
+			var token = new Token(i * 5, 5, 0, null);
 			tokens.add(token);
 			list.add(token);
 		}
@@ -138,7 +138,7 @@ public class TokenListTest {
 		
 		// Add new tokens, replacing existing ones
 		for (var i = 0; i < 1000; i++) {
-			var token = new TestToken(2500 + i * 6, 6);
+			var token = new Token(2500 + i * 6, 6, 0, null);
 			if (i < 100) {
 				tokens.set(500 + i, token);
 			} else {				
@@ -172,7 +172,7 @@ public class TokenListTest {
 		
 		var tokens = new Token[1000];
 		for (var i = 0; i < 1000; i++) {
-			var token = new TestToken(i * 5, 5);
+			var token = new Token(i * 5, 5, 0, null);
 			tokens[i] = token;
 			list.add(token);
 		}
@@ -183,7 +183,7 @@ public class TokenListTest {
 		
 		// Add new tokens, replacing existing ones
 		for (var i = 0; i < 100; i++) {
-			var token = new TestToken(2500 + i * 6, 6);
+			var token = new Token(2500 + i * 6, 6, 0, null);
 			tokens[500 + i] = token;
 			list.add(token);
 		}
@@ -211,9 +211,9 @@ public class TokenListTest {
 	public void selectReplaceMany() {
 		var list = new TokenList();
 		
-		var tokens = new ArrayList<TestToken>(1000);
+		var tokens = new ArrayList<Token>(1000);
 		for (var i = 0; i < 1000; i++) {
-			var token = new TestToken(i * 5, 5);
+			var token = new Token(i * 5, 5, 0, null);
 			tokens.add(token);
 			list.add(token);
 		}
@@ -222,7 +222,7 @@ public class TokenListTest {
 		
 		// Add new tokens, replacing existing ones
 		for (var i = 0; i < 100; i++) {
-			var token = new TestToken(2500 + i * 6, 6);
+			var token = new Token(2500 + i * 6, 6, 0, null);
 			tokens.set(500 + i, token);
 			list.add(token);
 		}
@@ -233,7 +233,7 @@ public class TokenListTest {
 		
 		// DO IT AGAIN!
 		for (var i = 0; i < 100; i++) {
-			var token = new TestToken(2300 + i * 7, 7);
+			var token = new Token(2300 + i * 7, 7, 0, null);
 			if (i < 90) {
 				tokens.set(460 + i, token);				
 			} else {

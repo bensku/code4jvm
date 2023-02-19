@@ -3,14 +3,6 @@ package fi.benjami.parserkit.minipl;
 import fi.benjami.parserkit.lexer.Lexer;
 import fi.benjami.parserkit.lexer.LexerInput;
 import fi.benjami.parserkit.lexer.Token;
-import fi.benjami.parserkit.minipl.token.ArithmeticToken;
-import fi.benjami.parserkit.minipl.token.AssignmentToken;
-import fi.benjami.parserkit.minipl.token.ErrorToken;
-import fi.benjami.parserkit.minipl.token.IdentifierToken;
-import fi.benjami.parserkit.minipl.token.IntLiteralToken;
-import fi.benjami.parserkit.minipl.token.LogicalOpToken;
-import fi.benjami.parserkit.minipl.token.StatementEndToken;
-import fi.benjami.parserkit.minipl.token.VarTypeToken;
 
 public class HandWrittenLexer implements Lexer {
 
@@ -25,9 +17,9 @@ public class HandWrittenLexer implements Lexer {
 		var ch = input.getCodepoint(0);
 		var pos = input.pos();
 		var token = switch (ch) {
-		case '+' -> new ArithmeticToken(pos, 1, ArithmeticToken.Op.ADD);
-		case '-' -> new ArithmeticToken(pos, 1, ArithmeticToken.Op.SUBTRACT);
-		case '*' -> new ArithmeticToken(pos, 1, ArithmeticToken.Op.MULTIPLY);
+		case '+' -> MiniPlTokenType.ADD.read(pos, "+");
+		case '-' -> MiniPlTokenType.SUBTRACT.read(pos, "-");
+		case '*' -> MiniPlTokenType.MULTIPLY.read(pos, "*");
 		case '/' -> {
 			var next = input.getCodepoint(1);
 			if (next == '/') {
@@ -37,22 +29,22 @@ public class HandWrittenLexer implements Lexer {
 				// Multi-line comment
 				yield null;
 			} else {
-				yield new ArithmeticToken(pos, 1, ArithmeticToken.Op.DIVIDE);
+				yield MiniPlTokenType.DIVIDE.read(pos, "/");
 			}
 		}
-		case '(' -> new ArithmeticToken(pos, 1, ArithmeticToken.Op.GROUP_BEGIN);
-		case ')' -> new ArithmeticToken(pos, 1, ArithmeticToken.Op.GROUP_END);
-		case '&' -> new LogicalOpToken(pos, 1, LogicalOpToken.Type.AND);
-		case '!' -> new LogicalOpToken(pos, 1, LogicalOpToken.Type.NOT);
-		case '=' -> new LogicalOpToken(pos, 1, LogicalOpToken.Type.EQUAL);
-		case '<' -> new LogicalOpToken(pos, 1, LogicalOpToken.Type.LESS_THAN);
-		case ';' -> new StatementEndToken(pos);
+		case '(' -> MiniPlTokenType.GROUP_BEGIN.read(pos, "(");
+		case ')' -> MiniPlTokenType.GROUP_END.read(pos, ")");
+		case '&' -> MiniPlTokenType.LOGICAL_AND.read(pos, "&");
+		case '!' -> MiniPlTokenType.LOGICAL_NOT.read(pos, "!");
+		case '=' -> MiniPlTokenType.EQUALS.read(pos, "=");
+		case '<' -> MiniPlTokenType.LESS_THAN.read(pos, "<");
+		case ';' -> MiniPlTokenType.STATEMENT_END.read(pos, ";");
 		case ':' -> {
 			var next = input.getCodepoint(1);
 			if (next == '=') {
-				yield new AssignmentToken(pos);
+				yield MiniPlTokenType.ASSIGNMENT.read(pos, ":=");
 			} else {
-				yield new VarTypeToken(pos);
+				yield MiniPlTokenType.VAR_TYPE.read(pos, ":");
 			}
 		}
 //		case '"' -> {
@@ -71,7 +63,7 @@ public class HandWrittenLexer implements Lexer {
 						break;
 					}
 				}
-				yield new IdentifierToken(pos, id.toString());
+				yield MiniPlTokenType.IDENTIFIER.read(pos, id.toString());
 			} else if (Character.isDigit(ch)) {
 				var digits = new StringBuilder();
 				digits.appendCodePoint(ch);
@@ -83,9 +75,9 @@ public class HandWrittenLexer implements Lexer {
 						break;
 					}
 				}
-				yield new IntLiteralToken(pos, digits.toString());
+				yield MiniPlTokenType.INT_LITERAL.read(pos, digits.toString());
 			} else {
-				yield new ErrorToken(pos, 1, Character.toString(ch));
+				yield MiniPlTokenType.ERROR.read(pos, Character.toString(ch));
 			}
 		}
 		};

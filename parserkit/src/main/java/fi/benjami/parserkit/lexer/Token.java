@@ -1,13 +1,20 @@
 package fi.benjami.parserkit.lexer;
 
-public abstract class Token {
+import java.util.Objects;
+
+public class Token {
 	
 	private int start;
 	private final int length;
+	
+	private final int type;
+	private final Object value;
 		
-	public Token(int start, int length) {
+	public Token(int start, int length, int type, Object value) {
 		this.start = start;
 		this.length = length;
+		this.type = type;
+		this.value = value;
 	}
 	
 	public int start() {
@@ -26,9 +33,26 @@ public abstract class Token {
 		return start + length;
 	}
 	
+	public int type() {
+		return type;
+	}
+	
+	public Object value() {
+		return value;
+	}
+	
 	@Override
 	public boolean equals(Object o) {
-		return o instanceof Token token && token.start == start && token.length == length;
+		return o instanceof Token token
+				&& token.start == start
+				&& token.length == length
+				&& token.type == type
+				&& Objects.equals(token.value, value);
+	}
+	
+	@Override
+	public String toString() {
+		return "Token{start=" + start + ",length=" + length + ",type=" + type + ",value=" + value + "}";
 	}
 
 }

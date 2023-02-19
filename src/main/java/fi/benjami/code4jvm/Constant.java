@@ -47,6 +47,10 @@ public class Constant implements Value {
 	public static Constant of(Type value) {
 		return new Constant(value, CLASS);
 	}
+		
+	public static Constant nullValue(Type type) {
+		return new Constant(null, type);
+	}
 	
 	// TODO class reference, method handle, constant dynamic
 	

@@ -290,7 +290,10 @@ public class ClassDef implements CompileHook.Carrier {
 		// We can compute frames, local variable count and maximum stack size ourself!
 		var writer = new ClassWriter(0);
 		// Enable ASM checks if user has requested them
-		var cv = DebugOptions.ASM_CHECKS ? new CheckClassAdapter(writer, true) : writer;
+		// FIXME why this blows up if ASM_CHECKS is false and CheckClassAdapter is missing?
+		ClassVisitor cv = DebugOptions.ASM_CHECKS ? new CheckClassAdapter(writer, true) : writer;
+		
+		// Compute superclass and interfaces
 		var superName = superClass != null ? superClass.internalName() : "java/lang/Object";
 		var interfaceNames = interfaces != null ? 
 				Arrays.stream(interfaces).map(Type::internalName).toArray(String[]::new)
