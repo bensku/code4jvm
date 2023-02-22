@@ -33,6 +33,16 @@ public enum MiniPlTokenType implements TokenType {
 	INT_LITERAL(Integer::parseInt),
 	STRING_LITERAL(TokenType.collectText()),
 	
+	// Various identifiers (created by our token transformer)
+	DECLARE_VAR(TokenType.discardText()),
+	FOR(TokenType.discardText()),
+	FOR_IN(TokenType.discardText()),
+	IF(TokenType.discardText()),
+	IF_ELSE(TokenType.discardText()),
+	BLOCK_DO(TokenType.discardText()),
+	BLOCK_END(TokenType.discardText()),
+	CALL_BUILTIN(TokenType.collectText()),
+	
 	// The error token
 	ERROR(TokenType.collectText());
 	

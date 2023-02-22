@@ -5,12 +5,14 @@ import fi.benjami.parserkit.lexer.internal.TokenList;
 public class TokenizedText {
 	
 	private final Lexer lexer;
+	private final TokenTransformer transformer;
 	
 	private final TokenList tokens;
 	private String text;
 	
-	public TokenizedText(Lexer lexer) {
+	public TokenizedText(Lexer lexer, TokenTransformer transformer) {
 		this.lexer = lexer;
+		this.transformer = transformer;
 		this.tokens = new TokenList();
 		this.text = "";
 	}
@@ -42,7 +44,7 @@ public class TokenizedText {
 		var input = new LexerInput(text, lexerStart);
 		// Lexer uses indices in the new text -> newEnd
 		while (input.pos() <= newEnd) {
-			var token = lexer.getToken(input);
+			var token = nextToken(input);
 			if (token == null) {
 				break; // End of file
 			}
@@ -60,7 +62,7 @@ public class TokenizedText {
 		// TODO test with error recovery
 		Token tokenAfter = null;
 		for (;;) {
-			var token = lexer.getToken(input);
+			var token = nextToken(input);
 			if (token == null) {
 				break; // End of file
 			}
@@ -91,6 +93,11 @@ public class TokenizedText {
 		return new View(modifiedStart, modifiedEnd, slice);
 	}
 	
+	private Token nextToken(LexerInput input) {
+		var token = lexer.getToken(input);
+		return token == null ? null : transformer.transform(token);
+	}
+	
 	public View viewFromStart() {
 		var slice = tokens.everything();
 		return new View(0, text.length(), slice);
@@ -101,7 +108,7 @@ public class TokenizedText {
 		private final int start;
 		private final int end;
 		
-		private final TokenList.Slice slice;
+		private TokenList.Slice slice;
 		
 		View(int start, int end, TokenList.Slice slice) {
 			this.start = start;
@@ -127,6 +134,14 @@ public class TokenizedText {
 		
 		public Token pop() {
 			return slice.pop();
+		}
+		
+		public View copy() {
+			return new View(start, end, slice.copy());
+		}
+		
+		public void advance(View view) {
+			slice = view.slice;
 		}
 	}
 	

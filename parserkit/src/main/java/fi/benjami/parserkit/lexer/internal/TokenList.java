@@ -101,6 +101,10 @@ public class TokenList {
 			return token;
 		}
 		
+		public Slice copy() {
+			return new Slice(list, tokenIndex);
+		}
+		
 	}
 	
 	private final Sublist first;

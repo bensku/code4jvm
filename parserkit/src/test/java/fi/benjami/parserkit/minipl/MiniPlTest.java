@@ -17,10 +17,10 @@ public class MiniPlTest {
 					var X : int := 4 + (6 * 2);
 					print X;
 					""";
-		var text = new TokenizedText(new HandWrittenLexer());
+		var text = new TokenizedText(new HandWrittenLexer(), new MiniPlTransformer());
 		var view = text.apply(code, 0, 0);
 		var expected = new Token[] {
-				MiniPlTokenType.IDENTIFIER.read(0, "var"),
+				MiniPlTokenType.DECLARE_VAR.read(0, "var"),
 				MiniPlTokenType.IDENTIFIER.read(4, "X"),
 				MiniPlTokenType.VAR_TYPE.read(6, ":"),
 				MiniPlTokenType.IDENTIFIER.read(8, "int"),
@@ -33,7 +33,7 @@ public class MiniPlTest {
 				MiniPlTokenType.INT_LITERAL.read(24, "2"),
 				MiniPlTokenType.GROUP_END.read(25, ")"),
 				MiniPlTokenType.STATEMENT_END.read(26, ";"),
-				MiniPlTokenType.IDENTIFIER.read(28, "print"),
+				MiniPlTokenType.CALL_BUILTIN.read(28, "print"),
 				MiniPlTokenType.IDENTIFIER.read(34, "X"),
 				MiniPlTokenType.STATEMENT_END.read(35, ";")
 		};
@@ -45,7 +45,7 @@ public class MiniPlTest {
 		
 		
 		var expected2 = new Token[] {
-				MiniPlTokenType.IDENTIFIER.read(0, "var"),
+				MiniPlTokenType.DECLARE_VAR.read(0, "var"),
 				MiniPlTokenType.IDENTIFIER.read(4, "X"),
 				MiniPlTokenType.VAR_TYPE.read(6, ":"),
 				MiniPlTokenType.IDENTIFIER.read(8, "int"),
@@ -55,7 +55,7 @@ public class MiniPlTest {
 				MiniPlTokenType.INT_LITERAL.read(18, "2"),
 				MiniPlTokenType.GROUP_END.read(19, ")"),
 				MiniPlTokenType.STATEMENT_END.read(20, ";"),
-				MiniPlTokenType.IDENTIFIER.read(22, "print"),
+				MiniPlTokenType.CALL_BUILTIN.read(22, "print"),
 				MiniPlTokenType.IDENTIFIER.read(28, "X"),
 				MiniPlTokenType.STATEMENT_END.read(29, ";"),
 		};
@@ -85,7 +85,7 @@ public class MiniPlTest {
 				print “x is equal to ntimes);
 				end if;
 				""";
-		var text = new TokenizedText(new HandWrittenLexer());
+		var text = new TokenizedText(new HandWrittenLexer(), new MiniPlTransformer());
 		var view = text.apply(code, 0, 0);
 //		while (view.hasNext()) {
 //			System.out.println(view.pop());
