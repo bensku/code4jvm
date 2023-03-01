@@ -24,7 +24,7 @@ public class SlotAllocator {
 			
 			if (nextSlot >= variables.length) {
 				var newArray = new LocalVar[variables.length + 8];
-				System.arraycopy(variables, 0, newArray, 0, nextSlot);
+				System.arraycopy(variables, 0, newArray, 0, variables.length);
 				variables = newArray;
 			}
 			variables[nextSlot] = localVar;
