@@ -1,5 +1,7 @@
 package fi.benjami.parserkit.parser.internal;
 
+import java.util.Set;
+
 import fi.benjami.parserkit.parser.Input;
 import fi.benjami.parserkit.parser.NodeRegistry;
 import fi.benjami.parserkit.parser.PredictSet;
@@ -26,9 +28,18 @@ public record ChildNodeInput(
 		Class<? extends AstNode> type
 ) implements Input {
 
+	// FIXME infinite recursion if patterns have recursion
+	// probably easiest to eliminate it by carrying around state
+	// and returning empty predict set (TODO) when recursion occurs
+	
 	@Override
-	public PredictSet predictSet(NodeRegistry nodes) {
-		return nodes.getRootInput(type).predictSet(nodes);
+	public PredictSet predictSet(NodeRegistry nodes, Set<Input> visitedInputs) {
+		if (visitedInputs.contains(this)) {
+			return PredictSet.nothing();
+		}
+		visitedInputs.add(this);
+		
+		return nodes.getPattern(type).predictSet(nodes, visitedInputs);
 	}
 	
 }

@@ -1,5 +1,7 @@
 package fi.benjami.parserkit.parser.internal;
 
+import java.util.Set;
+
 import fi.benjami.parserkit.lexer.TokenType;
 import fi.benjami.parserkit.parser.Input;
 import fi.benjami.parserkit.parser.NodeRegistry;
@@ -22,7 +24,7 @@ public record TokenInput(
 ) implements Input {
 
 	@Override
-	public PredictSet predictSet(NodeRegistry nodes) {
+	public PredictSet predictSet(NodeRegistry nodes, Set<Input> visitedInputs) {
 		return PredictSet.of(type);
 	}
 

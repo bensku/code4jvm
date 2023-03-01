@@ -1,16 +1,25 @@
 package fi.benjami.parserkit.parser.internal;
 
+import java.util.List;
+import java.util.Set;
+
 import fi.benjami.parserkit.parser.Input;
 import fi.benjami.parserkit.parser.NodeRegistry;
 import fi.benjami.parserkit.parser.PredictSet;
 
 public record CompoundInput(
-		Input[] parts
+		List<Input> parts
 ) implements Input {
 
 	@Override
-	public PredictSet predictSet(NodeRegistry nodes) {
-		return parts.length != 0 ? parts[0].predictSet(nodes) : PredictSet.everything();
+	public PredictSet predictSet(NodeRegistry nodes, Set<Input> visitedInputs) {
+		if (visitedInputs.contains(this)) {
+			return PredictSet.nothing();
+		}
+		visitedInputs.add(this);
+		
+		return parts.isEmpty() ? PredictSet.everything()
+				: parts.get(0).predictSet(nodes, visitedInputs);
 	}
 
 }

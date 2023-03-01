@@ -18,8 +18,8 @@ public class MiniPlTransformer implements TokenTransformer {
 			case "else" -> MiniPlTokenType.IF_ELSE.convert(input, null);
 			case "do" -> MiniPlTokenType.BLOCK_DO.convert(input, null);
 			case "end" -> MiniPlTokenType.BLOCK_END.convert(input, null);
-			case "read" -> MiniPlTokenType.CALL_BUILTIN.convert(input, input.value());
-			case "print" -> MiniPlTokenType.CALL_BUILTIN.convert(input, input.value());
+			case "read" -> MiniPlTokenType.BUILTIN_READ.convert(input, null);
+			case "print" -> MiniPlTokenType.BUILTIN_PRINT.convert(input, null);
 			default -> input;
 			};
 		} else {

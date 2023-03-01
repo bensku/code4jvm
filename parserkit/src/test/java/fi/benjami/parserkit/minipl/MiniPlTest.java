@@ -33,7 +33,7 @@ public class MiniPlTest {
 				MiniPlTokenType.INT_LITERAL.read(24, "2"),
 				MiniPlTokenType.GROUP_END.read(25, ")"),
 				MiniPlTokenType.STATEMENT_END.read(26, ";"),
-				MiniPlTokenType.CALL_BUILTIN.read(28, "print"),
+				MiniPlTokenType.BUILTIN_PRINT.read(28, "print"),
 				MiniPlTokenType.IDENTIFIER.read(34, "X"),
 				MiniPlTokenType.STATEMENT_END.read(35, ";")
 		};
@@ -55,7 +55,7 @@ public class MiniPlTest {
 				MiniPlTokenType.INT_LITERAL.read(18, "2"),
 				MiniPlTokenType.GROUP_END.read(19, ")"),
 				MiniPlTokenType.STATEMENT_END.read(20, ";"),
-				MiniPlTokenType.CALL_BUILTIN.read(22, "print"),
+				MiniPlTokenType.BUILTIN_PRINT.read(22, "print"),
 				MiniPlTokenType.IDENTIFIER.read(28, "X"),
 				MiniPlTokenType.STATEMENT_END.read(29, ";"),
 		};

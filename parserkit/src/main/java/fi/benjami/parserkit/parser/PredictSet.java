@@ -5,7 +5,7 @@ import java.util.BitSet;
 import fi.benjami.parserkit.lexer.TokenType;
 
 public class PredictSet {
-		
+	
 	public static PredictSet of(TokenType type) {
 		var set = new BitSet();
 		set.set(type.ordinal());
@@ -14,6 +14,10 @@ public class PredictSet {
 	
 	public static PredictSet everything() {
 		return new PredictSet(null);
+	}
+	
+	public static PredictSet nothing() {
+		return new PredictSet(new BitSet());
 	}
 
 	private BitSet predictions;
@@ -39,6 +43,6 @@ public class PredictSet {
 	}
 	
 	public boolean has(TokenType type) {
-		return predictions.get(type.ordinal());
+		return predictions == null ? true : predictions.get(type.ordinal());
 	}
 }

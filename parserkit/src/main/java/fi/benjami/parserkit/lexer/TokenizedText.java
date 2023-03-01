@@ -133,7 +133,7 @@ public class TokenizedText {
 		}
 		
 		public Token pop() {
-			return slice.pop();
+			return hasNext() ? slice.pop() : null;
 		}
 		
 		public View copy() {

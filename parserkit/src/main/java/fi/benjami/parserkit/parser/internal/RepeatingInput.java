@@ -1,5 +1,7 @@
 package fi.benjami.parserkit.parser.internal;
 
+import java.util.Set;
+
 import fi.benjami.parserkit.parser.Input;
 import fi.benjami.parserkit.parser.NodeRegistry;
 import fi.benjami.parserkit.parser.PredictSet;
@@ -13,7 +15,7 @@ public record RepeatingInput(
 ) implements Input {
 
 	@Override
-	public PredictSet predictSet(NodeRegistry nodes) {
+	public PredictSet predictSet(NodeRegistry nodes, Set<Input> visitedInputs) {
 		// The pattern is allowed to repeat zero times
 		return PredictSet.everything();
 	}

@@ -47,6 +47,14 @@ public class HandWrittenLexer implements Lexer {
 				yield MiniPlTokenType.VAR_TYPE.read(pos, ":");
 			}
 		}
+		case '.' -> {
+			var next = input.getCodepoint(1);
+			if (next == '.') {
+				yield MiniPlTokenType.FOR_DIVIDER.read(pos, "..");
+			} else {
+				yield MiniPlTokenType.ERROR.read(pos, ".");
+			}
+		}
 //		case '"' -> {
 //			// TODO string handling
 //			yield null;
@@ -67,7 +75,7 @@ public class HandWrittenLexer implements Lexer {
 			} else if (Character.isDigit(ch)) {
 				var digits = new StringBuilder();
 				digits.appendCodePoint(ch);
-				for (int i = 1;; i++) {
+				for (int i = 1; i < input.codepointsLeft(); i++) {
 					var next = input.getCodepoint(i);
 					if (Character.isDigit(next)) {
 						digits.appendCodePoint(next);

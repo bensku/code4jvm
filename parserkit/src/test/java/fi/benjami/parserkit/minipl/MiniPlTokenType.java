@@ -26,6 +26,7 @@ public enum MiniPlTokenType implements TokenType {
 	VAR_TYPE(TokenType.discardText()),
 	ASSIGNMENT(TokenType.discardText()),
 	STATEMENT_END(TokenType.discardText()),
+	FOR_DIVIDER(TokenType.discardText()),
 	
 	// Tokens that actually contain state
 	IDENTIFIER(TokenType.collectText()),
@@ -41,7 +42,8 @@ public enum MiniPlTokenType implements TokenType {
 	IF_ELSE(TokenType.discardText()),
 	BLOCK_DO(TokenType.discardText()),
 	BLOCK_END(TokenType.discardText()),
-	CALL_BUILTIN(TokenType.collectText()),
+	BUILTIN_READ(TokenType.discardText()),
+	BUILTIN_PRINT(TokenType.discardText()),
 	
 	// The error token
 	ERROR(TokenType.collectText());

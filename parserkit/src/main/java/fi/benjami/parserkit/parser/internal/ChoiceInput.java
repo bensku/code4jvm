@@ -1,6 +1,8 @@
 package fi.benjami.parserkit.parser.internal;
 
 import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
 
 import fi.benjami.parserkit.lexer.TokenType;
 import fi.benjami.parserkit.parser.Input;
@@ -12,22 +14,27 @@ import fi.benjami.parserkit.parser.PredictSet;
  *
  */
 public record ChoiceInput(
-		Input[] choices
+		List<Input> choices
 ) implements Input {
 
 	@Override
-	public PredictSet predictSet(NodeRegistry nodes) {
+	public PredictSet predictSet(NodeRegistry nodes, Set<Input> visitedInputs) {
+		if (visitedInputs.contains(this)) {
+			return PredictSet.nothing();
+		}
+		visitedInputs.add(this);
+		
 		var predictSet = new PredictSet();
 		for (var choice : choices) {
-			predictSet.add(choice.predictSet(nodes));
+			predictSet.add(choice.predictSet(nodes, visitedInputs));
 		}
 		return predictSet;
 	}
 	
-	public Input[] filterFor(NodeRegistry nodes, TokenType first) {
-		return Arrays.stream(choices)
+	public List<Input> filterFor(NodeRegistry nodes, TokenType first) {
+		return choices.stream()
 				.filter(input -> input.predictSet(nodes).has(first))
-				.toArray(Input[]::new);
+				.toList();
 	}
 
 }
