@@ -35,6 +35,7 @@ import fi.benjami.parserkit.parser.ast.TokenValue;
 public class ParserGenerator {
 	
 	private static final Type LIST = Type.of(List.class);
+	private static final Type ARRAY_LIST = Type.of(ArrayList.class);
 	private static final Type TOKEN = Type.of(Token.class);
 	private static final Type TOKEN_VIEW = Type.of(TokenizedText.View.class);
 
@@ -232,11 +233,11 @@ public class ParserGenerator {
 			successTest.branch(Condition.isTrue(success), block -> {
 				// Advance view given to us if parsing succeeded
 				block.add(ADVANCE_VIEW.call(view, viewCopy));
-				block.add(loop.breakStmt());
 			});
 			successTest.fallback(block -> {
 				// Repeating zero times is perfectly ok -> success
 				block.add(success.set(Constant.of(true)));
+				block.add(loop.breakStmt());
 			});
 			body.add(successTest);
 			
@@ -382,7 +383,12 @@ public class ParserGenerator {
 		public Statement initResults() {
 			return block -> {				
 				for (var variable : inputMap.values() ) {
-					block.add(variable.set(Constant.nullValue(variable.type())));
+					if (variable.type().equals(LIST)) {
+						var list = block.add(ARRAY_LIST.newInstance());
+						block.add(variable.set(list.asType(LIST)));
+					} else {						
+						block.add(variable.set(Constant.nullValue(variable.type())));
+					}
 				}
 			};
 		}

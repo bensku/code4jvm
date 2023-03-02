@@ -25,7 +25,7 @@ public class MiniPlNodes {
 		
 		public static final Input PATTERN = Input.repeating(Input.allOf(
 				Input.childNode("stmt", STATEMENTS),
-				Input.token(MiniPlTokenType.STATEMENT_END)
+				Input.token(MiniPlTokenType.STATEMENT_END) // TODO fix
 				));
 	}
 
@@ -64,23 +64,21 @@ public class MiniPlNodes {
 	}
 	
 	public record BuiltinRead(
-			@TokenValue("function") String function,
 			@TokenValue("variable") String variable
 	) implements AstNode {
 		
 		public static final Input PATTERN = Input.allOf(
-				Input.token("function", MiniPlTokenType.BUILTIN_READ),
+				Input.token(MiniPlTokenType.BUILTIN_READ),
 				Input.token("variable", MiniPlTokenType.IDENTIFIER)
 				);
 	}
 	
 	public record BuiltinPrint(
-			@TokenValue("function") String function,
 			@TokenValue("expr") Object expr
 	) implements AstNode {
 		
 		public static final Input PATTERN = Input.allOf(
-				Input.token("function", MiniPlTokenType.BUILTIN_PRINT),
+				Input.token(MiniPlTokenType.BUILTIN_PRINT),
 				Input.childNode("expr", EXPRESSIONS)
 				);
 	}
@@ -261,7 +259,7 @@ public class MiniPlNodes {
 			@TokenValue("variable") String variable
 	) implements AstNode {
 		
-		public static final Input PATTERN = Input.token(MiniPlTokenType.IDENTIFIER);
+		public static final Input PATTERN = Input.token("variable", MiniPlTokenType.IDENTIFIER);
 	}
 	
 	static {

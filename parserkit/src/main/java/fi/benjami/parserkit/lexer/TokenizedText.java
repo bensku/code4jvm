@@ -129,7 +129,7 @@ public class TokenizedText {
 		}
 		
 		public Token peek() {
-			return slice.peek();
+			return hasNext() ? slice.peek() : null;
 		}
 		
 		public Token pop() {

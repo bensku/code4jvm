@@ -2,6 +2,8 @@ package fi.benjami.parserkit.minipl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.util.List;
+
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -73,5 +75,26 @@ public class MiniPlParserTest {
 				new MultiplyExpr(new Literal(new Constant(2)), new Literal(new Constant(3))),
 				new Literal(new Constant(5))
 				), parser.parse(AddExpr.class, tokenize("2 * 3 + 5")));
+		assertEquals(new AddExpr(
+				new MultiplyExpr(new Literal(new Constant(2)), new Literal(new Constant(3))),
+				new DivideExpr(new Literal(new Constant(5)), new Literal(new Constant(1)))
+				), parser.parse(AddExpr.class, tokenize("2 * 3 + 5 / 1")));
+	}
+	
+	@Test
+	public void block() {
+		assertEquals(new Block(List.of(
+				new BuiltinRead("a"),
+				new BuiltinPrint(new Literal(new VarReference("b"))))
+				), parser.parse(Block.class, tokenize("read a; print b;")));
+	}
+	
+	@Test
+	public void ifBlock() {
+		assertEquals(new IfBlock(
+				new EqualsExpr(new Literal(new Constant(1)), new Literal(new VarReference("b"))),
+				new Block(List.of(new BuiltinPrint(new Literal(new VarReference("a"))))),
+				new Block(List.of(new BuiltinPrint(new Literal(new VarReference("b")))))
+				), parser.parse(IfBlock.class, tokenize("if 1 = b do print a; else print b; end if;")));
 	}
 }
