@@ -1,5 +1,7 @@
 package fi.benjami.code4jvm;
 
+import java.util.Arrays;
+
 import fi.benjami.code4jvm.util.TypeCheck;
 
 public class Condition {
@@ -96,6 +98,11 @@ public class Condition {
 	
 	public Value[] values() {
 		return values;
+	}
+	
+	@Override
+	public boolean equals(Object o) {
+		return o instanceof Condition cond && cond.type == type && Arrays.equals(values, cond.values);
 	}
 	
 	@Override

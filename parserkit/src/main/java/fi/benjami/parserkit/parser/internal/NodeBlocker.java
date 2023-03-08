@@ -39,7 +39,7 @@ public class NodeBlocker {
 	
 	public NodeBlocker add(Block block, int nodeId) {
 		var typeMask = Constant.of(1L << nodeId);
-		var newMask =  block.add(BitOp.or(mask, typeMask));
+		var newMask = block.add(BitOp.or(mask, typeMask));
 		return new NodeBlocker(newMask, nodeId);
 	}
 	
@@ -55,5 +55,9 @@ public class NodeBlocker {
 	public Expression check(int nodeId) {
 		var typeMask = Constant.of(1L << nodeId);
 		return BitOp.and(mask, typeMask);
+	}
+	
+	public boolean isAlwaysBlocked(int nodeId) {
+		return topNode == nodeId;
 	}
 }

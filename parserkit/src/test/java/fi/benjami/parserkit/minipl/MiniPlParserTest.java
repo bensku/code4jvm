@@ -2,6 +2,9 @@ package fi.benjami.parserkit.minipl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 
 import org.junit.jupiter.api.BeforeAll;
@@ -13,7 +16,6 @@ import fi.benjami.parserkit.lexer.Lexer;
 import fi.benjami.parserkit.lexer.TokenTransformer;
 import fi.benjami.parserkit.lexer.TokenizedText;
 import fi.benjami.parserkit.parser.Parser;
-import fi.benjami.parserkit.parser.ParserFlag;
 import fi.benjami.parserkit.minipl.MiniPlNodes.*;
 
 @TestInstance(Lifecycle.PER_CLASS)
@@ -29,8 +31,9 @@ public class MiniPlParserTest {
 	}
 	
 	@BeforeAll
-	public void init() throws IllegalArgumentException, IllegalAccessException, NoSuchFieldException, SecurityException {
+	public void init() throws IllegalArgumentException, IllegalAccessException, NoSuchFieldException, SecurityException, IOException {
 		parser = Parser.compileAndLoad(MiniPlNodes.REGISTRY, MiniPlTokenType.values());
+		System.out.println(Parser.compile("foo", MiniPlNodes.REGISTRY, MiniPlTokenType.values()).length / 1024);
 //		parser.getClass().getField("HOOK").set(null, new TestParserHook());
 	}
 	
