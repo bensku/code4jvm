@@ -2,6 +2,7 @@ package fi.benjami.parserkit.parser.internal;
 
 import java.lang.reflect.Constructor;
 import java.util.ArrayList;
+import java.util.List;
 
 import fi.benjami.code4jvm.Condition;
 import fi.benjami.code4jvm.Constant;
@@ -240,9 +241,9 @@ public class ParserGenerator {
 			// Check if this node is known to be ALWAYS blocked here
 			// This reduces the code size a bit
 			var nodeId = nodeRegistry.getTypeId(childNode.type());
-			if (blocker.isAlwaysBlocked(nodeId)) {
-				return handler;
-			}
+//			if (blocker.isAlwaysBlocked(nodeId)) {
+//				return handler;
+//			}
 			
 			// If not, insert a check for blocked node to generated code
 			var isBlocked = handler.add(blocker.check(nodeId));
@@ -273,6 +274,30 @@ public class ParserGenerator {
 			handler.add(successTest);
 			
 			return handler;
+		} else if (input instanceof VirtualNodeInput virtualNode) {
+			// Unlike AST nodes, we must make sure the parser exists or generate it
+			var hasParser = nodeManager.hasParser(virtualNode);
+			if (!hasParser) {
+				addVirtualNode(virtualNode);
+			}
+			var parser = nodeManager.virtualNodeParser(virtualNode);
+			
+			var handler = Block.create("virtual node");
+			handler.add(success.set(Constant.of(false)));
+
+			// Call the method
+			var node = handler.add(parser.call(view, blocker.mask(), blocker.topNode()));
+			
+			// Check success (node == null on failure) and store the node
+			var successTest = new IfBlock();
+			successTest.branch(Condition.isNull(node).not(), block -> {
+				block.add(results.setResult(virtualNode.inputId(), node));
+				block.add(success.set(Constant.of(true)));
+			});
+			handler.add(successTest);
+			
+			return handler;
+
 		} else {
 			throw new AssertionError();
 		}
@@ -304,7 +329,7 @@ public class ParserGenerator {
 		}
 		
 		// Take blocked node mask as argument and add this node to it
-		var blocker = new NodeBlocker(method.arg(Type.LONG));
+		var blocker = new NodeBlocker(method.arg(Type.LONG), null);
 		blocker = blocker.add(method.block(), nodeRegistry.getTypeId(nodeType));
 		
 		// Prepare local variables for results
@@ -325,6 +350,35 @@ public class ParserGenerator {
 		});
 		method.add(successTest);
 	}
+	
+	private void addVirtualNode(VirtualNodeInput input) {
+		var target = nodeManager.virtualNodeParser(input);
+		var method = def.addStaticMethod(AST_NODE, target.name(), Access.PRIVATE);
+		var view = method.arg(TOKEN_VIEW);
+		var success = Variable.create(Type.BOOLEAN);
+				
+		// Take blocked node mask as argument and add this node to it
+		var blocker = new NodeBlocker(method.arg(Type.LONG), method.arg(Type.INT));
+		
+		// Prepare local variables for results
+		var results = new ResultRegistry(List.of(new ResultRegistry.InputArg("_virtualNode", AstNode.class)));
+		method.add(results.initResults());
+		
+		// Handle the root input
+		method.add(addInput(view, input.input(), results, success, blocker));
+		
+		// Create and return AST node if we have no failures
+		var successTest = new IfBlock();
+		successTest.branch(Condition.isTrue(success), block -> {
+			var astNode = results.constructorArgs().get(0);
+			block.add(Return.value(astNode));
+		});
+		successTest.fallback(block -> {
+			block.add(Return.value(Constant.nullValue(AST_NODE)));
+		});
+		method.add(successTest);
+	}
+
 	
 	private ResultRegistry newResultRegistry(Constructor<?> constructor) {
 		var inputArgs = new ArrayList<ResultRegistry.InputArg>();

@@ -17,18 +17,9 @@ public class NodeBlocker {
 	 */
 	private final Value mask;
 	
-	/**
-	 * Id of node that was given to {@link #add(Block, int)} call that
-	 * created this blocker. If this was created using some other way,
-	 * this is -1.
-	 */
-	private final int topNode;
+	private final Value topNode;
 	
-	public NodeBlocker(Value mask) {
-		this(mask, -1);
-	}
-	
-	private NodeBlocker(Value mask, int topNode) {
+	public NodeBlocker(Value mask, Value topNode) {
 		this.mask = mask;
 		this.topNode = topNode;
 	}
@@ -40,16 +31,14 @@ public class NodeBlocker {
 	public NodeBlocker add(Block block, int nodeId) {
 		var typeMask = Constant.of(1L << nodeId);
 		var newMask = block.add(BitOp.or(mask, typeMask));
-		return new NodeBlocker(newMask, nodeId);
+		return new NodeBlocker(newMask, Constant.of(nodeId));
 	}
 	
 	public NodeBlocker pop(Block block) {
-		if (topNode == -1) {
-			return this;
-		}
-		var typeMask = Constant.of(~(1L << topNode)); // negated mask
+		var shifted = block.add(BitOp.shiftLeft(Constant.of(1L), topNode));
+		var typeMask = block.add(BitOp.not(shifted)); // negated mask
 		var newMask = block.add(BitOp.and(mask, typeMask));
-		return new NodeBlocker(newMask);
+		return new NodeBlocker(newMask, topNode);
 	}
 	
 	public Expression check(int nodeId) {
@@ -57,7 +46,11 @@ public class NodeBlocker {
 		return BitOp.and(mask, typeMask);
 	}
 	
-	public boolean isAlwaysBlocked(int nodeId) {
-		return topNode == nodeId;
+	public Value topNode() {
+		return topNode;
 	}
+	
+//	public boolean isAlwaysBlocked(int nodeId) {
+//		return topNode == nodeId;
+//	}
 }

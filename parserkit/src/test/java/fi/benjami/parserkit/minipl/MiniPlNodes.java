@@ -46,7 +46,7 @@ public class MiniPlNodes {
 				Input.token("type", MiniPlTokenType.IDENTIFIER),
 				Input.optional(Input.allOf(
 						Input.token(MiniPlTokenType.ASSIGNMENT),
-						Input.childNode("expr", EXPRESSIONS)
+						Input.virtualNode("expr", EXPRESSIONS)
 						))
 				);
 	}
@@ -59,7 +59,7 @@ public class MiniPlNodes {
 		public static final Input PATTERN = Input.allOf(
 				Input.token("name", MiniPlTokenType.IDENTIFIER),
 				Input.token(MiniPlTokenType.ASSIGNMENT),
-				Input.childNode("expr", EXPRESSIONS)
+				Input.virtualNode("expr", EXPRESSIONS)
 				);
 	}
 	
@@ -79,7 +79,7 @@ public class MiniPlNodes {
 		
 		public static final Input PATTERN = Input.allOf(
 				Input.token(MiniPlTokenType.BUILTIN_PRINT),
-				Input.childNode("expr", EXPRESSIONS)
+				Input.virtualNode("expr", EXPRESSIONS)
 				);
 	}
 	
@@ -91,7 +91,7 @@ public class MiniPlNodes {
 		
 		public static final Input PATTERN = Input.allOf(
 				Input.token(MiniPlTokenType.IF),
-				Input.childNode("condition", EXPRESSIONS),
+				Input.virtualNode("condition", EXPRESSIONS),
 				Input.token(MiniPlTokenType.BLOCK_DO),
 				Input.childNode("body", Block.class),
 				Input.optional(Input.allOf(
@@ -114,9 +114,9 @@ public class MiniPlNodes {
 				Input.token(MiniPlTokenType.FOR),
 				Input.token("counter", MiniPlTokenType.IDENTIFIER),
 				Input.token(MiniPlTokenType.FOR_IN),
-				Input.childNode("start", EXPRESSIONS),
+				Input.virtualNode("start", EXPRESSIONS),
 				Input.token(MiniPlTokenType.FOR_DIVIDER),
-				Input.childNode("end", EXPRESSIONS),
+				Input.virtualNode("end", EXPRESSIONS),
 				Input.token(MiniPlTokenType.BLOCK_DO),
 				Input.childNode("body", Block.class),
 				Input.token(MiniPlTokenType.BLOCK_END),
@@ -143,7 +143,7 @@ public class MiniPlNodes {
 		
 		public static final Input PATTERN = Input.allOf(
 				Input.token(MiniPlTokenType.GROUP_BEGIN),
-				Input.childNode("expr", EXPRESSIONS),
+				Input.virtualNode("expr", EXPRESSIONS),
 				Input.token(MiniPlTokenType.GROUP_END)
 				);
 	}
@@ -154,7 +154,7 @@ public class MiniPlNodes {
 		
 		public static final Input PATTERN = Input.allOf(
 				Input.token(MiniPlTokenType.LOGICAL_NOT),
-				Input.childNode("expr", EXPRESSIONS)
+				Input.virtualNode("expr", EXPRESSIONS)
 				);
 	}
 	
@@ -164,9 +164,9 @@ public class MiniPlNodes {
 	) implements AstNode {
 		
 		public static final Input PATTERN = Input.allOf(
-				Input.childNode("lhs", EXPRESSIONS),
+				Input.virtualNode("lhs", EXPRESSIONS),
 				Input.token(MiniPlTokenType.LOGICAL_AND),
-				Input.childNode("rhs", EXPRESSIONS)
+				Input.virtualNode("rhs", EXPRESSIONS)
 				);
 	}
 	
@@ -176,9 +176,9 @@ public class MiniPlNodes {
 	) implements AstNode {
 		
 		public static final Input PATTERN = Input.allOf(
-				Input.childNode("lhs", EXPRESSIONS),
+				Input.virtualNode("lhs", EXPRESSIONS),
 				Input.token(MiniPlTokenType.EQUALS),
-				Input.childNode("rhs", EXPRESSIONS)
+				Input.virtualNode("rhs", EXPRESSIONS)
 				);
 	}
 	
@@ -188,9 +188,9 @@ public class MiniPlNodes {
 	) implements AstNode {
 		
 		public static final Input PATTERN = Input.allOf(
-				Input.childNode("lhs", EXPRESSIONS),
+				Input.virtualNode("lhs", EXPRESSIONS),
 				Input.token(MiniPlTokenType.LESS_THAN),
-				Input.childNode("rhs", EXPRESSIONS)
+				Input.virtualNode("rhs", EXPRESSIONS)
 				);
 	}
 	
@@ -200,9 +200,9 @@ public class MiniPlNodes {
 	) implements AstNode {
 		
 		public static final Input PATTERN = Input.allOf(
-				Input.childNode("lhs", EXPRESSIONS),
+				Input.virtualNode("lhs", EXPRESSIONS),
 				Input.token(MiniPlTokenType.ADD),
-				Input.childNode("rhs", EXPRESSIONS)
+				Input.virtualNode("rhs", EXPRESSIONS)
 				);
 	}
 	
@@ -212,9 +212,9 @@ public class MiniPlNodes {
 	) implements AstNode {
 		
 		public static final Input PATTERN = Input.allOf(
-				Input.childNode("lhs", EXPRESSIONS),
+				Input.virtualNode("lhs", EXPRESSIONS),
 				Input.token(MiniPlTokenType.SUBTRACT),
-				Input.childNode("rhs", EXPRESSIONS)
+				Input.virtualNode("rhs", EXPRESSIONS)
 				);
 	}
 	
@@ -224,9 +224,9 @@ public class MiniPlNodes {
 	) implements AstNode {
 		
 		public static final Input PATTERN = Input.allOf(
-				Input.childNode("lhs", EXPRESSIONS),
+				Input.virtualNode("lhs", EXPRESSIONS),
 				Input.token(MiniPlTokenType.MULTIPLY),
-				Input.childNode("rhs", EXPRESSIONS)
+				Input.virtualNode("rhs", EXPRESSIONS)
 				);
 	}
 	
@@ -236,9 +236,9 @@ public class MiniPlNodes {
 	) implements AstNode {
 		
 		public static final Input PATTERN = Input.allOf(
-				Input.childNode("lhs", EXPRESSIONS),
+				Input.virtualNode("lhs", EXPRESSIONS),
 				Input.token(MiniPlTokenType.DIVIDE),
-				Input.childNode("rhs", EXPRESSIONS)
+				Input.virtualNode("rhs", EXPRESSIONS)
 				);
 	}
 			

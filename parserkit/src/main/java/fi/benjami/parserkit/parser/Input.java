@@ -114,6 +114,16 @@ public interface Input {
 		return childNode(inputId, types.toArray(Class[]::new));
 	}
 	
+	@SafeVarargs
+	static Input virtualNode(String inputId, Class<? extends AstNode>... types) {
+		return new VirtualNodeInput(inputId, childNode("_virtualNode", types));
+	}
+	
+	@SuppressWarnings("unchecked")
+	static Input virtualNode(String inputId, List<Class<? extends AstNode>> types) {
+		return virtualNode(inputId, types.toArray(Class[]::new));
+	}
+	
 	default PredictSet predictSet(NodeRegistry nodes) {
 		// Use identity set; similar inputs might happen and that is totally ok
 		// The only problem we're trying to solve here is infinite recursion!

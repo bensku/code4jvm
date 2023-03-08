@@ -1,9 +1,12 @@
 package fi.benjami.code4jvm.statement;
 
 
+import fi.benjami.code4jvm.Constant;
 import fi.benjami.code4jvm.Expression;
+import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.Value;
 import fi.benjami.code4jvm.util.TypeCheck;
+import fi.benjami.code4jvm.util.TypeUtils;
 
 import static org.objectweb.asm.Opcodes.*;
 
@@ -66,5 +69,17 @@ public class BitOp {
 				ctx.asm().visitInsn(type.getOpcode(IXOR, ctx));
 			}, "bitwise xor"));
 		};
+	}
+	
+	public static Expression not(Value arg) {
+		Value mask;
+		if (TypeUtils.isIntLike(arg.type())) {
+			mask = Constant.of(~0);
+		} else if (arg.type().equals(Type.LONG)) {
+			mask = Constant.of(~0L);
+		} else {
+			throw new IllegalArgumentException("expected number type");
+		}
+		return xor(arg, mask);
 	}
 }
