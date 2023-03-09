@@ -37,8 +37,8 @@ public class ParserGenerator {
 	
 	private static final CallTarget COPY_VIEW = CallTarget.virtualMethod(TOKEN_VIEW, TOKEN_VIEW, "copy");
 	private static final CallTarget ADVANCE_VIEW = CallTarget.virtualMethod(TOKEN_VIEW, Type.VOID, "advance", TOKEN_VIEW);
-	private static final CallTarget PEEK_TOKEN = CallTarget.virtualMethod(TOKEN_VIEW, TOKEN, "peek");
-	private static final CallTarget POP_TOKEN = CallTarget.virtualMethod(TOKEN_VIEW, TOKEN, "pop");
+	private static final CallTarget PEEK_TOKEN = CallTarget.virtualMethod(TOKEN_VIEW, TOKEN, "peek", Type.LONG);
+	private static final CallTarget POP_TOKEN = CallTarget.virtualMethod(TOKEN_VIEW, TOKEN, "pop", Type.LONG);
 	
 	private static final CallTarget GET_TYPE = CallTarget.virtualMethod(TOKEN, Type.INT, "type");
 	private static final CallTarget GET_VALUE = CallTarget.virtualMethod(TOKEN, Type.OBJECT, "value");
@@ -53,13 +53,38 @@ public class ParserGenerator {
 	
 	private final boolean hookSupport;
 	
+	private final Constant normalTokenMask;
+	private final Constant errorRecoveryMask;
+	
 	public ParserGenerator(String className, NodeRegistry nodeRegistry, TokenType[] tokenTypes, boolean hookSupport) {
 		this.nodeRegistry = nodeRegistry;
 		this.tokenTypes = tokenTypes;
 		this.def = ClassDef.create(className, Access.PUBLIC);
 		def.interfaces(Type.of(Parser.class));
 		this.nodeManager = new NodeManager(def.type());
+		this.normalTokenMask = visibleTokenMask(tokenTypes);
+		this.errorRecoveryMask = recoveryTokenMask(tokenTypes);
 		this.hookSupport = hookSupport;
+	}
+	
+	private static Constant visibleTokenMask(TokenType[] tokenTypes) {
+		var mask = 0L;
+		for (TokenType type : tokenTypes) {
+			if ((type.flags() & TokenType.FLAG_INVISIBLE) == 0) {
+				mask |= 1L << type.ordinal();
+			}
+		}
+		return Constant.of(mask);
+	}
+	
+	private static Constant recoveryTokenMask(TokenType[] tokenTypes) {
+		var mask = 0L;
+		for (TokenType type : tokenTypes) {
+			if ((type.flags() & TokenType.FLAG_INVISIBLE) == 0 || (type.flags() & TokenType.FLAG_ERROR_RECOVERY) != 0) {
+				mask |= 1L << type.ordinal();
+			}
+		}
+		return Constant.of(mask);
 	}
 	
 	public void addRoot(Class<? extends AstNode> nodeType) {
@@ -102,7 +127,7 @@ public class ParserGenerator {
 			handler.add(success.set(Constant.of(false)));
 			
 			// Consume one token and check if it is what we expected
-			var nextToken = handler.add(POP_TOKEN.call(view));
+			var nextToken = handler.add(POP_TOKEN.call(view, normalTokenMask));
 			handler.add(Jump.to(handler, Jump.Target.END, Condition.isNull(nextToken)));
 			handler.add(hookCall(ParserHook.TOKEN, Constant.of(token.type().ordinal()), nextToken));
 			
@@ -121,7 +146,7 @@ public class ParserGenerator {
 			var handler = Block.create("choices");
 			handler.add(success.set(Constant.of(false)));
 			
-			var nextToken = handler.add(PEEK_TOKEN.call(view));
+			var nextToken = handler.add(PEEK_TOKEN.call(view, normalTokenMask));
 			handler.add(Jump.to(handler, Jump.Target.END, Condition.isNull(nextToken)));
 			
 			var ordinal = handler.add(GET_TYPE.call(nextToken));

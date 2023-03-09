@@ -4,6 +4,8 @@ import java.util.function.Function;
 
 public interface TokenType {
 	
+	static final int FLAG_INVISIBLE = 1, FLAG_ERROR_RECOVERY = 1 << 1;
+	
 	static Function<String, String> discardText() {
 		return str -> null;
 	}
@@ -15,6 +17,8 @@ public interface TokenType {
 	int ordinal();
 		
 	Function<String, ?> parser();
+	
+	int flags();
 	
 	default Token read(int startInDoc, String text) {
 		return new Token(startInDoc, text.length(), ordinal(), parser().apply(text));

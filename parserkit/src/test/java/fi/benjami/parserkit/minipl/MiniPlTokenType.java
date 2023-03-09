@@ -30,7 +30,7 @@ public enum MiniPlTokenType implements TokenType {
 	
 	// Tokens that actually contain state
 	IDENTIFIER(TokenType.collectText()),
-	COMMENT(TokenType.collectText()),
+	COMMENT(TokenType.collectText(), FLAG_INVISIBLE),
 	INT_LITERAL(Integer::parseInt),
 	STRING_LITERAL(TokenType.collectText()),
 	
@@ -49,14 +49,25 @@ public enum MiniPlTokenType implements TokenType {
 	ERROR(TokenType.collectText());
 	
 	private final Function<String, ?> parser;
+	private final int flags;
+	
+	MiniPlTokenType(Function<String, ?> parser, int flags) {
+		this.parser = parser;
+		this.flags = flags;
+	}
 	
 	MiniPlTokenType(Function<String, ?> parser) {
-		this.parser = parser;
+		this(parser, 0);
 	}
 
 	@Override
 	public Function<String, ?> parser() {
 		return parser;
+	}
+
+	@Override
+	public int flags() {
+		return flags;
 	}
 
 }

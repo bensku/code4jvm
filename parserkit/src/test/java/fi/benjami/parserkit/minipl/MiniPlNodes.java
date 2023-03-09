@@ -25,7 +25,7 @@ public class MiniPlNodes {
 		
 		public static final Input PATTERN = Input.repeating(Input.allOf(
 				Input.childNode("stmt", STATEMENTS),
-				Input.token(MiniPlTokenType.STATEMENT_END) // TODO fix
+				Input.token(MiniPlTokenType.STATEMENT_END)
 				));
 	}
 

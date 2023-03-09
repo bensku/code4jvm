@@ -124,6 +124,7 @@ public class TokenizedText {
 			return end;
 		}
 		
+		// FIXME unintuitive behavior with invisible tokens
 		public boolean hasNext() {
 			return slice.hasNext();
 		}
@@ -132,8 +133,31 @@ public class TokenizedText {
 			return hasNext() ? slice.peek() : null;
 		}
 		
+		public Token peek(long visibleMask) {
+			var next = peek();
+			while (true) {
+				if (next == null || ((1L << next.type()) & visibleMask) != 0) {
+					// Token is of accepted type OR we ran out of tokens
+					return next;
+				}
+				// Although we're just peeking, invisible nodes can be popped
+				// TODO what if peek(long) is called with different mask later?
+				next = pop();
+			}
+		}
+		
 		public Token pop() {
 			return hasNext() ? slice.pop() : null;
+		}
+		
+		public Token pop(long visibleMask) {
+			while (true) {
+				var next = pop();
+				if (next == null || ((1L << next.type()) & visibleMask) != 0) {
+					// Token is of accepted type OR we ran out of tokens
+					return next;
+				}
+			}
 		}
 		
 		public View copy() {
