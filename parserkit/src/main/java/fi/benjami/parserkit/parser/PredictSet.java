@@ -43,6 +43,6 @@ public class PredictSet {
 	}
 	
 	public boolean has(TokenType type) {
-		return predictions == null ? true : predictions.get(type.ordinal());
+		return predictions == null || predictions.get(type.ordinal());
 	}
 }

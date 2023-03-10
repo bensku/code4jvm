@@ -24,7 +24,15 @@ public class HandWrittenLexer implements Lexer {
 			var next = input.getCodepoint(1);
 			if (next == '/') {
 				// Single-line comment
-				yield null;
+				var id = new StringBuilder();
+				for (int i = 2; i < input.codepointsLeft(); i++) {
+					next = input.getCodepoint(i);
+					if (next == '\n') {
+						break;
+					}
+					id.appendCodePoint(next);
+				}
+				yield MiniPlTokenType.COMMENT.read(pos, id.toString(), id.length() + 3); // //\n
 			} else if (next == '*') {
 				// Multi-line comment
 				yield null;
@@ -55,15 +63,28 @@ public class HandWrittenLexer implements Lexer {
 				yield MiniPlTokenType.ERROR.read(pos, ".");
 			}
 		}
-//		case '"' -> {
-//			// TODO string handling
-//			yield null;
-//		}
+		case '"' -> {
+			var id = new StringBuilder();
+			var escape = false;
+			for (int i = 1; i < input.codepointsLeft(); i++) {
+				var next = input.getCodepoint(i);
+				if (next == '\\') {
+					escape = true;
+				} else if (escape) {
+					// TODO what about illegal escape sequences?
+					escape = false;
+				} else if (next == '"') {
+					break;
+				}
+				id.appendCodePoint(next);
+			}
+			yield MiniPlTokenType.STRING_LITERAL.read(pos, id.toString(), id.length() + 2);
+		}
 		default -> {
 			if (Character.isLetter(ch)) {
 				var id = new StringBuilder();
 				id.appendCodePoint(ch);
-				for (int i = 1;; i++) {
+				for (int i = 1; i < input.codepointsLeft(); i++) {
 					var next = input.getCodepoint(i);
 					if (next == '_' || Character.isLetter(next) || Character.isDigit(next)) {
 						id.appendCodePoint(next);

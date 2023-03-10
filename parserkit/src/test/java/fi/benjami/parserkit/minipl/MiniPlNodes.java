@@ -23,15 +23,14 @@ public class MiniPlNodes {
 			@ChildNode("stmt") List<Object> statements
 	) implements AstNode {
 		
-		public static final Input PATTERN = Input.repeating(Input.allOf(
-				Input.childNode("stmt", STATEMENTS),
-				Input.token(MiniPlTokenType.STATEMENT_END)
-				));
+		public static final Input PATTERN = Input.repeating(Input.childNode("stmt", STATEMENTS));
 	}
 
 	// Statements
 	public static final List<Class<? extends AstNode>> STATEMENTS = List.of(VarDeclaration.class,
 			VarAssignment.class, BuiltinRead.class, BuiltinPrint.class, IfBlock.class, ForBlock.class);
+	
+	public static final Input STATEMENT_END = Input.handleMissing(Input.token(MiniPlTokenType.STATEMENT_END), MiniPlError.MISSING_SEMICOLON);
 	
 	public record VarDeclaration(
 			@TokenValue("name") String name,
@@ -47,7 +46,8 @@ public class MiniPlNodes {
 				Input.optional(Input.allOf(
 						Input.token(MiniPlTokenType.ASSIGNMENT),
 						Input.virtualNode("expr", EXPRESSIONS)
-						))
+						)),
+				STATEMENT_END
 				);
 	}
 	
@@ -59,7 +59,8 @@ public class MiniPlNodes {
 		public static final Input PATTERN = Input.allOf(
 				Input.token("name", MiniPlTokenType.IDENTIFIER),
 				Input.token(MiniPlTokenType.ASSIGNMENT),
-				Input.virtualNode("expr", EXPRESSIONS)
+				Input.virtualNode("expr", EXPRESSIONS),
+				STATEMENT_END
 				);
 	}
 	
@@ -69,7 +70,8 @@ public class MiniPlNodes {
 		
 		public static final Input PATTERN = Input.allOf(
 				Input.token(MiniPlTokenType.BUILTIN_READ),
-				Input.token("variable", MiniPlTokenType.IDENTIFIER)
+				Input.token("variable", MiniPlTokenType.IDENTIFIER),
+				STATEMENT_END
 				);
 	}
 	
@@ -79,7 +81,8 @@ public class MiniPlNodes {
 		
 		public static final Input PATTERN = Input.allOf(
 				Input.token(MiniPlTokenType.BUILTIN_PRINT),
-				Input.virtualNode("expr", EXPRESSIONS)
+				Input.virtualNode("expr", EXPRESSIONS),
+				STATEMENT_END
 				);
 	}
 	
@@ -99,7 +102,8 @@ public class MiniPlNodes {
 						Input.childNode("fallback", Block.class)
 						)),
 				Input.token(MiniPlTokenType.BLOCK_END),
-				Input.token(MiniPlTokenType.IF)
+				Input.token(MiniPlTokenType.IF),
+				STATEMENT_END
 				);
 	}
 	
@@ -120,7 +124,8 @@ public class MiniPlNodes {
 				Input.token(MiniPlTokenType.BLOCK_DO),
 				Input.childNode("body", Block.class),
 				Input.token(MiniPlTokenType.BLOCK_END),
-				Input.token(MiniPlTokenType.FOR)
+				Input.token(MiniPlTokenType.FOR),
+				STATEMENT_END
 				);
 	}
 	

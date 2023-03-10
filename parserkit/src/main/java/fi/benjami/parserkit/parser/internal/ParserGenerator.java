@@ -2,7 +2,9 @@ package fi.benjami.parserkit.parser.internal;
 
 import java.lang.reflect.Constructor;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import fi.benjami.code4jvm.Condition;
 import fi.benjami.code4jvm.Constant;
@@ -13,6 +15,7 @@ import fi.benjami.code4jvm.Variable;
 import fi.benjami.code4jvm.block.Block;
 import fi.benjami.code4jvm.call.CallTarget;
 import fi.benjami.code4jvm.flag.Access;
+import fi.benjami.code4jvm.statement.BitOp;
 import fi.benjami.code4jvm.statement.Jump;
 import fi.benjami.code4jvm.statement.NoOp;
 import fi.benjami.code4jvm.statement.Return;
@@ -22,28 +25,44 @@ import fi.benjami.code4jvm.typedef.ClassDef;
 import fi.benjami.parserkit.lexer.Token;
 import fi.benjami.parserkit.lexer.TokenType;
 import fi.benjami.parserkit.lexer.TokenizedText;
+import fi.benjami.parserkit.parser.CompileError;
 import fi.benjami.parserkit.parser.Input;
 import fi.benjami.parserkit.parser.NodeRegistry;
+import fi.benjami.parserkit.parser.ParseResult;
 import fi.benjami.parserkit.parser.Parser;
 import fi.benjami.parserkit.parser.ast.AstNode;
 import fi.benjami.parserkit.parser.ast.ChildNode;
 import fi.benjami.parserkit.parser.ast.NodeCreator;
 import fi.benjami.parserkit.parser.ast.TokenValue;
+import fi.benjami.parserkit.parser.internal.input.ChildNodeInput;
+import fi.benjami.parserkit.parser.internal.input.ChoiceInput;
+import fi.benjami.parserkit.parser.internal.input.CompoundInput;
+import fi.benjami.parserkit.parser.internal.input.ParseErrorInput;
+import fi.benjami.parserkit.parser.internal.input.RepeatingInput;
+import fi.benjami.parserkit.parser.internal.input.TokenInput;
+import fi.benjami.parserkit.parser.internal.input.VirtualNodeInput;
 
 public class ParserGenerator {
 	
-	private static final Type TOKEN = Type.of(Token.class);
+	static final Type ARRAY_LIST = Type.of(ArrayList.class);
+	static final Type LIST = Type.of(List.class);
+	static final CallTarget LIST_ADD = CallTarget.virtualMethod(LIST, Type.BOOLEAN, "add", Type.OBJECT);
+	
+	static final Type HASH_SET = Type.of(HashSet.class);
+	static final Type SET = Type.of(Set.class);
+	static final CallTarget SET_ADD = CallTarget.virtualMethod(Type.of(Set.class), Type.BOOLEAN, "add", Type.OBJECT);
+	
+	static final Type TOKEN = Type.of(Token.class);
 	static final Type TOKEN_VIEW = Type.of(TokenizedText.View.class);
 	
 	private static final CallTarget COPY_VIEW = CallTarget.virtualMethod(TOKEN_VIEW, TOKEN_VIEW, "copy");
 	private static final CallTarget ADVANCE_VIEW = CallTarget.virtualMethod(TOKEN_VIEW, Type.VOID, "advance", TOKEN_VIEW);
-	private static final CallTarget PEEK_TOKEN = CallTarget.virtualMethod(TOKEN_VIEW, TOKEN, "peek", Type.LONG);
-	private static final CallTarget POP_TOKEN = CallTarget.virtualMethod(TOKEN_VIEW, TOKEN, "pop", Type.LONG);
 	
 	private static final CallTarget GET_TYPE = CallTarget.virtualMethod(TOKEN, Type.INT, "type");
 	private static final CallTarget GET_VALUE = CallTarget.virtualMethod(TOKEN, Type.OBJECT, "value");
 	
 	static final Type AST_NODE = Type.of(AstNode.class);
+	private static final Type PARSE_RESULT = Type.of(ParseResult.class);
 		
 	private final NodeRegistry nodeRegistry;
 	private TokenType[] tokenTypes;
@@ -53,8 +72,8 @@ public class ParserGenerator {
 	
 	private final boolean hookSupport;
 	
-	private final Constant normalTokenMask;
-	private final Constant errorRecoveryMask;
+	private final CallTarget peekToken;
+	private final CallTarget popToken;
 	
 	public ParserGenerator(String className, NodeRegistry nodeRegistry, TokenType[] tokenTypes, boolean hookSupport) {
 		this.nodeRegistry = nodeRegistry;
@@ -62,9 +81,12 @@ public class ParserGenerator {
 		this.def = ClassDef.create(className, Access.PUBLIC);
 		def.interfaces(Type.of(Parser.class));
 		this.nodeManager = new NodeManager(def.type());
-		this.normalTokenMask = visibleTokenMask(tokenTypes);
-		this.errorRecoveryMask = recoveryTokenMask(tokenTypes);
 		this.hookSupport = hookSupport;
+		
+		var visibleMask = visibleTokenMask(tokenTypes);
+		var errorMask = errorTokenMask(tokenTypes);
+		this.peekToken = addNextTokenHelper(visibleMask, errorMask, "$peek", "peek");
+		this.popToken = addNextTokenHelper(visibleMask, errorMask, "$pop", "pop");
 	}
 	
 	private static Constant visibleTokenMask(TokenType[] tokenTypes) {
@@ -77,10 +99,10 @@ public class ParserGenerator {
 		return Constant.of(mask);
 	}
 	
-	private static Constant recoveryTokenMask(TokenType[] tokenTypes) {
+	private static Constant errorTokenMask(TokenType[] tokenTypes) {
 		var mask = 0L;
 		for (TokenType type : tokenTypes) {
-			if ((type.flags() & TokenType.FLAG_INVISIBLE) == 0 || (type.flags() & TokenType.FLAG_ERROR_RECOVERY) != 0) {
+			if ((type.flags() & TokenType.FLAG_ERROR) != 0) {
 				mask |= 1L << type.ordinal();
 			}
 		}
@@ -92,22 +114,7 @@ public class ParserGenerator {
 	}
 	
 	public byte[] compile() {
-		// Add generic parse method
-		var method = def.addMethod(AST_NODE, "parse", Access.PUBLIC);
-		var nodeType = method.arg(Type.of(Class.class));
-		var view = method.arg(TOKEN_VIEW);
-		
-		// Decide which of the parser implementations we should call
-		var roots = new IfBlock();
-		for (var entry : nodeManager.astNodeParsers().entrySet()) {
-			roots.branch(Condition.equal(Constant.of(Type.of(entry.getKey())), nodeType), block -> {
-				// Begin parsing with empty blacklist
-				var node = block.add(entry.getValue().call(view, Constant.of(0L)));
-				block.add(Return.value(node));
-			});
-		}
-		method.add(roots);
-		method.add(Return.value(Constant.nullValue(AST_NODE)));
+		addPublicParseMethod();
 		
 		// Add default constructor
 		def.addEmptyConstructor(Access.PUBLIC);
@@ -119,15 +126,81 @@ public class ParserGenerator {
 		return def.compile();
 	}
 	
-	private Block addInput(Value view, Input input, ResultRegistry results,
-			Variable success, NodeBlocker blocker) {
+	private void addPublicParseMethod() {
+		var method = def.addMethod(PARSE_RESULT, "parse", Access.PUBLIC);
+		var nodeType = method.arg(Type.of(Class.class));
+		var view = method.arg(TOKEN_VIEW);
+		var errorSet = method.add(HASH_SET.newInstance()).asType(SET);
 		
+		var node = Variable.create(AST_NODE);
+		method.add(node.set(Constant.nullValue(AST_NODE)));
+		
+		// Decide which of the parser implementations we should call
+		var roots = new IfBlock();
+		for (var entry : nodeManager.astNodeParsers().entrySet()) {
+			roots.branch(Condition.equal(Constant.of(Type.of(entry.getKey())), nodeType), block -> {
+				// Begin parsing with empty blacklist
+				block.add(node.set(block.add(entry.getValue().call(view, Constant.of(0L), errorSet))));
+			});
+		}
+		method.add(roots);
+		
+		var result = method.add(PARSE_RESULT.newInstance(node, errorSet));
+		method.add(Return.value(result));
+	}
+	
+	private CallTarget addNextTokenHelper(Value visibleTokenMask, Value errorTokenMask, String name, String getter) {
+		var method = def.addStaticMethod(TOKEN, name, Access.PRIVATE);
+		var view = method.arg(TOKEN_VIEW);
+		var errors = new ErrorManager(method.arg(SET));
+		
+		var token = Variable.create(TOKEN);
+		method.add(token.set(method.add(view.callVirtual(TOKEN, getter))));
+		
+		var tokenFound = Block.create();
+		tokenFound.add(Return.value(token));
+		
+		var loop = Block.create();
+		
+		// If token is null, return it (generated parser should handle that)
+		loop.add(Jump.to(tokenFound, Jump.Target.START, Condition.isNull(token)));
+		
+		// If token is visible, return it
+		var type = loop.add(GET_TYPE.call(token));
+		var mask = loop.add(BitOp.shiftLeft(Constant.of(1L), type));
+		var isVisible = loop.add(BitOp.and(mask, visibleTokenMask));
+		// FIXME code4jvm: promote RHS to long automatically or throw, don't miscompile it!
+		loop.add(Jump.to(tokenFound, Jump.Target.START, Condition.equal(isVisible, Constant.of(0L)).not()));
+		
+		// Check if the current token is error
+		var isError = loop.add(BitOp.and(mask, errorTokenMask));
+		var prevToken = loop.add(token.copy());
+		
+		// No matter the result, take the next token
+		// Yes, we'll pop() invisible tokens even when peeking; that is (hopefully) safe
+		loop.add(token.set(loop.add(view.callVirtual(TOKEN, "pop"))));
+		
+		// If the token is not error, jump to loop start
+		loop.add(Jump.to(loop, Jump.Target.START, Condition.equal(isError, Constant.of(0L))));
+		
+		// If it is error, record it and jump to start
+		loop.add(errors.errorAtToken(CompileError.LEXICAL, prevToken));
+		loop.add(Jump.to(loop, Jump.Target.START));
+		
+		method.add(loop);
+		method.add(tokenFound);
+		
+		return CallTarget.staticMethod(def.type(), TOKEN, name, TOKEN_VIEW, SET);
+	}
+	
+	private Block addInput(Value view, Input input, ResultRegistry results, ErrorManager errors,
+			Variable success, NodeBlocker blocker) {
 		if (input instanceof TokenInput token) {
 			var handler = Block.create("token " + token.type());
 			handler.add(success.set(Constant.of(false)));
 			
 			// Consume one token and check if it is what we expected
-			var nextToken = handler.add(POP_TOKEN.call(view, normalTokenMask));
+			var nextToken = handler.add(popToken.call(view, errors.errorSet()));
 			handler.add(Jump.to(handler, Jump.Target.END, Condition.isNull(nextToken)));
 			handler.add(hookCall(ParserHook.TOKEN, Constant.of(token.type().ordinal()), nextToken));
 			
@@ -146,7 +219,7 @@ public class ParserGenerator {
 			var handler = Block.create("choices");
 			handler.add(success.set(Constant.of(false)));
 			
-			var nextToken = handler.add(PEEK_TOKEN.call(view, normalTokenMask));
+			var nextToken = handler.add(peekToken.call(view, errors.errorSet()));
 			handler.add(Jump.to(handler, Jump.Target.END, Condition.isNull(nextToken)));
 			
 			var ordinal = handler.add(GET_TYPE.call(nextToken));
@@ -182,7 +255,7 @@ public class ParserGenerator {
 							var newCopy = block.add(COPY_VIEW.call(view));
 							block.add(viewCopy.set(newCopy)); // newCopy is on stack, hopefully
 							// Parse the choice
-							block.add(addInput(viewCopy, choice, results, success, blocker));
+							block.add(addInput(viewCopy, choice, results, errors, success, blocker));
 							
 							// Short-circuit on success
 							block.add(Jump.to(onSuccess, Jump.Target.START, Condition.isTrue(success)));
@@ -204,7 +277,7 @@ public class ParserGenerator {
 			
 			return handler;
 		} else if (input instanceof CompoundInput compound) {
-			var handler = Block.create("compound");
+			var handler = Block.create("compound");			
 			handler.add(hookCall(ParserHook.BEFORE_COMPOUND, Constant.of(compound.toString())));
 
 			// Compound inputs use two sets of blocked node masks
@@ -219,14 +292,16 @@ public class ParserGenerator {
 			var parts = compound.parts();
 			for (var i = 0; i < parts.size(); i++) {
 				var part = parts.get(i);
-				handler.add(hookCall(ParserHook.COMPOUND_BEFORE_PART, Constant.of(part.toString()), Constant.of(i)));
+				var partHandler = Block.create("part " + i);
+				partHandler.add(hookCall(ParserHook.COMPOUND_BEFORE_PART, Constant.of(part.toString()), Constant.of(i)));
 				
-				handler.add(addInput(viewCopy, part, results, success, currentBlocker));
+				partHandler.add(addInput(viewCopy, part, results, errors, success, currentBlocker));
 				// Jump to end on failure (short-circuit)
-				handler.add(Jump.to(handler, Jump.Target.END, Condition.isFalse(success)));
+				partHandler.add(Jump.to(handler, Jump.Target.END, Condition.isFalse(success)));
 				
 				// TODO what about failure hook?
-				handler.add(hookCall(ParserHook.COMPOUND_AFTER_PART, Constant.of(part.toString()), Constant.of(i), Constant.of(true)));
+				partHandler.add(hookCall(ParserHook.COMPOUND_AFTER_PART, Constant.of(part.toString()), Constant.of(i), Constant.of(true)));
+				handler.add(partHandler);
 				
 				// Allow right recursion
 				currentBlocker = rightBlocker;
@@ -242,7 +317,7 @@ public class ParserGenerator {
 			var viewCopy = handler.add(COPY_VIEW.call(view));
 			var body = Block.create("repeating");
 			var loop = LoopBlock.whileLoop(body, Condition.always(true));
-			body.add(addInput(viewCopy, repeating.input(), results, success, blocker));
+			body.add(addInput(viewCopy, repeating.input(), results, errors, success, blocker));
 			
 			var successTest = new IfBlock();
 			successTest.branch(Condition.isTrue(success), block -> {
@@ -263,15 +338,8 @@ public class ParserGenerator {
 			var handler = Block.create("node " + childNode.type());
 			handler.add(success.set(Constant.of(false)));
 			
-			// Check if this node is known to be ALWAYS blocked here
-			// This reduces the code size a bit
-			var nodeId = nodeRegistry.getTypeId(childNode.type());
-//			if (blocker.isAlwaysBlocked(nodeId)) {
-//				return handler;
-//			}
-			
-			// If not, insert a check for blocked node to generated code
-			var isBlocked = handler.add(blocker.check(nodeId));
+			// Insert a check for blocked node to generated code
+			var isBlocked = handler.add(blocker.check(nodeRegistry.getTypeId(childNode.type())));
 			var blacklistTest = new IfBlock();
 			// TODO WHY is this smaller than a direct jump?!?
 			blacklistTest.branch(Condition.equal(isBlocked, Constant.of(0L)).not(), block -> {
@@ -287,7 +355,7 @@ public class ParserGenerator {
 
 			// Call the method
 			var viewCopy = handler.add(COPY_VIEW.call(view));
-			var node = handler.add(parser.call(viewCopy, blocker.mask()));
+			var node = handler.add(parser.call(viewCopy, blocker.mask(), errors.errorSet()));
 			
 			// Check success (node == null on failure) and store the node
 			var successTest = new IfBlock();
@@ -311,7 +379,7 @@ public class ParserGenerator {
 			handler.add(success.set(Constant.of(false)));
 
 			// Call the method
-			var node = handler.add(parser.call(view, blocker.mask(), blocker.topNode()));
+			var node = handler.add(parser.call(view, blocker.mask(), blocker.topNode(), errors.errorSet()));
 			
 			// Check success (node == null on failure) and store the node
 			var successTest = new IfBlock();
@@ -323,6 +391,25 @@ public class ParserGenerator {
 			
 			return handler;
 
+		} else if (input instanceof ParseErrorInput parseError) {
+			var handler = Block.create("handle error " + parseError.errorType());
+			
+			var viewCopy = handler.add(COPY_VIEW.call(view));
+			handler.add(addInput(viewCopy, parseError.input(), results, errors, success, blocker));
+			
+			var successTest = new IfBlock();
+			successTest.branch(Condition.isTrue(success), block -> {
+				// No error, continue parsing
+				block.add(ADVANCE_VIEW.call(view, viewCopy));
+			});
+			successTest.fallback(block -> {
+				// Record error and continue parsing
+				block.add(errors.errorAtHere(parseError.errorType(), view));
+				block.add(success.set(Constant.of(true)));
+			});
+			handler.add(successTest);
+			
+			return handler;
 		} else {
 			throw new AssertionError();
 		}
@@ -361,8 +448,11 @@ public class ParserGenerator {
 		var results = newResultRegistry(constructor);
 		method.add(results.initResults());
 		
+		// Take the error list given to us as argument
+		var errors = new ErrorManager(method.arg(SET));
+		
 		// Handle the root input
-		method.add(addInput(view, input, results, success, blocker));
+		method.add(addInput(view, input, results, errors, success, blocker));
 		
 		// Create and return AST node if we have no failures
 		var successTest = new IfBlock();
@@ -389,8 +479,11 @@ public class ParserGenerator {
 		var results = new ResultRegistry(List.of(new ResultRegistry.InputArg("_virtualNode", AstNode.class)));
 		method.add(results.initResults());
 		
+		// Take the error list given to us as argument
+		var errors = new ErrorManager(method.arg(SET));
+		
 		// Handle the root input
-		method.add(addInput(view, input.input(), results, success, blocker));
+		method.add(addInput(view, input.input(), results, errors, success, blocker));
 		
 		// Create and return AST node if we have no failures
 		var successTest = new IfBlock();

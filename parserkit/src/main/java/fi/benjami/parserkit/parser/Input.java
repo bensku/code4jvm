@@ -7,15 +7,16 @@ import java.util.List;
 import java.util.Set;
 
 import fi.benjami.parserkit.lexer.TokenType;
-import fi.benjami.parserkit.parser.internal.CompoundInput;
 import fi.benjami.parserkit.parser.ast.AstNode;
 import fi.benjami.parserkit.parser.ast.ChildNode;
 import fi.benjami.parserkit.parser.ast.TokenValue;
-import fi.benjami.parserkit.parser.internal.ChildNodeInput;
-import fi.benjami.parserkit.parser.internal.ChoiceInput;
-import fi.benjami.parserkit.parser.internal.RepeatingInput;
-import fi.benjami.parserkit.parser.internal.TokenInput;
-import fi.benjami.parserkit.parser.internal.VirtualNodeInput;
+import fi.benjami.parserkit.parser.internal.input.ChildNodeInput;
+import fi.benjami.parserkit.parser.internal.input.ChoiceInput;
+import fi.benjami.parserkit.parser.internal.input.CompoundInput;
+import fi.benjami.parserkit.parser.internal.input.ParseErrorInput;
+import fi.benjami.parserkit.parser.internal.input.RepeatingInput;
+import fi.benjami.parserkit.parser.internal.input.TokenInput;
+import fi.benjami.parserkit.parser.internal.input.VirtualNodeInput;
 
 public interface Input {
 	
@@ -122,6 +123,21 @@ public interface Input {
 	@SuppressWarnings("unchecked")
 	static Input virtualNode(String inputId, List<Class<? extends AstNode>> types) {
 		return virtualNode(inputId, types.toArray(Class[]::new));
+	}
+	
+	/**
+	 * Creates an input that tries to match the given pattern and produces an
+	 * error if that fails. The pattern will still parse, allowing this to be
+	 * used as an error recovery approach.
+	 * @param input Input that should be parsed.
+	 * @param errorType Type of error to create.
+	 * @return Wrapped input.
+	 */
+	static Input handleMissing(Input input, int errorType) {
+		if (errorType < 0) {
+			throw new IllegalArgumentException("negative error types are reserved for parserkit");
+		}
+		return new ParseErrorInput(input, errorType);
 	}
 	
 	default PredictSet predictSet(NodeRegistry nodes) {

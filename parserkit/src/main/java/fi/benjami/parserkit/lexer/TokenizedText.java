@@ -109,6 +109,7 @@ public class TokenizedText {
 		private final int end;
 		
 		private TokenList.Slice slice;
+		private int textOffset;
 		
 		View(int start, int end, TokenList.Slice slice) {
 			this.start = start;
@@ -124,7 +125,10 @@ public class TokenizedText {
 			return end;
 		}
 		
-		// FIXME unintuitive behavior with invisible tokens
+		public int textOffset() {
+			return textOffset;
+		}
+		
 		public boolean hasNext() {
 			return slice.hasNext();
 		}
@@ -133,30 +137,13 @@ public class TokenizedText {
 			return hasNext() ? slice.peek() : null;
 		}
 		
-		public Token peek(long visibleMask) {
-			var next = peek();
-			while (true) {
-				if (next == null || ((1L << next.type()) & visibleMask) != 0) {
-					// Token is of accepted type OR we ran out of tokens
-					return next;
-				}
-				// Although we're just peeking, invisible nodes can be popped
-				// TODO what if peek(long) is called with different mask later?
-				next = pop();
-			}
-		}
-		
 		public Token pop() {
-			return hasNext() ? slice.pop() : null;
-		}
-		
-		public Token pop(long visibleMask) {
-			while (true) {
-				var next = pop();
-				if (next == null || ((1L << next.type()) & visibleMask) != 0) {
-					// Token is of accepted type OR we ran out of tokens
-					return next;
-				}
+			if (hasNext()) {
+				var next = slice.pop();
+				textOffset = next.end();
+				return next;
+			} else {
+				return null;
 			}
 		}
 		
@@ -166,6 +153,7 @@ public class TokenizedText {
 		
 		public void advance(View view) {
 			slice = view.slice;
+			textOffset = view.textOffset;
 		}
 	}
 	

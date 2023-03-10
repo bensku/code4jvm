@@ -1,4 +1,4 @@
-package fi.benjami.parserkit.parser.internal;
+package fi.benjami.parserkit.parser.internal.input;
 
 import java.util.List;
 import java.util.Set;

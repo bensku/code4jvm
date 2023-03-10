@@ -1,4 +1,4 @@
-package fi.benjami.parserkit.parser.internal;
+package fi.benjami.parserkit.parser.internal.input;
 
 import java.util.Set;
 
@@ -6,9 +6,9 @@ import fi.benjami.parserkit.parser.Input;
 import fi.benjami.parserkit.parser.NodeRegistry;
 import fi.benjami.parserkit.parser.PredictSet;
 
-public record VirtualNodeInput(
-		String inputId,
-		Input input
+public record ParseErrorInput(
+		Input input,
+		int errorType
 ) implements Input {
 
 	@Override

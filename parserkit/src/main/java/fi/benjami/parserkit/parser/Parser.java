@@ -37,5 +37,5 @@ public interface Parser {
 		return generator.compile();
 	}
 	
-	AstNode parse(Class<? extends AstNode> nodeType, TokenizedText.View view);
+	ParseResult parse(Class<? extends AstNode> nodeType, TokenizedText.View view);
 }

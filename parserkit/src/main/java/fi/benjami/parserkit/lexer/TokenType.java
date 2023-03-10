@@ -4,7 +4,7 @@ import java.util.function.Function;
 
 public interface TokenType {
 	
-	static final int FLAG_INVISIBLE = 1, FLAG_ERROR_RECOVERY = 1 << 1;
+	static final int FLAG_INVISIBLE = 1, FLAG_ERROR = (1 << 1) | FLAG_INVISIBLE;
 	
 	static Function<String, String> discardText() {
 		return str -> null;
@@ -20,8 +20,12 @@ public interface TokenType {
 	
 	int flags();
 	
+	default Token read(int startInDoc, String text, int length) {
+		return new Token(startInDoc, length, ordinal(), parser().apply(text));
+	}
+	
 	default Token read(int startInDoc, String text) {
-		return new Token(startInDoc, text.length(), ordinal(), parser().apply(text));
+		return read(startInDoc, text, text.length());
 	}
 	
 	/**

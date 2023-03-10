@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
 import fi.benjami.parserkit.lexer.Token;
 import fi.benjami.parserkit.lexer.TokenizedText;
 
-public class MiniPlTest {
+public class MiniPlLexerTest {
 
 	@Test
 	public void sample1() {
@@ -90,5 +90,12 @@ public class MiniPlTest {
 //		while (view.hasNext()) {
 //			System.out.println(view.pop());
 //		}
+	}
+	
+	@Test
+	public void errorToken() {
+		var text  = new TokenizedText(new HandWrittenLexer(), new MiniPlTransformer());
+		var view = text.apply("{", 0, 0);
+		assertEquals(new Token(0, 1, MiniPlTokenType.ERROR.ordinal(), "{"), view.pop());
 	}
 }

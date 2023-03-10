@@ -1,9 +1,11 @@
 package fi.benjami.parserkit.minipl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -13,6 +15,7 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
 import fi.benjami.parserkit.lexer.Lexer;
 import fi.benjami.parserkit.lexer.TokenTransformer;
 import fi.benjami.parserkit.lexer.TokenizedText;
+import fi.benjami.parserkit.parser.CompileError;
 import fi.benjami.parserkit.parser.Parser;
 import fi.benjami.parserkit.parser.ast.AstNode;
 import fi.benjami.parserkit.minipl.MiniPlNodes.*;
@@ -30,11 +33,14 @@ public class MiniPlParserTest {
 	}
 	
 	private AstNode parse(Class<? extends AstNode> type, String text) {
-		return parser.parse(type, tokenize(text));
+		var result = parser.parse(type, tokenize(text));
+		assertEquals(Set.of(), result.errors());
+		return result.node();
 	}
 	
 	@BeforeAll
 	public void init() throws IllegalArgumentException, IllegalAccessException, NoSuchFieldException, SecurityException, IOException {
+//		DebugOptions.PRINT_METHODS = true;
 		parser = Parser.compileAndLoad(MiniPlNodes.REGISTRY, MiniPlTokenType.values());
 		System.out.println(Parser.compile("foo", MiniPlNodes.REGISTRY, MiniPlTokenType.values()).length / 1024);
 //		parser.getClass().getField("HOOK").set(null, new TestParserHook());
@@ -43,7 +49,7 @@ public class MiniPlParserTest {
 	@Test
 	public void values() {
 		assertEquals(new Constant(10), parse(MiniPlNodes.Constant.class, "10"));
-		// TODO string constant lexing
+		assertEquals(new Constant("foo"), parse(MiniPlNodes.Constant.class, "\"foo\""));
 	}
 	
 	@Test
@@ -102,5 +108,35 @@ public class MiniPlParserTest {
 				new Block(List.of(new BuiltinPrint(new Literal(new VarReference("a"))))),
 				new Block(List.of(new BuiltinPrint(new Literal(new VarReference("b")))))
 				), parse(IfBlock.class, "if 1 = b do print a; else print b; end if;"));
+	}
+	
+	@Test
+	public void errorToken() {
+		var result = parser.parse(AddExpr.class, tokenize("{"));
+		assertNull(result.node());
+		assertEquals(Set.of(new CompileError(CompileError.LEXICAL, 0, 1)), result.errors());
+	}
+	
+	@Test
+	public void missingParts() {
+		var result = parser.parse(AddExpr.class, tokenize("read"));
+		System.out.println(result);
+		// TODO
+	}
+	
+	@Test
+	public void missingSemicolon() {
+		// Automatic semicolon insertion!
+		var result = parser.parse(Block.class, tokenize("read a print b print c"));
+		assertEquals(new Block(List.of(
+				new BuiltinRead("a"),
+				new BuiltinPrint(new Literal(new VarReference("b"))),
+				new BuiltinPrint(new Literal(new VarReference("c")))
+				)), result.node());
+		assertEquals(Set.of(
+				new CompileError(MiniPlError.MISSING_SEMICOLON, 6, 6),
+				new CompileError(MiniPlError.MISSING_SEMICOLON, 14, 14),
+				new CompileError(MiniPlError.MISSING_SEMICOLON, 22, 22)
+				), result.errors());
 	}
 }

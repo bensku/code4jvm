@@ -46,7 +46,7 @@ public enum MiniPlTokenType implements TokenType {
 	BUILTIN_PRINT(TokenType.discardText()),
 	
 	// The error token
-	ERROR(TokenType.collectText());
+	ERROR(TokenType.collectText(), FLAG_ERROR);
 	
 	private final Function<String, ?> parser;
 	private final int flags;
