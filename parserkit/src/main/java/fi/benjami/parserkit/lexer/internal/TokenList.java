@@ -283,6 +283,10 @@ public class TokenList {
 		assert end >= expectedEnd;
 		var list = current;
 		var lastIndex = list.lastIndex;
+		if (lastIndex == -1) {
+			return; // Empty token list, do nothing
+		}
+		
 		if (list.end(lastIndex) <= end) {
 			// Truncate rest of current list, and potentially more lists
 			// TODO remove list if currentToken == 0

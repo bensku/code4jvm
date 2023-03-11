@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 
+import fi.benjami.code4jvm.internal.DebugOptions;
 import fi.benjami.parserkit.lexer.Lexer;
 import fi.benjami.parserkit.lexer.TokenTransformer;
 import fi.benjami.parserkit.lexer.TokenizedText;
@@ -114,14 +115,33 @@ public class MiniPlParserTest {
 	public void errorToken() {
 		var result = parser.parse(AddExpr.class, tokenize("{"));
 		assertNull(result.node());
-		assertEquals(Set.of(new CompileError(CompileError.LEXICAL, 0, 1)), result.errors());
+		assertEquals(Set.of(
+				new CompileError(MiniPlError.MISSING_EXPRESSION, 1, 1),
+				new CompileError(CompileError.LEXICAL, 0, 1)
+				), result.errors());
 	}
 	
 	@Test
 	public void missingParts() {
-		var result = parser.parse(AddExpr.class, tokenize("read"));
-		System.out.println(result);
-		// TODO
+		// Basic expression
+		var result = parser.parse(SubtractExpr.class, tokenize("a - "));
+		assertEquals(new SubtractExpr(
+				new Literal(new VarReference("a")),
+				null
+				), result.node());
+		assertEquals(Set.of(new CompileError(MiniPlError.MISSING_EXPRESSION, 3, 3)), result.errors());
+		
+		// A bit more complicated error recovery
+		// Note: the odd parse order is because we specially request parsing MultiplyExpr
+		var result2 = parser.parse(MultiplyExpr.class, tokenize("a * c + "));
+		assertEquals(new MultiplyExpr(
+				new Literal(new VarReference("a")),
+				new AddExpr(
+						new Literal(new VarReference("c")),
+						null
+						)
+				), result2.node());
+		assertEquals(Set.of(new CompileError(MiniPlError.MISSING_EXPRESSION, 7, 7)), result2.errors());
 	}
 	
 	@Test

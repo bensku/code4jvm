@@ -29,8 +29,11 @@ public class TokenizedText {
 		// For example, if token A=a, B=b and C=ab could otherwise cause
 		// lexing to start in middle of C, leading to inconsistent results
 		for (;;) {
+			if (start == 0) {
+				break;
+			}
 			var ch = text.codePointAt(start);
-			if (lexer.isWhitespace(ch) || start == 0) {
+			if (lexer.isWhitespace(ch)) {
 				break;
 			}
 			start -= Character.charCount(ch);
@@ -87,10 +90,10 @@ public class TokenizedText {
 		tokens.updatesIndices(indicesAfterMod);
 		
 		// Create view for parser
-		int modifiedStart = slice.peek().start();
+		int modifiedStart = slice.hasNext() ? slice.peek().start() : start;
 		// End is EOF, or the start of first token after modified area
 		int modifiedEnd = tokenAfter == null ? text.length() :  tokenAfter.start() - indicesAfterMod;
-		return new View(modifiedStart, modifiedEnd, slice);
+		return new View(modifiedStart, modifiedEnd, slice, modifiedStart);
 	}
 	
 	private Token nextToken(LexerInput input) {
@@ -100,7 +103,7 @@ public class TokenizedText {
 	
 	public View viewFromStart() {
 		var slice = tokens.everything();
-		return new View(0, text.length(), slice);
+		return new View(0, text.length(), slice, 0);
 	}
 	
 	public static class View {
@@ -111,10 +114,11 @@ public class TokenizedText {
 		private TokenList.Slice slice;
 		private int textOffset;
 		
-		View(int start, int end, TokenList.Slice slice) {
+		View(int start, int end, TokenList.Slice slice, int textOffset) {
 			this.start = start;
 			this.end = end;
 			this.slice = slice;
+			this.textOffset = textOffset;
 		}
 		
 		public int start() {
@@ -148,7 +152,7 @@ public class TokenizedText {
 		}
 		
 		public View copy() {
-			return new View(start, end, slice.copy());
+			return new View(start, end, slice.copy(), textOffset);
 		}
 		
 		public void advance(View view) {

@@ -37,9 +37,9 @@ public class PredictSet {
 	public void add(PredictSet other) {
 		if (other.isEverything()) {
 			predictions = null;
-		} else {			
+		} else if (!isEverything()) {
 			predictions.or(other.predictions);
-		}
+		} // else: do nothing, this already predicts everything
 	}
 	
 	public boolean has(TokenType type) {

@@ -8,7 +8,8 @@ import fi.benjami.parserkit.parser.PredictSet;
 
 public record VirtualNodeInput(
 		String inputId,
-		Input input
+		Input input,
+		boolean errorRecovery
 ) implements Input {
 
 	@Override

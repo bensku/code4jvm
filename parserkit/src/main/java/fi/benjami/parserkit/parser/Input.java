@@ -48,7 +48,7 @@ public interface Input {
 	 * @return Choice input.
 	 */
 	static Input oneOf(Input... choices) {
-		return new ChoiceInput(List.of(choices));
+		return new ChoiceInput(List.of(choices), null);
 	}
 	
 	/**
@@ -115,9 +115,22 @@ public interface Input {
 		return childNode(inputId, types.toArray(Class[]::new));
 	}
 	
+	static Input virtualNode(String inputId, VirtualNode spec) {
+		var choices = Arrays.stream(spec.astNodeTypes())
+				.map(type -> childNode("_virtualNode", type))
+				.toList();
+		Input choiceInput;
+		if (spec.handlesErrors()) {
+			choiceInput = new ChoiceInput(choices, new ParseErrorInput(null, spec.errorType()));
+		} else {
+			choiceInput = new ChoiceInput(choices, null);
+		}
+		return new VirtualNodeInput(inputId, choiceInput, spec.handlesErrors());
+	}
+	
 	@SafeVarargs
 	static Input virtualNode(String inputId, Class<? extends AstNode>... types) {
-		return new VirtualNodeInput(inputId, childNode("_virtualNode", types));
+		return virtualNode(inputId, VirtualNode.of(types));
 	}
 	
 	@SuppressWarnings("unchecked")
@@ -133,7 +146,7 @@ public interface Input {
 	 * @param errorType Type of error to create.
 	 * @return Wrapped input.
 	 */
-	static Input handleMissing(Input input, int errorType) {
+	static Input inputOrError(Input input, int errorType) {
 		if (errorType < 0) {
 			throw new IllegalArgumentException("negative error types are reserved for parserkit");
 		}

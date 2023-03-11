@@ -1,6 +1,5 @@
 package fi.benjami.parserkit.parser.internal.input;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
@@ -14,7 +13,8 @@ import fi.benjami.parserkit.parser.PredictSet;
  *
  */
 public record ChoiceInput(
-		List<Input> choices
+		List<Input> choices,
+		Input fallback
 ) implements Input {
 
 	@Override

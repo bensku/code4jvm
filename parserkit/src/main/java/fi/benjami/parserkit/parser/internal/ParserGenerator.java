@@ -219,12 +219,6 @@ public class ParserGenerator {
 			var handler = Block.create("choices");
 			handler.add(success.set(Constant.of(false)));
 			
-			var nextToken = handler.add(peekToken.call(view, errors.errorSet()));
-			handler.add(Jump.to(handler, Jump.Target.END, Condition.isNull(nextToken)));
-			
-			var ordinal = handler.add(GET_TYPE.call(nextToken));
-			handler.add(hookCall(ParserHook.BEFORE_CHOICES, ordinal, Constant.of(choices.toString())));
-			
 			var viewCopy = Variable.create(TOKEN_VIEW);
 			
 			// Shared success handler for all choices (inserted after them)
@@ -232,11 +226,31 @@ public class ParserGenerator {
 			// If hooks are enabled, notify it about success with this particular choice
 			// AND the entire choice group
 			// TODO they broke, but code size is more important right now
-//			onSuccess.add(hookCall(ParserHook.CHOICE_AFTER_INPUT, Constant.of(choice.toString()), Constant.of(true)));
-//			onSuccess.add(hookCall(ParserHook.AFTER_CHOICES, Constant.of(choices.toString()), Constant.of(true)));
+			onSuccess.add(hookCall(ParserHook.CHOICE_AFTER_INPUT, Constant.of("UNKNOWN"), Constant.of(true)));
+			onSuccess.add(hookCall(ParserHook.AFTER_CHOICES, Constant.of(choices.toString()), Constant.of(true)));
 			
 			// Advance parent view given to us if parsing succeeded
 			onSuccess.add(ADVANCE_VIEW.call(view, viewCopy));
+			
+			// Fallback handler
+			var fallback = Block.create("fallback");
+			fallback.add(hookCall(ParserHook.AFTER_CHOICES, Constant.of(choices.toString()), Constant.of(false)));
+			if (choices.fallback() != null) {
+				var newCopy = fallback.add(COPY_VIEW.call(view));
+				fallback.add(viewCopy.set(newCopy));
+				fallback.add(addInput(viewCopy, choices.fallback(), results, errors, success, blocker));
+				fallback.add(Jump.to(handler, Jump.Target.END, Condition.isFalse(success)));
+			} else {
+				fallback.add(Jump.to(handler, Jump.Target.END));
+			}
+			
+			// Peek at the next token
+			var nextToken = handler.add(peekToken.call(view, errors.errorSet()));
+			// If it is null, jump directly to fallback for error handling
+			handler.add(Jump.to(fallback, Jump.Target.START, Condition.isNull(nextToken)));
+			
+			var ordinal = handler.add(GET_TYPE.call(nextToken));
+			handler.add(hookCall(ParserHook.BEFORE_CHOICES, ordinal, Constant.of(choices.toString())));
 			
 			// Try to select choice using the predict set
 			// TODO use tableswitch for large tables?
@@ -267,10 +281,9 @@ public class ParserGenerator {
 			}
 			handler.add(tokenTest);
 			
-			
 			// Token was not in predict set or the prediction failed to parse
-			handler.add(hookCall(ParserHook.AFTER_CHOICES, Constant.of(choices.toString()), Constant.of(false)));
-			handler.add(Jump.to(handler, Jump.Target.END));
+			// (this is currently only used for error recovery)
+			handler.add(fallback);
 			
 			// Parsing succeeded
 			handler.add(onSuccess);
@@ -381,12 +394,22 @@ public class ParserGenerator {
 			// Call the method
 			var node = handler.add(parser.call(view, blocker.mask(), blocker.topNode(), errors.errorSet()));
 			
-			// Check success (node == null on failure) and store the node
+			// Check for MISSING node; consider it a success, but store null for consistency
 			var successTest = new IfBlock();
+			successTest.branch(block -> {
+				var missing = block.add(AST_NODE.getStatic(AST_NODE, "MISSING"));
+				return Condition.refEqual(missing, node);
+			}, block -> {
+				block.add(results.setResult(virtualNode.inputId(), Constant.nullValue(AST_NODE)));
+				block.add(success.set(Constant.of(true)));
+			});
+			
+			// If we did not receive that, check for non-null node (success) and store that
 			successTest.branch(Condition.isNull(node).not(), block -> {
 				block.add(results.setResult(virtualNode.inputId(), node));
 				block.add(success.set(Constant.of(true)));
 			});
+			
 			handler.add(successTest);
 			
 			return handler;
@@ -394,24 +417,30 @@ public class ParserGenerator {
 		} else if (input instanceof ParseErrorInput parseError) {
 			var handler = Block.create("handle error " + parseError.errorType());
 			
-			var viewCopy = handler.add(COPY_VIEW.call(view));
-			handler.add(addInput(viewCopy, parseError.input(), results, errors, success, blocker));
-			
-			var successTest = new IfBlock();
-			successTest.branch(Condition.isTrue(success), block -> {
-				// No error, continue parsing
-				block.add(ADVANCE_VIEW.call(view, viewCopy));
-			});
-			successTest.fallback(block -> {
-				// Record error and continue parsing
-				block.add(errors.errorAtHere(parseError.errorType(), view));
-				block.add(success.set(Constant.of(true)));
-			});
-			handler.add(successTest);
+			if (parseError.input() != null) {				
+				var viewCopy = handler.add(COPY_VIEW.call(view));
+				handler.add(addInput(viewCopy, parseError.input(), results, errors, success, blocker));
+				
+				var successTest = new IfBlock();
+				successTest.branch(Condition.isTrue(success), block -> {
+					// No error, continue parsing
+					block.add(ADVANCE_VIEW.call(view, viewCopy));
+				});
+				successTest.fallback(block -> {
+					// Record error and continue parsing
+					block.add(errors.errorAtHere(parseError.errorType(), view));
+					block.add(success.set(Constant.of(true)));
+				});
+				handler.add(successTest);
+			} else {
+				// Unconditional parse error
+				handler.add(errors.errorAtHere(parseError.errorType(), view));
+				handler.add(success.set(Constant.of(true)));
+			}
 			
 			return handler;
 		} else {
-			throw new AssertionError();
+			throw new AssertionError("unknown input type: " + input);
 		}
 	}
 	
@@ -489,6 +518,14 @@ public class ParserGenerator {
 		var successTest = new IfBlock();
 		successTest.branch(Condition.isTrue(success), block -> {
 			var astNode = results.constructorArgs().get(0);
+			var nullTest = new IfBlock();
+			nullTest.branch(Condition.isNull(astNode), inner -> {
+				// We got a success, but the AST node is null; there are probably compilation errors
+				// We'll still need to signal caller to continue
+				var missing = inner.add(AST_NODE.getStatic(AST_NODE, "MISSING"));
+				inner.add(Return.value(missing));
+			});
+			block.add(nullTest);
 			block.add(Return.value(astNode));
 		});
 		successTest.fallback(block -> {

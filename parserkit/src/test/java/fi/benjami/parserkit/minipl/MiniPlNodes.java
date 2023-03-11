@@ -4,6 +4,7 @@ import java.util.List;
 
 import fi.benjami.parserkit.parser.Input;
 import fi.benjami.parserkit.parser.NodeRegistry;
+import fi.benjami.parserkit.parser.VirtualNode;
 import fi.benjami.parserkit.parser.ast.AstNode;
 import fi.benjami.parserkit.parser.ast.ChildNode;
 import fi.benjami.parserkit.parser.ast.TokenValue;
@@ -30,7 +31,7 @@ public class MiniPlNodes {
 	public static final List<Class<? extends AstNode>> STATEMENTS = List.of(VarDeclaration.class,
 			VarAssignment.class, BuiltinRead.class, BuiltinPrint.class, IfBlock.class, ForBlock.class);
 	
-	public static final Input STATEMENT_END = Input.handleMissing(Input.token(MiniPlTokenType.STATEMENT_END), MiniPlError.MISSING_SEMICOLON);
+	public static final Input STATEMENT_END = Input.inputOrError(Input.token(MiniPlTokenType.STATEMENT_END), MiniPlError.MISSING_SEMICOLON);
 	
 	public record VarDeclaration(
 			@TokenValue("name") String name,
@@ -130,8 +131,8 @@ public class MiniPlNodes {
 	}
 	
 	// Expressions
-	public static final List<Class<? extends AstNode>> EXPRESSIONS = List.of(Group.class,
-			LogicalNotExpr.class, LogicalAndExpr.class, EqualsExpr.class, LessThanExpr.class,
+	public static final VirtualNode EXPRESSIONS = VirtualNode.parseOrError(MiniPlError.MISSING_EXPRESSION,
+			Group.class, LogicalNotExpr.class, LogicalAndExpr.class, EqualsExpr.class, LessThanExpr.class,
 			AddExpr.class, SubtractExpr.class, MultiplyExpr.class, DivideExpr.class,
 			Literal.class);
 
@@ -270,7 +271,7 @@ public class MiniPlNodes {
 	static {
 		REGISTRY.register(Program.class, Block.class);
 		REGISTRY.register(STATEMENTS);
-		REGISTRY.register(EXPRESSIONS);
+		REGISTRY.register(EXPRESSIONS.astNodeTypes());
 		REGISTRY.register(VALUES);
 	}
 }
