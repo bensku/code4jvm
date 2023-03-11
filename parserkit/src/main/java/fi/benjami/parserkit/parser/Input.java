@@ -13,7 +13,7 @@ import fi.benjami.parserkit.parser.ast.TokenValue;
 import fi.benjami.parserkit.parser.internal.input.ChildNodeInput;
 import fi.benjami.parserkit.parser.internal.input.ChoiceInput;
 import fi.benjami.parserkit.parser.internal.input.CompoundInput;
-import fi.benjami.parserkit.parser.internal.input.ParseErrorInput;
+import fi.benjami.parserkit.parser.internal.input.WrapperInput;
 import fi.benjami.parserkit.parser.internal.input.RepeatingInput;
 import fi.benjami.parserkit.parser.internal.input.TokenInput;
 import fi.benjami.parserkit.parser.internal.input.VirtualNodeInput;
@@ -67,7 +67,7 @@ public interface Input {
 	 * @return Optional input.
 	 */
 	static Input optional(Input input) {
-		return oneOf(input, allOf());
+		return new ChoiceInput(List.of(input), new WrapperInput(null, false, 0));
 	}
 	
 	/**
@@ -121,7 +121,7 @@ public interface Input {
 				.toList();
 		Input choiceInput;
 		if (spec.handlesErrors()) {
-			choiceInput = new ChoiceInput(choices, new ParseErrorInput(null, spec.errorType()));
+			choiceInput = new ChoiceInput(choices, new WrapperInput(null, true, spec.errorType()));
 		} else {
 			choiceInput = new ChoiceInput(choices, null);
 		}
@@ -150,7 +150,7 @@ public interface Input {
 		if (errorType < 0) {
 			throw new IllegalArgumentException("negative error types are reserved for parserkit");
 		}
-		return new ParseErrorInput(input, errorType);
+		return new WrapperInput(input, true, errorType);
 	}
 	
 	default PredictSet predictSet(NodeRegistry nodes) {

@@ -7,4 +7,5 @@ public record CompileError(
 ) {
 	
 	public static final int LEXICAL = -1;
+	public static final int NOT_FULLY_PARSED = -1;
 }

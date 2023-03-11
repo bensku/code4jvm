@@ -79,12 +79,13 @@ public class MiniPlLexerTest {
 				var x : int;
 				for x in 0..nTimes-1 do
 				print x;
-				print " : Hello, World!\n";
+				print " : Hello, World!\\n";
 				end for;
 				if x = ntimes do
 				print “x is equal to ntimes);
 				end if;
 				""";
+		System.out.println(code);
 		var text = new TokenizedText(new HandWrittenLexer(), new MiniPlTransformer());
 		var view = text.apply(code, 0, 0);
 //		while (view.hasNext()) {

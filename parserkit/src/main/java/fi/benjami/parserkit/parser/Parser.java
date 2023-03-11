@@ -38,4 +38,13 @@ public interface Parser {
 	}
 	
 	ParseResult parse(Class<? extends AstNode> nodeType, TokenizedText.View view);
+	
+	default ParseResult parseFully(Class<? extends AstNode> nodeType, TokenizedText.View view) {
+		var result = parse(nodeType, view);
+		if (view.hasNext()) {
+			var offset = view.peek().start();
+			result.errors().add(new CompileError(CompileError.NOT_FULLY_PARSED, offset, offset));
+		}
+		return result;
+	}
 }

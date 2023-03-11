@@ -37,7 +37,7 @@ import fi.benjami.parserkit.parser.ast.TokenValue;
 import fi.benjami.parserkit.parser.internal.input.ChildNodeInput;
 import fi.benjami.parserkit.parser.internal.input.ChoiceInput;
 import fi.benjami.parserkit.parser.internal.input.CompoundInput;
-import fi.benjami.parserkit.parser.internal.input.ParseErrorInput;
+import fi.benjami.parserkit.parser.internal.input.WrapperInput;
 import fi.benjami.parserkit.parser.internal.input.RepeatingInput;
 import fi.benjami.parserkit.parser.internal.input.TokenInput;
 import fi.benjami.parserkit.parser.internal.input.VirtualNodeInput;
@@ -326,11 +326,12 @@ public class ParserGenerator {
 		} else if (input instanceof RepeatingInput repeating) {
 			var handler = Block.create("repeating");
 			
-			// TODO callback-based API for LoopBlock?
+			// TODO code4jvm: callback-based API for LoopBlock?
 			var viewCopy = handler.add(COPY_VIEW.call(view));
 			var body = Block.create("repeating");
 			var loop = LoopBlock.whileLoop(body, Condition.always(true));
-			body.add(addInput(viewCopy, repeating.input(), results, errors, success, blocker));
+			// TODO this breaks left recursion elimination, does that matter?
+			body.add(addInput(viewCopy, repeating.input(), results, errors, success, blocker.pop(handler)));
 			
 			var successTest = new IfBlock();
 			successTest.branch(Condition.isTrue(success), block -> {
@@ -414,27 +415,33 @@ public class ParserGenerator {
 			
 			return handler;
 
-		} else if (input instanceof ParseErrorInput parseError) {
-			var handler = Block.create("handle error " + parseError.errorType());
+		} else if (input instanceof WrapperInput wrapper) {
+			var handler = Block.create("handle error " + wrapper.errorType());
 			
-			if (parseError.input() != null) {				
+			if (wrapper.input() != null) {
+				// If this has child input, emit it
 				var viewCopy = handler.add(COPY_VIEW.call(view));
-				handler.add(addInput(viewCopy, parseError.input(), results, errors, success, blocker));
+				handler.add(addInput(viewCopy, wrapper.input(), results, errors, success, blocker));
 				
 				var successTest = new IfBlock();
 				successTest.branch(Condition.isTrue(success), block -> {
-					// No error, continue parsing
+					// No error, advance and continue
 					block.add(ADVANCE_VIEW.call(view, viewCopy));
 				});
-				successTest.fallback(block -> {
-					// Record error and continue parsing
-					block.add(errors.errorAtHere(parseError.errorType(), view));
-					block.add(success.set(Constant.of(true)));
-				});
+				if (wrapper.isError()) {
+					// On error, continue and optionally record it
+					successTest.fallback(block -> {
+						block.add(errors.errorAtHere(wrapper.errorType(), view));
+						block.add(success.set(Constant.of(true)));
+					});
+				}
 				handler.add(successTest);
 			} else {
-				// Unconditional parse error
-				handler.add(errors.errorAtHere(parseError.errorType(), view));
+				// Unconditional marker
+				if (wrapper.isError()) {
+					// Mark error if this is an error
+					handler.add(errors.errorAtHere(wrapper.errorType(), view));
+				}
 				handler.add(success.set(Constant.of(true)));
 			}
 			

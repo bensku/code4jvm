@@ -39,6 +39,12 @@ public class MiniPlParserTest {
 		return result.node();
 	}
 	
+	private AstNode parseProgram(String text) {
+		var result = parser.parseFully(Program.class, tokenize(text));
+		assertEquals(Set.of(), result.errors());
+		return result.node();
+	}
+	
 	@BeforeAll
 	public void init() throws IllegalArgumentException, IllegalAccessException, NoSuchFieldException, SecurityException, IOException {
 //		DebugOptions.PRINT_METHODS = true;
@@ -112,6 +118,72 @@ public class MiniPlParserTest {
 	}
 	
 	@Test
+	public void forBlock() {
+		var text = """
+				for x in 0..nTimes-1 do
+				print x;
+				print " : Hello, World!\\n";
+				end for;
+				""";
+		var node = parse(ForBlock.class, text);
+		assertEquals(new ForBlock(
+						"x",
+						new Literal(new Constant(0)),
+						new SubtractExpr(
+								new Literal(new VarReference("nTimes")),
+								new Literal(new Constant(1))
+								),
+						new Block(List.of(
+								new BuiltinPrint(new Literal(new VarReference("x"))),
+								new BuiltinPrint(new Literal(new Constant(" : Hello, World!\\n")))
+								))
+						), node);
+	}
+	
+	@Test
+	public void forBlockInProgram() {
+		var text = """
+				for x in 0..nTimes-1 do
+				print x;
+				print " : Hello, World!\\n";
+				end for;
+				""";
+		var node = parse(Program.class, text);
+		assertEquals(new Program(new Block(List.of(new ForBlock(
+						"x",
+						new Literal(new Constant(0)),
+						new SubtractExpr(
+								new Literal(new VarReference("nTimes")),
+								new Literal(new Constant(1))
+								),
+						new Block(List.of(
+								new BuiltinPrint(new Literal(new VarReference("x"))),
+								new BuiltinPrint(new Literal(new Constant(" : Hello, World!\\n")))
+								))
+						)))), node);
+	}
+	
+	@Test
+	public void ifBlock2() {
+		var text = """
+				if x = nTimes do
+				print "x is equal to ntimes";
+				end if;
+				""";
+		var node = parse(IfBlock.class, text);
+		assertEquals(new IfBlock(
+						new EqualsExpr(
+								new Literal(new VarReference("x")),
+								new Literal(new VarReference("nTimes"))
+								),
+						new Block(List.of(
+								new BuiltinPrint(new Literal(new Constant("x is equal to ntimes")))
+								)),
+						null
+						), node);
+	}
+	
+	@Test
 	public void errorToken() {
 		var result = parser.parse(AddExpr.class, tokenize("{"));
 		assertNull(result.node());
@@ -122,7 +194,7 @@ public class MiniPlParserTest {
 	}
 	
 	@Test
-	public void missingParts() {
+	public void missingExprs() {
 		// Basic expression
 		var result = parser.parse(SubtractExpr.class, tokenize("a - "));
 		assertEquals(new SubtractExpr(
@@ -145,6 +217,15 @@ public class MiniPlParserTest {
 	}
 	
 	@Test
+	public void varDeclarations() {
+		var node1 = parse(VarDeclaration.class, "var x : int;");
+		assertEquals(new VarDeclaration("x", "int", null), node1);
+		
+		var node2 = parse(VarDeclaration.class, "var x : int := 1;");
+		assertEquals(new VarDeclaration("x", "int", new Literal(new Constant(1))), node2);
+	}
+	
+	@Test
 	public void missingSemicolon() {
 		// Automatic semicolon insertion!
 		var result = parser.parse(Block.class, tokenize("read a print b print c"));
@@ -158,5 +239,97 @@ public class MiniPlParserTest {
 				new CompileError(MiniPlError.MISSING_SEMICOLON, 14, 14),
 				new CompileError(MiniPlError.MISSING_SEMICOLON, 22, 22)
 				), result.errors());
+	}
+	
+	@Test
+	public void partialStatement() {
+		var result = parser.parse(BuiltinPrint.class, tokenize("print a + b *"));
+		assertEquals(new BuiltinPrint(
+				new AddExpr(
+						new Literal(new VarReference("a")),
+						new MultiplyExpr(
+								new Literal(new VarReference("b")),
+								null
+								)
+						)
+				), result.node());
+		assertEquals(Set.of(
+				new CompileError(MiniPlError.MISSING_EXPRESSION, 13, 13),
+				new CompileError(MiniPlError.MISSING_SEMICOLON, 13, 13)
+				), result.errors());
+		
+		// Something more challenging that we can't recover from
+		// (but semicolon addition should still work)
+		var result2 = parser.parse(BuiltinPrint.class, tokenize("print + b *"));
+		assertEquals(new BuiltinPrint(null), result2.node());
+		assertEquals(Set.of(
+				new CompileError(MiniPlError.MISSING_EXPRESSION, 5, 5),
+				new CompileError(MiniPlError.MISSING_SEMICOLON, 5, 5)
+				), result2.errors());
+	}
+	
+	@Test
+	public void sample1() {
+		var src = """
+				var X : int := 4 + (6 * 2);
+				print X;
+				""";
+		var node = parseProgram(src);
+		assertEquals(new Program(new Block(List.of(
+				new VarDeclaration("X", "int", new AddExpr(
+						new Literal(new Constant(4)),
+						new Group(new MultiplyExpr(
+								new Literal(new Constant(6)),
+								new Literal(new Constant(2))
+								))
+						)),
+				new BuiltinPrint(new Literal(new VarReference("X")))
+				))), node);
+	}
+	
+	@Test
+	public void sample2() {
+		var text = """
+				var nTimes : int := 0;
+				print "How many times?";
+				read nTimes;
+				var x : int;
+				for x in 0..nTimes-1 do
+				print x;
+				print " : Hello, World!\\n";
+				end for;
+				if x = nTimes do
+				print "x is equal to ntimes";
+				end if;
+				""";
+		var node = parseProgram(text);
+		assertEquals(new Program(new Block(List.of(
+				new VarDeclaration("nTimes", "int", new Literal(new Constant(0))),
+				new BuiltinPrint(new Literal(new Constant("How many times?"))),
+				new BuiltinRead("nTimes"),
+				new VarDeclaration("x", "int", null),
+				new ForBlock(
+						"x",
+						new Literal(new Constant(0)),
+						new SubtractExpr(
+								new Literal(new VarReference("nTimes")),
+								new Literal(new Constant(1))
+								),
+						new Block(List.of(
+								new BuiltinPrint(new Literal(new VarReference("x"))),
+								new BuiltinPrint(new Literal(new Constant(" : Hello, World!\\n")))
+								))
+						),
+				new IfBlock(
+						new EqualsExpr(
+								new Literal(new VarReference("x")),
+								new Literal(new VarReference("nTimes"))
+								),
+						new Block(List.of(
+								new BuiltinPrint(new Literal(new Constant("x is equal to ntimes")))
+								)),
+						null
+						)
+				))), node);
 	}
 }
