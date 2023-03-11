@@ -1,3 +1,4 @@
 rootProject.name = 'code4jvm'
 
 include 'parserkit'
+include 'parserkit-minipl'

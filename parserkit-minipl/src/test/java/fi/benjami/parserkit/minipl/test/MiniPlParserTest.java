@@ -1,4 +1,4 @@
-package fi.benjami.parserkit.minipl;
+package fi.benjami.parserkit.minipl.test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -12,14 +12,18 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 
-import fi.benjami.code4jvm.internal.DebugOptions;
 import fi.benjami.parserkit.lexer.Lexer;
 import fi.benjami.parserkit.lexer.TokenTransformer;
 import fi.benjami.parserkit.lexer.TokenizedText;
 import fi.benjami.parserkit.parser.CompileError;
 import fi.benjami.parserkit.parser.Parser;
 import fi.benjami.parserkit.parser.ast.AstNode;
+import fi.benjami.parserkit.minipl.HandWrittenLexer;
+import fi.benjami.parserkit.minipl.MiniPlError;
+import fi.benjami.parserkit.minipl.MiniPlNodes;
 import fi.benjami.parserkit.minipl.MiniPlNodes.*;
+import fi.benjami.parserkit.minipl.MiniPlTokenType;
+import fi.benjami.parserkit.minipl.MiniPlTransformer;
 
 @TestInstance(Lifecycle.PER_CLASS)
 public class MiniPlParserTest {
@@ -55,8 +59,8 @@ public class MiniPlParserTest {
 	
 	@Test
 	public void values() {
-		assertEquals(new Constant(10), parse(MiniPlNodes.Constant.class, "10"));
-		assertEquals(new Constant("foo"), parse(MiniPlNodes.Constant.class, "\"foo\""));
+		assertEquals(new Constant(10), parse(Constant.class, "10"));
+		assertEquals(new Constant("foo"), parse(Constant.class, "\"foo\""));
 	}
 	
 	@Test
