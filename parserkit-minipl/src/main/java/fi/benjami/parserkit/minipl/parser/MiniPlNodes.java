@@ -1,4 +1,4 @@
-package fi.benjami.parserkit.minipl;
+package fi.benjami.parserkit.minipl.parser;
 
 import java.util.List;
 
@@ -13,21 +13,41 @@ public class MiniPlNodes {
 	
 	public static final NodeRegistry REGISTRY = new NodeRegistry();
 	
+	public interface Node extends AstNode {
+		void visit(MiniPlVisitor visitor);
+	}
+	
 	public record Program(
 			@ChildNode("block") Block block
-	) implements AstNode {
+	) implements Node {
 		
 		public static final Input PATTERN = Input.childNode("block", Block.class);
+		
+		@Override
+		public void visit(MiniPlVisitor visitor) {
+			block.visit(visitor);
+			visitor.visit(this);
+		}
 	}
 	
 	public record Block(
-			@ChildNode("stmt") List<Object> statements
-	) implements AstNode {
+			@ChildNode("stmt") List<Statement> statements
+	) implements Node {
 		
 		public static final Input PATTERN = Input.repeating(Input.childNode("stmt", STATEMENTS));
+		
+		@Override
+		public void visit(MiniPlVisitor visitor) {
+			for (var stmt : statements) {
+				stmt.visit(visitor);
+			}
+			visitor.visit(this);
+		}
 	}
 
 	// Statements
+	public interface Statement extends Node {}
+	
 	public static final List<Class<? extends AstNode>> STATEMENTS = List.of(VarDeclaration.class,
 			VarAssignment.class, BuiltinRead.class, BuiltinPrint.class, IfBlock.class, ForBlock.class);
 	
@@ -36,8 +56,8 @@ public class MiniPlNodes {
 	public record VarDeclaration(
 			@TokenValue("name") String name,
 			@TokenValue("type") String type,
-			@ChildNode("expr") Object initialValue
-	) implements AstNode {
+			@ChildNode("expr") Expression initialValue
+	) implements Statement {
 		
 		public static final Input PATTERN = Input.allOf(
 				Input.token(MiniPlTokenType.DECLARE_VAR),
@@ -50,12 +70,20 @@ public class MiniPlNodes {
 						)),
 				STATEMENT_END
 				);
+
+		@Override
+		public void visit(MiniPlVisitor visitor) {
+			if (initialValue != null) {
+				initialValue.visit(visitor);
+			}
+			visitor.visit(this);
+		}
 	}
 	
 	public record VarAssignment(
 			@TokenValue("name") String name,
-			@ChildNode("expr") Object value
-	) implements AstNode {
+			@ChildNode("expr") Expression value
+	) implements Statement {
 		
 		public static final Input PATTERN = Input.allOf(
 				Input.token("name", MiniPlTokenType.IDENTIFIER),
@@ -63,35 +91,52 @@ public class MiniPlNodes {
 				Input.virtualNode("expr", EXPRESSIONS),
 				STATEMENT_END
 				);
+
+		@Override
+		public void visit(MiniPlVisitor visitor) {
+			value.visit(visitor);
+			visitor.visit(this);
+		}
 	}
 	
 	public record BuiltinRead(
 			@TokenValue("variable") String variable
-	) implements AstNode {
+	) implements Statement {
 		
 		public static final Input PATTERN = Input.allOf(
 				Input.token(MiniPlTokenType.BUILTIN_READ),
 				Input.token("variable", MiniPlTokenType.IDENTIFIER),
 				STATEMENT_END
 				);
+		
+		@Override
+		public void visit(MiniPlVisitor visitor) {
+			visitor.visit(this);
+		}
 	}
 	
 	public record BuiltinPrint(
-			@TokenValue("expr") Object expr
-	) implements AstNode {
+			@TokenValue("expr") Expression expr
+	) implements Statement {
 		
 		public static final Input PATTERN = Input.allOf(
 				Input.token(MiniPlTokenType.BUILTIN_PRINT),
 				Input.virtualNode("expr", EXPRESSIONS),
 				STATEMENT_END
 				);
+		
+		@Override
+		public void visit(MiniPlVisitor visitor) {
+			expr.visit(visitor);
+			visitor.visit(this);
+		}
 	}
 	
 	public record IfBlock(
-			@ChildNode("condition") Object condition,
+			@ChildNode("condition") Expression condition,
 			@ChildNode("body") Block body,
 			@ChildNode("fallback") Block fallback
-	) implements AstNode {
+	) implements Statement {
 		
 		public static final Input PATTERN = Input.allOf(
 				Input.token(MiniPlTokenType.IF),
@@ -106,14 +151,24 @@ public class MiniPlNodes {
 				Input.token(MiniPlTokenType.IF),
 				STATEMENT_END
 				);
+		
+		@Override
+		public void visit(MiniPlVisitor visitor) {
+			condition.visit(visitor);
+			body.visit(visitor);
+			if (fallback != null) {				
+				fallback.visit(visitor);
+			}
+			visitor.visit(this);
+		}
 	}
 	
 	public record ForBlock(
 			@TokenValue("counter") String counter,
-			@ChildNode("start") Object start,
-			@ChildNode("end") Object end,
+			@ChildNode("start") Expression start,
+			@ChildNode("end") Expression end,
 			@ChildNode("body") Block body
-	) implements AstNode {
+	) implements Statement {
 		
 		public static final Input PATTERN = Input.allOf(
 				Input.token(MiniPlTokenType.FOR),
@@ -128,144 +183,233 @@ public class MiniPlNodes {
 				Input.token(MiniPlTokenType.FOR),
 				STATEMENT_END
 				);
+		
+		@Override
+		public void visit(MiniPlVisitor visitor) {
+			start.visit(visitor);
+			end.visit(visitor);
+			body.visit(visitor);
+			visitor.visit(this);
+		}
 	}
 	
 	// Expressions
+	public interface Expression extends Node {}
+	
 	public static final VirtualNode EXPRESSIONS = VirtualNode.parseOrError(MiniPlError.MISSING_EXPRESSION,
 			Group.class, LogicalNotExpr.class, LogicalAndExpr.class, EqualsExpr.class, LessThanExpr.class,
 			AddExpr.class, SubtractExpr.class, MultiplyExpr.class, DivideExpr.class,
 			Literal.class);
 
 	public record Literal(
-			@ChildNode("value") Object value
-	) implements AstNode {
+			@ChildNode("value") Value value
+	) implements Expression {
 		
 		public static final Input PATTERN = Input.childNode("value", VALUES);
+		
+		@Override
+		public void visit(MiniPlVisitor visitor) {
+			value.visit(visitor);
+			visitor.visit(this);
+		}
 	}
 	
 	public record Group(
-			@ChildNode("expr") Object expr
-	) implements AstNode {
+			@ChildNode("expr") Expression expr
+	) implements Expression {
 		
 		public static final Input PATTERN = Input.allOf(
 				Input.token(MiniPlTokenType.GROUP_BEGIN),
 				Input.virtualNode("expr", EXPRESSIONS),
 				Input.token(MiniPlTokenType.GROUP_END)
 				);
+		
+		@Override
+		public void visit(MiniPlVisitor visitor) {
+			expr.visit(visitor);
+			visitor.visit(this);
+		}
 	}
 	
 	public record LogicalNotExpr(
-			@ChildNode("expr") Object expr
-	) implements AstNode {
+			@ChildNode("expr") Expression expr
+	) implements Expression {
 		
 		public static final Input PATTERN = Input.allOf(
 				Input.token(MiniPlTokenType.LOGICAL_NOT),
 				Input.virtualNode("expr", EXPRESSIONS)
 				);
+		
+		@Override
+		public void visit(MiniPlVisitor visitor) {
+			expr.visit(visitor);
+			visitor.visit(this);
+		}
 	}
 	
 	public record LogicalAndExpr(
-			@ChildNode("lhs") Object lhs,
-			@ChildNode("rhs") Object rhs
-	) implements AstNode {
+			@ChildNode("lhs") Expression lhs,
+			@ChildNode("rhs") Expression rhs
+	) implements Expression {
 		
 		public static final Input PATTERN = Input.allOf(
 				Input.virtualNode("lhs", EXPRESSIONS),
 				Input.token(MiniPlTokenType.LOGICAL_AND),
 				Input.virtualNode("rhs", EXPRESSIONS)
 				);
+		
+		@Override
+		public void visit(MiniPlVisitor visitor) {
+			lhs.visit(visitor);
+			rhs.visit(visitor);
+			visitor.visit(this);
+		}
 	}
 	
 	public record EqualsExpr(
-			@ChildNode("lhs") Object lhs,
-			@ChildNode("rhs") Object rhs
-	) implements AstNode {
+			@ChildNode("lhs") Expression lhs,
+			@ChildNode("rhs") Expression rhs
+	) implements Expression {
 		
 		public static final Input PATTERN = Input.allOf(
 				Input.virtualNode("lhs", EXPRESSIONS),
 				Input.token(MiniPlTokenType.EQUALS),
 				Input.virtualNode("rhs", EXPRESSIONS)
 				);
+		
+		@Override
+		public void visit(MiniPlVisitor visitor) {
+			lhs.visit(visitor);
+			rhs.visit(visitor);
+			visitor.visit(this);
+		}
 	}
 	
 	public record LessThanExpr(
-			@ChildNode("lhs") Object lhs,
-			@ChildNode("rhs") Object rhs
-	) implements AstNode {
+			@ChildNode("lhs") Expression lhs,
+			@ChildNode("rhs") Expression rhs
+	) implements Expression {
 		
 		public static final Input PATTERN = Input.allOf(
 				Input.virtualNode("lhs", EXPRESSIONS),
 				Input.token(MiniPlTokenType.LESS_THAN),
 				Input.virtualNode("rhs", EXPRESSIONS)
 				);
+		
+		@Override
+		public void visit(MiniPlVisitor visitor) {
+			lhs.visit(visitor);
+			rhs.visit(visitor);
+			visitor.visit(this);
+		}
 	}
 	
 	public record AddExpr(
-			@ChildNode("lhs") Object lhs,
-			@ChildNode("rhs") Object rhs
-	) implements AstNode {
+			@ChildNode("lhs") Expression lhs,
+			@ChildNode("rhs") Expression rhs
+	) implements Expression {
 		
 		public static final Input PATTERN = Input.allOf(
 				Input.virtualNode("lhs", EXPRESSIONS),
 				Input.token(MiniPlTokenType.ADD),
 				Input.virtualNode("rhs", EXPRESSIONS)
 				);
+		
+		@Override
+		public void visit(MiniPlVisitor visitor) {
+			lhs.visit(visitor);
+			rhs.visit(visitor);
+			visitor.visit(this);
+		}
 	}
 	
 	public record SubtractExpr(
-			@ChildNode("lhs") Object lhs,
-			@ChildNode("rhs") Object rhs
-	) implements AstNode {
+			@ChildNode("lhs") Expression lhs,
+			@ChildNode("rhs") Expression rhs
+	) implements Expression {
 		
 		public static final Input PATTERN = Input.allOf(
 				Input.virtualNode("lhs", EXPRESSIONS),
 				Input.token(MiniPlTokenType.SUBTRACT),
 				Input.virtualNode("rhs", EXPRESSIONS)
 				);
+		
+		@Override
+		public void visit(MiniPlVisitor visitor) {
+			lhs.visit(visitor);
+			rhs.visit(visitor);
+			visitor.visit(this);
+		}
 	}
 	
 	public record MultiplyExpr(
-			@ChildNode("lhs") Object lhs,
-			@ChildNode("rhs") Object rhs
-	) implements AstNode {
+			@ChildNode("lhs") Expression lhs,
+			@ChildNode("rhs") Expression rhs
+	) implements Expression {
 		
 		public static final Input PATTERN = Input.allOf(
 				Input.virtualNode("lhs", EXPRESSIONS),
 				Input.token(MiniPlTokenType.MULTIPLY),
 				Input.virtualNode("rhs", EXPRESSIONS)
 				);
+		
+		@Override
+		public void visit(MiniPlVisitor visitor) {
+			lhs.visit(visitor);
+			rhs.visit(visitor);
+			visitor.visit(this);
+		}
 	}
 	
 	public record DivideExpr(
-			@ChildNode("lhs") Object lhs,
-			@ChildNode("rhs") Object rhs
-	) implements AstNode {
+			@ChildNode("lhs") Expression lhs,
+			@ChildNode("rhs") Expression rhs
+	) implements Expression {
 		
 		public static final Input PATTERN = Input.allOf(
 				Input.virtualNode("lhs", EXPRESSIONS),
 				Input.token(MiniPlTokenType.DIVIDE),
 				Input.virtualNode("rhs", EXPRESSIONS)
 				);
+		
+		@Override
+		public void visit(MiniPlVisitor visitor) {
+			lhs.visit(visitor);
+			rhs.visit(visitor);
+			visitor.visit(this);
+		}
 	}
 			
 	// Values
+	public interface Value extends Node {}
+	
 	public static final List<Class<? extends AstNode>> VALUES = List.of(Constant.class, VarReference.class);
 	
 	public record Constant(
 			@TokenValue("value") Object value
-	) implements AstNode {
+	) implements Value {
 		
 		public static final Input PATTERN = Input.oneOf(
 				Input.token("value", MiniPlTokenType.INT_LITERAL),
 				Input.token("value", MiniPlTokenType.STRING_LITERAL)
 				);
+		
+		@Override
+		public void visit(MiniPlVisitor visitor) {
+			visitor.visit(this);
+		}
 	}
 	
 	public record VarReference(
 			@TokenValue("variable") String variable
-	) implements AstNode {
+	) implements Value {
 		
 		public static final Input PATTERN = Input.token("variable", MiniPlTokenType.IDENTIFIER);
+		
+		@Override
+		public void visit(MiniPlVisitor visitor) {
+			visitor.visit(this);
+		}
 	}
 	
 	static {

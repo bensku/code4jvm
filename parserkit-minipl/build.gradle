@@ -17,6 +17,10 @@ dependencies {
 
 jar {
 	manifest {
-		attributes('Main-Class': 'fi.benjami.parserkit.minipl.MiniPlRunner')
+		attributes('Main-Class': 'fi.benjami.parserkit.minipl.AppMain')
 	}
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
 }

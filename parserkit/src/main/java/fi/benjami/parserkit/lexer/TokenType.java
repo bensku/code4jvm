@@ -4,7 +4,7 @@ import java.util.function.Function;
 
 public interface TokenType {
 	
-	static final int FLAG_INVISIBLE = 1, FLAG_ERROR = (1 << 1) | FLAG_INVISIBLE;
+	static final int FLAG_INVISIBLE = 1, FLAG_ERROR = 1 << 1;
 	
 	static Function<String, String> discardText() {
 		return str -> null;

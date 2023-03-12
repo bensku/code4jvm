@@ -25,7 +25,7 @@ import fi.benjami.code4jvm.typedef.ClassDef;
 import fi.benjami.parserkit.lexer.Token;
 import fi.benjami.parserkit.lexer.TokenType;
 import fi.benjami.parserkit.lexer.TokenizedText;
-import fi.benjami.parserkit.parser.CompileError;
+import fi.benjami.parserkit.parser.ParseError;
 import fi.benjami.parserkit.parser.Input;
 import fi.benjami.parserkit.parser.NodeRegistry;
 import fi.benjami.parserkit.parser.ParseResult;
@@ -184,7 +184,7 @@ public class ParserGenerator {
 		loop.add(Jump.to(loop, Jump.Target.START, Condition.equal(isError, Constant.of(0L))));
 		
 		// If it is error, record it and jump to start
-		loop.add(errors.errorAtToken(CompileError.LEXICAL, prevToken));
+		loop.add(errors.errorAtToken(ParseError.LEXICAL, prevToken));
 		loop.add(Jump.to(loop, Jump.Target.START));
 		
 		method.add(loop);

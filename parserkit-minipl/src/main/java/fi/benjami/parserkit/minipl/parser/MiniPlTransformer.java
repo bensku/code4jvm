@@ -1,4 +1,4 @@
-package fi.benjami.parserkit.minipl;
+package fi.benjami.parserkit.minipl.parser;
 
 import fi.benjami.parserkit.lexer.Token;
 import fi.benjami.parserkit.lexer.TokenTransformer;
@@ -20,6 +20,7 @@ public class MiniPlTransformer implements TokenTransformer {
 			case "end" -> MiniPlTokenType.BLOCK_END.convert(input, null);
 			case "read" -> MiniPlTokenType.BUILTIN_READ.convert(input, null);
 			case "print" -> MiniPlTokenType.BUILTIN_PRINT.convert(input, null);
+			case "assert" -> MiniPlTokenType.ERROR.convert(input, "assert");
 			default -> input;
 			};
 		} else {

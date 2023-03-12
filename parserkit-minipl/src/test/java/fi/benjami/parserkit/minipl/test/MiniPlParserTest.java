@@ -15,15 +15,15 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
 import fi.benjami.parserkit.lexer.Lexer;
 import fi.benjami.parserkit.lexer.TokenTransformer;
 import fi.benjami.parserkit.lexer.TokenizedText;
-import fi.benjami.parserkit.parser.CompileError;
+import fi.benjami.parserkit.minipl.parser.HandWrittenLexer;
+import fi.benjami.parserkit.minipl.parser.MiniPlError;
+import fi.benjami.parserkit.minipl.parser.MiniPlNodes;
+import fi.benjami.parserkit.minipl.parser.MiniPlTokenType;
+import fi.benjami.parserkit.minipl.parser.MiniPlTransformer;
+import fi.benjami.parserkit.minipl.parser.MiniPlNodes.*;
+import fi.benjami.parserkit.parser.ParseError;
 import fi.benjami.parserkit.parser.Parser;
 import fi.benjami.parserkit.parser.ast.AstNode;
-import fi.benjami.parserkit.minipl.HandWrittenLexer;
-import fi.benjami.parserkit.minipl.MiniPlError;
-import fi.benjami.parserkit.minipl.MiniPlNodes;
-import fi.benjami.parserkit.minipl.MiniPlNodes.*;
-import fi.benjami.parserkit.minipl.MiniPlTokenType;
-import fi.benjami.parserkit.minipl.MiniPlTransformer;
 
 @TestInstance(Lifecycle.PER_CLASS)
 public class MiniPlParserTest {
@@ -139,7 +139,7 @@ public class MiniPlParserTest {
 								),
 						new Block(List.of(
 								new BuiltinPrint(new Literal(new VarReference("x"))),
-								new BuiltinPrint(new Literal(new Constant(" : Hello, World!\\n")))
+								new BuiltinPrint(new Literal(new Constant(" : Hello, World!\n")))
 								))
 						), node);
 	}
@@ -162,7 +162,7 @@ public class MiniPlParserTest {
 								),
 						new Block(List.of(
 								new BuiltinPrint(new Literal(new VarReference("x"))),
-								new BuiltinPrint(new Literal(new Constant(" : Hello, World!\\n")))
+								new BuiltinPrint(new Literal(new Constant(" : Hello, World!\n")))
 								))
 						)))), node);
 	}
@@ -192,8 +192,8 @@ public class MiniPlParserTest {
 		var result = parser.parse(AddExpr.class, tokenize("{"));
 		assertNull(result.node());
 		assertEquals(Set.of(
-				new CompileError(MiniPlError.MISSING_EXPRESSION, 1, 1),
-				new CompileError(CompileError.LEXICAL, 0, 1)
+				new ParseError(MiniPlError.MISSING_EXPRESSION, 1, 1),
+				new ParseError(ParseError.LEXICAL, 0, 1)
 				), result.errors());
 	}
 	
@@ -205,7 +205,7 @@ public class MiniPlParserTest {
 				new Literal(new VarReference("a")),
 				null
 				), result.node());
-		assertEquals(Set.of(new CompileError(MiniPlError.MISSING_EXPRESSION, 3, 3)), result.errors());
+		assertEquals(Set.of(new ParseError(MiniPlError.MISSING_EXPRESSION, 3, 3)), result.errors());
 		
 		// A bit more complicated error recovery
 		// Note: the odd parse order is because we specially request parsing MultiplyExpr
@@ -217,7 +217,7 @@ public class MiniPlParserTest {
 						null
 						)
 				), result2.node());
-		assertEquals(Set.of(new CompileError(MiniPlError.MISSING_EXPRESSION, 7, 7)), result2.errors());
+		assertEquals(Set.of(new ParseError(MiniPlError.MISSING_EXPRESSION, 7, 7)), result2.errors());
 	}
 	
 	@Test
@@ -239,9 +239,9 @@ public class MiniPlParserTest {
 				new BuiltinPrint(new Literal(new VarReference("c")))
 				)), result.node());
 		assertEquals(Set.of(
-				new CompileError(MiniPlError.MISSING_SEMICOLON, 6, 6),
-				new CompileError(MiniPlError.MISSING_SEMICOLON, 14, 14),
-				new CompileError(MiniPlError.MISSING_SEMICOLON, 22, 22)
+				new ParseError(MiniPlError.MISSING_SEMICOLON, 6, 6),
+				new ParseError(MiniPlError.MISSING_SEMICOLON, 14, 14),
+				new ParseError(MiniPlError.MISSING_SEMICOLON, 22, 22)
 				), result.errors());
 	}
 	
@@ -258,8 +258,8 @@ public class MiniPlParserTest {
 						)
 				), result.node());
 		assertEquals(Set.of(
-				new CompileError(MiniPlError.MISSING_EXPRESSION, 13, 13),
-				new CompileError(MiniPlError.MISSING_SEMICOLON, 13, 13)
+				new ParseError(MiniPlError.MISSING_EXPRESSION, 13, 13),
+				new ParseError(MiniPlError.MISSING_SEMICOLON, 13, 13)
 				), result.errors());
 		
 		// Something more challenging that we can't recover from
@@ -267,8 +267,8 @@ public class MiniPlParserTest {
 		var result2 = parser.parse(BuiltinPrint.class, tokenize("print + b *"));
 		assertEquals(new BuiltinPrint(null), result2.node());
 		assertEquals(Set.of(
-				new CompileError(MiniPlError.MISSING_EXPRESSION, 5, 5),
-				new CompileError(MiniPlError.MISSING_SEMICOLON, 5, 5)
+				new ParseError(MiniPlError.MISSING_EXPRESSION, 5, 5),
+				new ParseError(MiniPlError.MISSING_SEMICOLON, 5, 5)
 				), result2.errors());
 	}
 	
@@ -321,7 +321,7 @@ public class MiniPlParserTest {
 								),
 						new Block(List.of(
 								new BuiltinPrint(new Literal(new VarReference("x"))),
-								new BuiltinPrint(new Literal(new Constant(" : Hello, World!\\n")))
+								new BuiltinPrint(new Literal(new Constant(" : Hello, World!\n")))
 								))
 						),
 				new IfBlock(

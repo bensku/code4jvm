@@ -1,4 +1,4 @@
-package fi.benjami.parserkit.minipl;
+package fi.benjami.parserkit.minipl.parser;
 
 public class LexerTools {
 

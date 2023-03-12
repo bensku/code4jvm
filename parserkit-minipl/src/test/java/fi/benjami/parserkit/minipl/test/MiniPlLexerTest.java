@@ -8,9 +8,9 @@ import org.junit.jupiter.api.Test;
 
 import fi.benjami.parserkit.lexer.Token;
 import fi.benjami.parserkit.lexer.TokenizedText;
-import fi.benjami.parserkit.minipl.HandWrittenLexer;
-import fi.benjami.parserkit.minipl.MiniPlTokenType;
-import fi.benjami.parserkit.minipl.MiniPlTransformer;
+import fi.benjami.parserkit.minipl.parser.HandWrittenLexer;
+import fi.benjami.parserkit.minipl.parser.MiniPlTokenType;
+import fi.benjami.parserkit.minipl.parser.MiniPlTransformer;
 
 public class MiniPlLexerTest {
 

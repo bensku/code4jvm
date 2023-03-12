@@ -1,6 +1,7 @@
-package fi.benjami.parserkit.minipl;
+package fi.benjami.parserkit.minipl.test;
 
 import fi.benjami.parserkit.lexer.Token;
+import fi.benjami.parserkit.minipl.parser.MiniPlTokenType;
 import fi.benjami.parserkit.parser.ast.AstNode;
 import fi.benjami.parserkit.parser.internal.ParserHook;
 

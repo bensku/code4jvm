@@ -37,13 +37,13 @@ public interface Parser {
 		return generator.compile();
 	}
 	
-	ParseResult parse(Class<? extends AstNode> nodeType, TokenizedText.View view);
+	<T extends AstNode> ParseResult<T> parse(Class<T> nodeType, TokenizedText.View view);
 	
-	default ParseResult parseFully(Class<? extends AstNode> nodeType, TokenizedText.View view) {
+	default <T extends AstNode> ParseResult<T> parseFully(Class<T> nodeType, TokenizedText.View view) {
 		var result = parse(nodeType, view);
 		if (view.hasNext()) {
 			var offset = view.peek().start();
-			result.errors().add(new CompileError(CompileError.NOT_FULLY_PARSED, offset, offset));
+			result.errors().add(new ParseError(ParseError.NOT_FULLY_PARSED, offset, offset));
 		}
 		return result;
 	}

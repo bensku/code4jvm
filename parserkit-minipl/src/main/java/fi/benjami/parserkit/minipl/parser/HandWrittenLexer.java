@@ -1,4 +1,4 @@
-package fi.benjami.parserkit.minipl;
+package fi.benjami.parserkit.minipl.parser;
 
 import fi.benjami.parserkit.lexer.Lexer;
 import fi.benjami.parserkit.lexer.LexerInput;
@@ -32,10 +32,23 @@ public class HandWrittenLexer implements Lexer {
 					}
 					id.appendCodePoint(next);
 				}
-				yield MiniPlTokenType.COMMENT.read(pos, id.toString(), id.length() + 3); // //\n
+				yield MiniPlTokenType.COMMENT.read(pos, id.toString(), id.length() + 2); // //
 			} else if (next == '*') {
 				// Multi-line comment
-				yield null;
+				var id = new StringBuilder();
+				var star = false;
+				for (int i = 2; i < input.codepointsLeft(); i++) {
+					next = input.getCodepoint(i);
+					if (next == '*') {
+						star = true;
+					} else if (star && next == '/') {
+						break;
+					} else {
+						star = false;
+					}
+					id.appendCodePoint(next);
+				}
+				yield MiniPlTokenType.COMMENT.read(pos, id.toString(), id.length() + 4); // /* */
 			} else {
 				yield MiniPlTokenType.DIVIDE.read(pos, "/");
 			}
@@ -66,11 +79,16 @@ public class HandWrittenLexer implements Lexer {
 		case '"' -> {
 			var id = new StringBuilder();
 			var escape = false;
-			for (int i = 1; i < input.codepointsLeft(); i++) {
+			var i = 1;
+			for (; i < input.codepointsLeft(); i++) {
 				var next = input.getCodepoint(i);
 				if (next == '\\') {
 					escape = true;
+					continue;
 				} else if (escape) {
+					if (next == 'n') {
+						next = '\n';
+					}
 					// TODO what about illegal escape sequences?
 					escape = false;
 				} else if (next == '"') {
@@ -78,7 +96,7 @@ public class HandWrittenLexer implements Lexer {
 				}
 				id.appendCodePoint(next);
 			}
-			yield MiniPlTokenType.STRING_LITERAL.read(pos, id.toString(), id.length() + 2);
+			yield MiniPlTokenType.STRING_LITERAL.read(pos, id.toString(), i + 1);
 		}
 		default -> {
 			if (Character.isLetter(ch)) {
@@ -111,6 +129,11 @@ public class HandWrittenLexer implements Lexer {
 		}
 		};
 		input.advance(token.length());
+		
+		// Temporary hack: remove COMMENT tokens now
+		if (token.type() == MiniPlTokenType.COMMENT.ordinal()) {
+			token = getToken(input); // next token
+		}
 		return token;
 	}
 

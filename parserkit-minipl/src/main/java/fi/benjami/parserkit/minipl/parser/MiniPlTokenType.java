@@ -1,4 +1,4 @@
-package fi.benjami.parserkit.minipl;
+package fi.benjami.parserkit.minipl.parser;
 
 import java.util.function.Function;
 
@@ -46,7 +46,7 @@ public enum MiniPlTokenType implements TokenType {
 	BUILTIN_PRINT(TokenType.discardText()),
 	
 	// The error token
-	ERROR(TokenType.collectText(), FLAG_ERROR);
+	ERROR(TokenType.collectText(), FLAG_INVISIBLE | FLAG_ERROR);
 	
 	private final Function<String, ?> parser;
 	private final int flags;

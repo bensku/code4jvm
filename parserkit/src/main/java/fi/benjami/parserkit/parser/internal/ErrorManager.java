@@ -5,11 +5,11 @@ import fi.benjami.code4jvm.Statement;
 import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.Value;
 import fi.benjami.code4jvm.block.Block;
-import fi.benjami.parserkit.parser.CompileError;
+import fi.benjami.parserkit.parser.ParseError;
 
 public class ErrorManager {
 	
-	private static final Type COMPILE_ERROR = Type.of(CompileError.class);
+	private static final Type COMPILE_ERROR = Type.of(ParseError.class);
 		
 	public static ErrorManager initialize(Block block) {
 		var list = block.add(ParserGenerator.HASH_SET.newInstance());
