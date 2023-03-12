@@ -14,6 +14,7 @@ import fi.benjami.code4jvm.block.Block;
 import fi.benjami.code4jvm.flag.Access;
 import fi.benjami.code4jvm.statement.Arithmetic;
 import fi.benjami.code4jvm.statement.Return;
+import fi.benjami.code4jvm.statement.StringConcat;
 import fi.benjami.code4jvm.structure.IfBlock;
 import fi.benjami.code4jvm.structure.LoopBlock;
 import fi.benjami.code4jvm.typedef.ClassDef;
@@ -186,7 +187,11 @@ public class MiniPlCompiler {
 			} else if (node instanceof MiniPlNodes.AddExpr add) {
 				var lhs = block.add(compile(add.lhs()));
 				var rhs = block.add(compile(add.rhs()));
-				return block.add(Arithmetic.add(lhs, rhs));
+				if (lhs.type().equals(Type.INT)) {					
+					return block.add(Arithmetic.add(lhs, rhs));
+				} else {
+					return block.add(StringConcat.concat(lhs, rhs));
+				}
 			} else if (node instanceof MiniPlNodes.SubtractExpr subtract) {
 				var lhs = block.add(compile(subtract.lhs()));
 				var rhs = block.add(compile(subtract.rhs()));
