@@ -3,6 +3,9 @@ package fi.benjami.parserkit.minipl;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Optional;
+
+import fi.benjami.parserkit.minipl.compiler.TypeTable;
 
 public class AppMain {
 
@@ -12,7 +15,16 @@ public class AppMain {
 		
 		var runner = new MiniPlRunner();
 		var prog = runner.parse(src);
-		var types = runner.typeCheck(prog);
+		Optional<TypeTable> types;
+		try {			
+			types = runner.typeCheck(prog);
+		} catch (Exception e) {
+			System.err.println(runner.printErrors());
+			System.err.println("Semantic analysis failed:");
+			e.printStackTrace();
+			System.exit(3);
+			return;
+		}
 		
 		// If there are compilation errors, report them and exit
 		if (!runner.errors().isEmpty()) {
