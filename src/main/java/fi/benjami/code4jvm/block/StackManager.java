@@ -182,7 +182,9 @@ public class StackManager {
 		MethodVisitor mv = ctx.asm();
 		
 		var type = constant.type();
-		if (type.equals(Type.BOOLEAN)) {
+		if (constant.value() == null) {
+			mv.visitInsn(ACONST_NULL);
+		} else if (type.equals(Type.BOOLEAN)) {
 			var value = (boolean) constant.value();
 			// true == 1, false == 0
 			mv.visitInsn(value ? ICONST_1 : ICONST_0);

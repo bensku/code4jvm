@@ -11,6 +11,8 @@ import fi.benjami.code4jvm.util.TypeUtils;
 
 import static org.objectweb.asm.Opcodes.*;
 
+import java.util.Objects;
+
 public class Jump implements Statement {
 	
 	public enum Target {
@@ -31,9 +33,9 @@ public class Jump implements Statement {
 	private final Condition condition;
 		
 	private Jump(Block block, Target target, Condition condition) {
-		this.targetBlock = block;
-		this.target = target;
-		this.condition = condition;
+		this.targetBlock = Objects.requireNonNull(block);
+		this.target = Objects.requireNonNull(target);
+		this.condition = Objects.requireNonNull(condition);
 	}
 	
 	public Block block() {
