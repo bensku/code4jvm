@@ -1,5 +1,6 @@
 package fi.benjami.parserkit.parser;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.IdentityHashMap;
@@ -151,6 +152,20 @@ public interface Input {
 			throw new IllegalArgumentException("negative error types are reserved for parserkit");
 		}
 		return new WrapperInput(input, true, errorType);
+	}
+	
+	static Input list(Input element, int minimumCount, Input separator) {
+		var parts = new ArrayList<Input>();
+		if (minimumCount > 0) {
+			parts.add(element);
+		}
+		for (var i = 1; i < minimumCount; i++) {
+			parts.add(separator);
+			parts.add(element);
+		}
+		parts.add(Input.repeating(Input.allOf(separator, element)));
+		
+		return new CompoundInput(parts);
 	}
 	
 	default PredictSet predictSet(NodeRegistry nodes) {

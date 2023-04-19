@@ -6,7 +6,7 @@ import fi.benjami.parserkit.lexer.TokenType;
 
 public enum LuaToken implements TokenType {
 	// Identifiers and constants
-	IDENTIFIER(TokenType.collectText()), // Name
+	NAME(TokenType.collectText()), // Name
 	LITERAL_NUMBER(TokenType.collectText()), // TODO number parsing!
 	STRING_LITERAL(TokenType.collectText()), // TODO string parsing?
 	
@@ -18,6 +18,7 @@ public enum LuaToken implements TokenType {
 	END(TokenType.discardText()), // end
 	WHILE_LOOP(TokenType.discardText()), // while
 	REPEAT_LOOP(TokenType.discardText()), // repeat
+	REPEAT_UNTIL(TokenType.discardText()), // until
 	IF_BLOCK(TokenType.discardText()), // if
 	IF_THEN(TokenType.discardText()), // then
 	IF_ELSE_IF(TokenType.discardText()), // elseif
@@ -33,10 +34,12 @@ public enum LuaToken implements TokenType {
 	
 	// Random tokens that are not keywords
 	// (created directly by the lexer)
+	GROUP_BEGIN(TokenType.discardText()), // (
+	GROUP_END(TokenType.discardText()), // )
 	STATEMENT_END(TokenType.discardText()), // ;
 	GOTO_LABEL(TokenType.discardText()), // ::
 	ASSIGNMENT(TokenType.discardText()), // =
-	PATH_SEPARATOR(TokenType.discardText()), // .
+	NAME_SEPARATOR(TokenType.discardText()), // .
 	LIST_SEPARATOR(TokenType.discardText()), // ,
 	OOP_FUNC_SEPARATOR(TokenType.discardText()), // :
 	VARARGS(TokenType.discardText()), // ...

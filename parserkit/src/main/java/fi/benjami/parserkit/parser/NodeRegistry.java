@@ -20,7 +20,11 @@ public final class NodeRegistry {
 	
 	public void register(Class<? extends AstNode> nodeType, Input pattern) {
 		if (nodePatterns.containsKey(nodeType)) {
-			throw new IllegalArgumentException("node type " + nodeType + " already registered");
+			if (!nodePatterns.get(nodeType).equals(pattern)) {				
+				throw new IllegalArgumentException("node type " + nodeType + " already registered with different pattern");
+			} else {
+				return; // Ignore double registration with same pattern
+			}
 		}
 		nodePatterns.put(nodeType, pattern);
 		nodeTypeIds.put(nodeType, nodeTypeIds.size());
@@ -35,11 +39,11 @@ public final class NodeRegistry {
 			}
 			register(nodeType, (Input) field.get(null));
 		} catch (NoSuchFieldException | SecurityException e) {
-			throw new IllegalArgumentException("failed to read PATTERN field", e);
+			throw new IllegalArgumentException("failed to read PATTERN field of " + nodeType, e);
 		} catch (IllegalArgumentException e) {
-			throw new IllegalArgumentException("PATTERN is not a static field", e);
+			throw new IllegalArgumentException("PATTERN is not a static field in " + nodeType, e);
 		} catch (IllegalAccessException e) {
-			throw new IllegalArgumentException("failed to read PATTERN field", e);
+			throw new IllegalArgumentException("failed to read PATTERN field of " + nodeType, e);
 		}
 	}
 	
@@ -65,7 +69,11 @@ public final class NodeRegistry {
 	}
 	
 	public int getTypeId(Class<? extends AstNode> nodeType) {
-		return nodeTypeIds.get(nodeType);
+		var id = nodeTypeIds.get(nodeType);
+		if (id == null) {
+			throw new IllegalArgumentException("node type " + nodeType + " not registered");
+		}
+		return id;
 	}
 	
 	public Collection<Class<? extends AstNode>> nodeTypes() {
