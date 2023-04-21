@@ -1,6 +1,7 @@
 package fi.benjami.code4jvm.internal;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import fi.benjami.code4jvm.Value;
@@ -22,40 +23,41 @@ public class Scope {
 			return;
 		}
 		
-		// Find if stack at least one of the requested inputs
-		// In case there are multiple occurrences, search for the last one
-		var matchStart = stack.lastIndexOf(inputs[0]);
-		
-		// Count how many matches there are on stack
-		// If stack usage is not allowed, ignore whatever is on stack
-		// and create local variables instead
-		var matchCount = 0;
-		if (allowStackPlacement) {			
-			if (matchStart != -1) {
-				for (;; matchCount++) {
-					var stackSlot = matchStart + matchCount;
-					if (matchCount >= inputs.length || stackSlot >= stack.size()
-							|| stack.get(stackSlot) != inputs[matchCount]) {
-						break;
-					}
-					if (inputs[matchCount] instanceof LocalVar localVar) {
-						localVar.used = true;
-					}
-				}
-				
-				// Pop the values from stack, as they will be used by the expression
-				// If the stack has other elements on top of them, also pop them
-				for (var i = stack.size() - 1; i >= matchStart; i--) {
-					stack.remove(i);
-				}
+		// Mark all inputs used
+		var originals = Arrays.stream(inputs)
+				.map(Value::original)
+				.toArray(Value[]::new);
+		for (var input : originals) {
+			if (input instanceof LocalVar localVar) {
+				localVar.used = true;
 			}
 		}
 		
-		// Mark the rest to require a local variable slot
-		for (int i = matchCount; i < inputs.length; i++) {
-			var value = inputs[i].original();
-			if (value instanceof LocalVar localVar) {
-				localVar.used = true;
+		// Compare inputs against the top values of stack
+		// On failure, try with fewer inputs each time
+		var inputsOnStack = 0;
+		outer: for (var i = Math.max(0, stack.size() - inputs.length); i < stack.size(); i++) {
+			var end = stack.size() - i;
+			for (var j = 0; j < end; j++) {
+				if (stack.get(i + j) != inputs[j]) {
+					continue outer;
+				}				
+			}
+			// Stack has at least some of the inputs
+			inputsOnStack = end;
+			break;
+		}
+		
+		// Pop inputs that are on stack
+		// This needs to be done to keep stack valid even if stack placement is disabled!
+		for (var i = 0; i < inputsOnStack; i++) {
+			stack.remove(stack.size() - 1);
+		}
+		
+		// Mark local variable slot as required for rest of the inputs
+		// If stack placement is disabled, do it for ALL inputs instead
+		for (var i = allowStackPlacement ? inputsOnStack : 0; i < originals.length; i++) {
+			if (originals[i] instanceof LocalVar localVar) {
 				localVar.needsSlot = true;
 			}
 		}

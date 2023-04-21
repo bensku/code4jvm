@@ -95,6 +95,7 @@ public class Block implements CompileHook.Carrier {
 			scope.checkInputs(bc.inputs(), (bc.flags() & Bytecode.EXPLICIT_LOAD) == 0);
 			
 			var output = new LocalVar(bc.outputType(), null);
+			scope.addOutput(output);
 			var node = new CodeNode(bc, output);
 			nodes.add(node);
 			return output;
