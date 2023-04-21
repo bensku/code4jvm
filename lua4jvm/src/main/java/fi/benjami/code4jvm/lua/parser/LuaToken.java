@@ -7,8 +7,8 @@ import fi.benjami.parserkit.lexer.TokenType;
 public enum LuaToken implements TokenType {
 	// Identifiers and constants
 	NAME(TokenType.collectText()), // Name
-	LITERAL_NUMBER(TokenType.collectText()), // TODO number parsing!
-	STRING_LITERAL(TokenType.collectText()), // TODO string parsing?
+	LITERAL_NUMBER(Double::parseDouble), // FIXME hexadecimal support, see Integer::decode
+	STRING_LITERAL(TokenType.collectText()),
 	
 	// Reserved keywords
 	// (created from IDENTIFIERs during post-processing)
@@ -31,11 +31,16 @@ public enum LuaToken implements TokenType {
 	LOGICAL_AND(TokenType.discardText()), // and
 	LOGICAL_OR(TokenType.discardText()), // or
 	LOGICAL_NOT(TokenType.discardText()), // not
+	LITERAL_NIL(s -> null), // nil
+	LITERAL_FALSE(s -> false), // false
+	LITERAL_TRUE(s -> true), // true
 	
 	// Random tokens that are not keywords
 	// (created directly by the lexer)
 	GROUP_BEGIN(TokenType.discardText()), // (
 	GROUP_END(TokenType.discardText()), // )
+	TABLE_INDEX_BEGIN(TokenType.discardText()), // [
+	TABLE_INDEX_END(TokenType.discardText()), // ]
 	STATEMENT_END(TokenType.discardText()), // ;
 	GOTO_LABEL(TokenType.discardText()), // ::
 	ASSIGNMENT(TokenType.discardText()), // =
@@ -65,6 +70,8 @@ public enum LuaToken implements TokenType {
 	EQUAL(TokenType.discardText()), // ==
 	NOT_EQUAL(TokenType.discardText()), // ~=
 	ARRAY_LENGTH(TokenType.discardText()), // #
+	
+	ERROR(TokenType.collectText());
 	
 	// TODO variable attributes?
 	;

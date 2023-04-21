@@ -9,28 +9,40 @@ import fi.benjami.parserkit.parser.ast.TokenValue;
 
 public interface Expression extends LuaNode {
 	
-	public static VirtualNode EXPRESSIONS = VirtualNode.parseOrError(0,
-			SimpleConstant.class, StringConstant.class,
-			VarArgs.class, FunctionDefinition.class, // Generic expressions
-			VarReference.class, FunctionCall.class, Group.class, // Prefix expressions
-//			TableConstructor.class, // Generic expressions, continued
-			BinaryExpr.Power.class, // Exponentiation (priority 0)
-			// Unary expressions have higher priority than binary expressions (priority 1)
-			UnaryExpr.LogicalNot.class, UnaryExpr.ArrayLength.class,
-			UnaryExpr.Negate.class, UnaryExpr.BitwiseNot.class,
-			// Binary expressions have their priority set according to Lua specification
-			BinaryExpr.Multiply.class, BinaryExpr.Divide.class, BinaryExpr.FloorDivide.class, BinaryExpr.Modulo.class, // Priority 2
-			BinaryExpr.Add.class, BinaryExpr.Subtract.class, // Priority 3
-			BinaryExpr.StringConcat.class, // Priority 4
-			BinaryExpr.BitShiftLeft.class, BinaryExpr.BitShiftRight.class, // Priority 5
-			BinaryExpr.BitwiseAnd.class, // Priority 6
-			BinaryExpr.BitwiseXor.class, // Priority 7
-			BinaryExpr.BitwiseOr.class, // Priority 8
-			BinaryExpr.LessThan.class, BinaryExpr.LessOrEqual.class, // Priority 9
+	// Nested expression parsing is allowed to fail!
+	public static VirtualNode EXPRESSIONS = VirtualNode.of(
+			// Expressions are in priority order (highest to lowest)
+			// To implement maximal munch rule, the order is generally
+			// 1. Binary expressions
+			// 2. Unary expressions
+			// 3. Other expressions
+			// This ensures that e.g. a + b is parsed as Add(Constant(a), Constant(b)) instead of
+			// just Constant(a) and a parse error
+			
+			// Binary and unary expressions can be nested
+			// Their predecence is set as described in Lua spec
+			// Lowest precedence first
+			BinaryExpr.LogicalOr.class, // Precedence 11
+			BinaryExpr.LogicalAnd.class, // Precedence 10
+			BinaryExpr.LessThan.class, BinaryExpr.LessOrEqual.class, // Precedence 9
 			BinaryExpr.MoreThan.class, BinaryExpr.MoreOrEqual.class,
 			BinaryExpr.Equal.class, BinaryExpr.NotEqual.class,
-			BinaryExpr.LogicalAnd.class, // Priority 10
-			BinaryExpr.LogicalOr.class // Priority 11
+			BinaryExpr.BitwiseOr.class, // Precedence 8
+			BinaryExpr.BitwiseXor.class, // Precedence 7
+			BinaryExpr.BitwiseAnd.class, // Precedence 6
+			BinaryExpr.BitShiftLeft.class, BinaryExpr.BitShiftRight.class, // Precedence 5
+			BinaryExpr.StringConcat.class, // Precedence 4
+			BinaryExpr.Add.class, BinaryExpr.Subtract.class, // Precedence 3
+			BinaryExpr.Multiply.class, BinaryExpr.Divide.class, BinaryExpr.FloorDivide.class, BinaryExpr.Modulo.class, // Precedence 2
+			// Unary expressions have higher precedence than binary expressions (1)
+			UnaryExpr.LogicalNot.class, UnaryExpr.ArrayLength.class,
+			UnaryExpr.Negate.class, UnaryExpr.BitwiseNot.class,			
+			BinaryExpr.Power.class, // Exponentiation (precedence 0)
+			
+			SimpleConstant.class, StringConstant.class,
+			VarArgs.class, FunctionDefinition.class, // Generic expressions
+			VarReference.class,  Group.class // Prefix expressions
+//			TableConstructor.class, // Generic expressions, continued
 			);
 	
 	public static VirtualNode PREFIX_EXPRS = VirtualNode.parseOrError(0,
@@ -53,7 +65,12 @@ public interface Expression extends LuaNode {
 			@TokenValue("value") Object value
 	) implements Constant {
 		
-		public static final Input PATTERN = Input.token("value", LuaToken.LITERAL_NUMBER); // FIXME nil, false, true
+		public static final Input PATTERN = Input.oneOf(
+				Input.token("value", LuaToken.LITERAL_NUMBER),
+				Input.token("value", LuaToken.LITERAL_NIL),
+				Input.token("value", LuaToken.LITERAL_FALSE),
+				Input.token("value", LuaToken.LITERAL_TRUE)
+				); 
 	}
 	
 	public record VarArgs() implements Expression {
@@ -87,14 +104,16 @@ public interface Expression extends LuaNode {
 						Input.token(LuaToken.NAME_SEPARATOR)
 						),
 				Input.optional(Input.allOf(
-						Input.virtualNode("tableIndex", EXPRESSIONS)
+						Input.token(LuaToken.TABLE_INDEX_BEGIN),
+						Input.virtualNode("tableIndex", EXPRESSIONS),
+						Input.token(LuaToken.TABLE_INDEX_END)
 						))
 				);
 	}
 	
 	public record FunctionCall(
 			@ChildNode("path") PrefixExpr path,
-			@TokenValue("name") String name,
+			@TokenValue("name") String oopCallName,
 			@ChildNode("args") List<Expression> args
 	) implements PrefixExpr, Statement {
 		

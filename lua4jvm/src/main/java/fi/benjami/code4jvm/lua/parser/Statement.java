@@ -9,13 +9,15 @@ import fi.benjami.parserkit.parser.ast.TokenValue;
 
 public interface Statement extends LuaNode {
 
-	public static final VirtualNode STATEMENTS = VirtualNode.parseOrError(0,
+	// FIXME statement level error recovery has unusably bad performance
+	public static final VirtualNode STATEMENTS = VirtualNode.of(
 			Empty.class, VarAssignment.class, Expression.FunctionCall.class,
 			Label.class, LoopBreak.class, Goto.class,
 			DoEndBlock.class, WhileLoop.class, RepeatLoop.class, IfBlock.class,
 //			CountingForLoop.class, IteratorForLoop.class,
 			FunctionDeclaration.class,
-			LocalVarDeclaration.class, LocalFunctionDeclaration.class);
+			LocalVarDeclaration.class, LocalFunctionDeclaration.class
+			);
 	
 	public record Empty() implements Statement {
 		

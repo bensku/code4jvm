@@ -10,6 +10,7 @@ public interface BinaryExpr extends Expression {
 	
 	// TODO everything except Power and StringConcat should be LEFT associative
 	// this could be done by patching AST after the fact, or during code generation
+	// This only matters when operators have been overloaded to have side effects
 	
 	public record Power(
 			@ChildNode("lhs") Expression lhs,
