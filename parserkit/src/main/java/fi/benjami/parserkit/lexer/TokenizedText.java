@@ -156,7 +156,7 @@ public class TokenizedText {
 		}
 		
 		public void advance(View view) {
-			slice = view.slice;
+			slice = view.slice.copy();
 			textOffset = view.textOffset;
 		}
 	}

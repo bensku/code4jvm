@@ -131,6 +131,7 @@ public class ParserGenerator {
 		var nodeType = method.arg(Type.of(Class.class));
 		var view = method.arg(TOKEN_VIEW);
 		var errorSet = method.add(HASH_SET.newInstance()).asType(SET);
+		var nodeCache = method.add(NodeCache.STORAGE.newInstance());
 		
 		var node = Variable.create(AST_NODE);
 		method.add(node.set(Constant.nullValue(AST_NODE)));
@@ -140,7 +141,7 @@ public class ParserGenerator {
 		for (var entry : nodeManager.astNodeParsers().entrySet()) {
 			roots.branch(Condition.equal(Constant.of(Type.of(entry.getKey())), nodeType), block -> {
 				// Begin parsing with empty blacklist
-				block.add(node.set(block.add(entry.getValue().call(view, Constant.of(0L), errorSet))));
+				block.add(node.set(block.add(entry.getValue().call(view, Constant.of(0L), errorSet, nodeCache))));
 			});
 		}
 		method.add(roots);
@@ -194,7 +195,7 @@ public class ParserGenerator {
 	}
 	
 	private Block addInput(Value view, Input input, ResultRegistry results, ErrorManager errors,
-			Variable success, NodeBlocker blocker) {
+			Variable success, NodeBlocker blocker, NodeCache cache) {
 		if (input instanceof TokenInput token) {
 			var handler = Block.create("token " + token.type());
 			handler.add(success.set(Constant.of(false)));
@@ -238,7 +239,7 @@ public class ParserGenerator {
 			if (choices.fallback() != null) {
 				var newCopy = fallback.add(COPY_VIEW.call(view));
 				fallback.add(viewCopy.set(newCopy));
-				fallback.add(addInput(viewCopy, choices.fallback(), results, errors, success, blocker));
+				fallback.add(addInput(viewCopy, choices.fallback(), results, errors, success, blocker, cache));
 				fallback.add(Jump.to(handler, Jump.Target.END, Condition.isFalse(success)));
 			} else {
 				fallback.add(Jump.to(handler, Jump.Target.END));
@@ -269,7 +270,7 @@ public class ParserGenerator {
 							var newCopy = block.add(COPY_VIEW.call(view));
 							block.add(viewCopy.set(newCopy)); // newCopy is on stack, hopefully
 							// Parse the choice
-							block.add(addInput(viewCopy, choice, results, errors, success, blocker));
+							block.add(addInput(viewCopy, choice, results, errors, success, blocker, cache));
 							
 							// Short-circuit on success
 							block.add(Jump.to(onSuccess, Jump.Target.START, Condition.isTrue(success)));
@@ -292,32 +293,44 @@ public class ParserGenerator {
 		} else if (input instanceof CompoundInput compound) {
 			var handler = Block.create("compound");			
 			handler.add(hookCall(ParserHook.BEFORE_COMPOUND, Constant.of(compound.toString())));
+			var parts = compound.parts();
 
 			// Compound inputs use two sets of blocked node masks
-			// The first one includes everything - parent nodes, current node
-			// The second one includes parent nodes but NOT the current one
-			// This is needed to allow right recursion
-			// If parents were not blocked, we'd likely misparse nested expressions
+			// to prevent left recursion while still allowing right recursion
+			// If the compound has clearly identifiable end (i.e. token)
+			// nothing is blocked after first part
+			// However, if the end is e.g. another expression, we can only allow
+			// right recursion for current AST node to preserve correctness
 			var currentBlocker = blocker;
-			var rightBlocker = blocker.pop(handler);
+			// TODO improve to support nested tokens
+			var hasClearEnd = parts.get(parts.size() - 1) instanceof TokenInput;
+			var rightBlocker = hasClearEnd ? new NodeBlocker(Constant.of(0L), Constant.of(0)) : blocker.pop(handler);
+			
+			// Each component part must use its own cache
+			// This ensures correctness when a node includes multiple sub-nodes of same type
+			var currentCache = cache;
 			
 			var viewCopy = handler.add(COPY_VIEW.call(view));
-			var parts = compound.parts();
 			for (var i = 0; i < parts.size(); i++) {
 				var part = parts.get(i);
 				var partHandler = Block.create("part " + i);
 				partHandler.add(hookCall(ParserHook.COMPOUND_BEFORE_PART, Constant.of(part.toString()), Constant.of(i)));
 				
-				partHandler.add(addInput(viewCopy, part, results, errors, success, currentBlocker));
+				partHandler.add(addInput(viewCopy, part, results, errors, success, currentBlocker, currentCache));
 				// Jump to end on failure (short-circuit)
 				partHandler.add(Jump.to(handler, Jump.Target.END, Condition.isFalse(success)));
 				
 				// TODO what about failure hook?
 				partHandler.add(hookCall(ParserHook.COMPOUND_AFTER_PART, Constant.of(part.toString()), Constant.of(i), Constant.of(true)));
-				handler.add(partHandler);
 				
 				// Allow right recursion
 				currentBlocker = rightBlocker;
+				
+				// Separate node cache for each compound part
+				var storage = partHandler.add(NodeCache.STORAGE.newInstance());
+				currentCache = new NodeCache(nodeRegistry, storage);
+				
+				handler.add(partHandler);
 			}
 			// If all parts were found, advance the parent view
 			handler.add(ADVANCE_VIEW.call(view, viewCopy));
@@ -331,7 +344,8 @@ public class ParserGenerator {
 			var body = Block.create("repeating");
 			var loop = LoopBlock.whileLoop(body, Condition.always(true));
 			// TODO this breaks left recursion elimination, does that matter?
-			body.add(addInput(viewCopy, repeating.input(), results, errors, success, blocker.pop(handler)));
+			// For correctness reasons, node cache must be disabled for repeating inputs
+			body.add(addInput(viewCopy, repeating.input(), results, errors, success, blocker.pop(handler), NodeCache.NO_CACHE));
 			
 			var successTest = new IfBlock();
 			successTest.branch(Condition.isTrue(success), block -> {
@@ -367,14 +381,27 @@ public class ParserGenerator {
 			// We don't care if the method itself exists yet
 			var parser = nodeManager.astNodeParser(childNode.type());
 
-			// Call the method
-			var viewCopy = handler.add(COPY_VIEW.call(view));
-			var node = handler.add(parser.call(viewCopy, blocker.mask(), errors.errorSet()));
+			var node = Variable.create(AST_NODE);
+			var cacheTest = new IfBlock();
+			cacheTest.branch(cache.checkIsCached(childNode.type()), block -> {
+				// Node that has compatible type was found in cache
+				var viewAfter = block.add(cache.viewAfter());
+				block.add(ADVANCE_VIEW.call(view, viewAfter));
+				var newNode = block.add(cache.cachedNode());
+				block.add(node.set(newNode));
+			});
+			cacheTest.fallback(block -> {
+				// Node is not cached, parse it
+				var viewCopy = block.add(COPY_VIEW.call(view));
+				var newNode = block.add(parser.call(viewCopy, blocker.mask(), errors.errorSet(), cache.storage()));
+				block.add(node.set(newNode));
+				block.add(ADVANCE_VIEW.call(view, viewCopy));
+			});
+			handler.add(cacheTest);
 			
 			// Check success (node == null on failure) and store the node
 			var successTest = new IfBlock();
 			successTest.branch(Condition.isNull(node).not(), block -> {
-				block.add(ADVANCE_VIEW.call(view, viewCopy));
 				block.add(results.setResult(childNode.inputId(), node));
 				block.add(success.set(Constant.of(true)));
 			});
@@ -391,9 +418,22 @@ public class ParserGenerator {
 			
 			var handler = Block.create("virtual node");
 			handler.add(success.set(Constant.of(false)));
-
-			// Call the method
-			var node = handler.add(parser.call(view, blocker.mask(), blocker.topNode(), errors.errorSet()));
+			
+			var node = Variable.create(AST_NODE);
+			var cacheTest = new IfBlock();
+			cacheTest.branch(cache.checkIsCached(virtualNode.types()), block -> {
+				// Node that has compatible type was found in cache
+				var newView = block.add(cache.viewAfter());
+				block.add(ADVANCE_VIEW.call(view, newView));
+				var newNode = block.add(cache.cachedNode());
+				block.add(node.set(newNode));
+			});
+			cacheTest.fallback(block -> {
+				// Node is not cached, parse it
+				var newNode = block.add(parser.call(view, blocker.mask(), blocker.topNode(), errors.errorSet(), cache.storage()));
+				block.add(node.set(newNode));
+			});
+			handler.add(cacheTest);
 			
 			// Check for MISSING node; consider it a success, but store null for consistency
 			var successTest = new IfBlock();
@@ -421,7 +461,7 @@ public class ParserGenerator {
 			if (wrapper.input() != null) {
 				// If this has child input, emit it
 				var viewCopy = handler.add(COPY_VIEW.call(view));
-				handler.add(addInput(viewCopy, wrapper.input(), results, errors, success, blocker));
+				handler.add(addInput(viewCopy, wrapper.input(), results, errors, success, blocker, cache));
 				
 				var successTest = new IfBlock();
 				successTest.branch(Condition.isTrue(success), block -> {
@@ -487,13 +527,18 @@ public class ParserGenerator {
 		// Take the error list given to us as argument
 		var errors = new ErrorManager(method.arg(SET));
 		
+		// Initialize node cache
+		var cache = new NodeCache(nodeRegistry, method.arg(NodeCache.STORAGE));
+		
 		// Handle the root input
-		method.add(addInput(view, input, results, errors, success, blocker));
+		method.add(addInput(view, input, results, errors, success, blocker, cache));
 		
 		// Create and return AST node if we have no failures
 		var successTest = new IfBlock();
 		successTest.branch(Condition.isTrue(success), block -> {
 			var astNode = block.add(Type.of(nodeType).newInstance(results.constructorArgs().toArray(Value[]::new)));
+			var viewCopy = block.add(COPY_VIEW.call(view));
+			block.add(cache.setCache(nodeType, astNode, viewCopy));
 			block.add(Return.value(astNode.asType(AST_NODE)));
 		});
 		successTest.fallback(block -> {
@@ -518,8 +563,11 @@ public class ParserGenerator {
 		// Take the error list given to us as argument
 		var errors = new ErrorManager(method.arg(SET));
 		
+		// Initialize node cache
+		var cache = new NodeCache(nodeRegistry, method.arg(NodeCache.STORAGE));
+		
 		// Handle the root input
-		method.add(addInput(view, input.input(), results, errors, success, blocker));
+		method.add(addInput(view, input.input(), results, errors, success, blocker, cache));
 		
 		// Create and return AST node if we have no failures
 		var successTest = new IfBlock();

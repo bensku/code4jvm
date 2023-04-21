@@ -25,16 +25,16 @@ public class NodeManager {
 	public CallTarget astNodeParser(Class<? extends AstNode> type) {
 		return astParsers.computeIfAbsent(type, k -> {
 			var name = "parseAst$" + type.getSimpleName();
-			// TODO > 64 nodes blacklist support
-			return parserType.staticMethod(ParserGenerator.AST_NODE, name, ParserGenerator.TOKEN_VIEW, Type.LONG, ParserGenerator.SET);
+			// TODO > 64 nodes blacklist and cache support
+			return parserType.staticMethod(ParserGenerator.AST_NODE, name, ParserGenerator.TOKEN_VIEW, Type.LONG, ParserGenerator.SET, NodeCache.STORAGE);
 		});
 	}
 	
 	public CallTarget virtualNodeParser(VirtualNodeInput input) {
 		return virtualParsers.computeIfAbsent(input.input(), k -> {
 			var name = "parseVirtual$" + virtualParsers.size();
-			// TODO > 64 nodes blacklist support
-			return parserType.staticMethod(ParserGenerator.AST_NODE, name, ParserGenerator.TOKEN_VIEW, Type.LONG, Type.INT, ParserGenerator.SET);
+			// TODO > 64 nodes blacklist and cache support
+			return parserType.staticMethod(ParserGenerator.AST_NODE, name, ParserGenerator.TOKEN_VIEW, Type.LONG, Type.INT, ParserGenerator.SET, NodeCache.STORAGE);
 		});
 	}
 	

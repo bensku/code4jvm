@@ -38,4 +38,14 @@ public interface TokenType {
 	default Token convert(Token token, Object value) {
 		return new Token(token.start(), token.length(), ordinal(), value);
 	}
+	
+	/**
+	 * Creates a new token of this type from the given token. The new token
+	 * will have null {@link Token#value() value}.
+	 * @param token Token to convert to this type. Not mutated.
+	 * @return A new token of this type.
+	 */
+	default Token convert(Token token) {
+		return convert(token, null);
+	}
 }

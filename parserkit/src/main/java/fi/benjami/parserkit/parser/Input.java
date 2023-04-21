@@ -126,7 +126,8 @@ public interface Input {
 		} else {
 			choiceInput = new ChoiceInput(choices, null);
 		}
-		return new VirtualNodeInput(inputId, choiceInput, spec.handlesErrors());
+		// TODO move choiceInput from here to e.g. VirtualNodeInput constructor
+		return new VirtualNodeInput(inputId, choiceInput, spec.astNodeTypes(), spec.handlesErrors());
 	}
 	
 	@SafeVarargs
@@ -158,6 +159,8 @@ public interface Input {
 		var parts = new ArrayList<Input>();
 		if (minimumCount > 0) {
 			parts.add(element);
+		} else {
+			parts.add(Input.optional(element));
 		}
 		for (var i = 1; i < minimumCount; i++) {
 			parts.add(separator);
