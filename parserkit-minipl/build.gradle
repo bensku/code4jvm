@@ -1,0 +1,26 @@
+plugins {
+	id 'com.github.johnrengelman.shadow' version '8.1.0'
+	id 'java'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+	implementation project(':parserkit')
+	implementation project(':')
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.9.1'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.9.1'
+    implementation 'org.ow2.asm:asm-util:9.2' // TODO temporary, remove
+}
+
+jar {
+	manifest {
+		attributes('Main-Class': 'fi.benjami.parserkit.minipl.AppMain')
+	}
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}

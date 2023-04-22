@@ -396,4 +396,27 @@ public class ConditionTest {
 		outer.add(inner);
 		outer.add(Return.value(Constant.of(true)));
 	}
+	
+	interface EqualsFunction {
+		boolean check(int a, int b);
+	}
+	
+	@ParameterizedTest
+	@OptionsSource
+	public void evaluateCondition(CompileOptions opts) throws Throwable {
+		var def = ClassDef.create("fi.benjami.code4jvm.test.EvaluateCondition", Access.PUBLIC);
+		def.addEmptyConstructor(Access.PUBLIC);
+		def.interfaces(Type.of(EqualsFunction.class));
+		
+		var method = def.addMethod(Type.BOOLEAN, "check", Access.PUBLIC);
+		var a = method.arg(Type.INT);
+		var b = method.arg(Type.INT);
+		
+		var result = method.add(Condition.equal(a, b).evaluate());
+		method.add(Return.value(result));
+		
+		var instance = (EqualsFunction) TestUtils.newInstance(def, opts);
+		assertTrue(instance.check(10, 10));
+		assertFalse(instance.check(10, 9));
+	}
 }

@@ -94,7 +94,7 @@ public class MethodCompiler {
 				emitLocalVarTable(mv, slotAllocator.variables());
 			}
 			
-			// Set stack and 
+			// Set stack and local variable count
 			mv.visitMaxs(ctx.stack().maxStackSize(), slotAllocator.slotCount());
 		}
 		mv.visitEnd();

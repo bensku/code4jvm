@@ -45,8 +45,15 @@ public final class FixedCallTarget extends CallTarget {
 	public Expression call(Value... args) {
 		// Concatenate captured and other arguments
 		var allArgs = CallTarget.mergeArgs(capturedArgs(), args);
-		var debugName = Bytecode.name("call %s", this);
 		
+		// Validate that the correct number of arguments were provided
+		// We can't validate types of the arguments, because the runtime type hierarchy is not known
+		var argTypes = argTypes();
+		if (allArgs.length != argTypes.length) {
+			throw new IllegalArgumentException("expected " + argTypes().length + " arguments, got " + allArgs.length);
+		}
+		
+		var debugName = Bytecode.name("call %s", this);
 		return block -> {
 			return switch (linkage()) {
 			case STATIC -> block.add(Bytecode.run(returnType(), allArgs, ctx -> {

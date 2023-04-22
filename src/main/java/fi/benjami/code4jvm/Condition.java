@@ -1,5 +1,9 @@
 package fi.benjami.code4jvm;
 
+import java.util.Arrays;
+
+import fi.benjami.code4jvm.block.Block;
+import fi.benjami.code4jvm.statement.Jump;
 import fi.benjami.code4jvm.util.TypeCheck;
 
 public class Condition {
@@ -98,9 +102,38 @@ public class Condition {
 		return values;
 	}
 	
+	/**
+	 * Creates an expression that evaluates this condition and places the
+	 * result in a boolean variable.
+	 * @return Expression that evaluates this condition where it is added to.
+	 */
+	public Expression evaluate() {
+		return block -> {
+			var result = Variable.create(fi.benjami.code4jvm.Type.BOOLEAN);
+			
+			// Start with true result
+			block.add(result.set(Constant.of(true)));
+			
+			// If evaluation does not succeed, set it to false
+			var test = Block.create();
+			test.add(result.set(Constant.of(false)));
+			block.add(Jump.to(test, Jump.Target.END, this));
+			block.add(test);
+			
+			return result;
+		};
+	}
+	
+	@Override
+	public boolean equals(Object o) {
+		return o instanceof Condition cond && cond.type == type && Arrays.equals(values, cond.values);
+	}
+	
 	@Override
 	public String toString() {
-		if (values.length == 1) {
+		if (values.length == 0) {
+			return "" + type;
+		} else if (values.length == 1) {
 			return type + " " + values[0];
 		} else {
 			return values[0] + " " + type + " " + values[1];
