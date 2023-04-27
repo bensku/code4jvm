@@ -59,7 +59,7 @@ public class Arithmetic {
 		var type = lhs.type();
 		return block -> {
 			return block.add(Bytecode.run(type, new Value[] {lhs, rhs}, ctx -> {
-				ctx.asm().visitInsn(type.getOpcode(ISUB, ctx));
+				ctx.asm().visitInsn(type.getOpcode(IREM, ctx));
 			}, "remainder"));
 		};
 	}

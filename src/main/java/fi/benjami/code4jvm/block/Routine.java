@@ -39,6 +39,13 @@ public class Routine {
 		return returnType;
 	}
 	
+	public Variable mutableArg(Type type, String name, int index) {
+		var localVar = new LocalVar(type, name);
+		localVar.needsSlot = true; // It is passed to method in a slot
+		args.add(index, localVar);
+		return localVar;		
+	}
+	
 	/**
 	 * Adds a named argument to this routine.
 	 * @param type Type of the argument.
@@ -47,10 +54,11 @@ public class Routine {
 	 * @return Value that represents the argument.
 	 */
 	public Value arg(Type type, String name, int index) {
-		var localVar = new LocalVar(type, name);
-		localVar.needsSlot = true; // It is passed to method in a slot
-		args.add(index, localVar);
-		return localVar;
+		return mutableArg(type, name, index);
+	}
+	
+	public Variable mutableArg(Type type, String name) {		
+		return mutableArg(type, name, args.size());
 	}
 	
 	/**
@@ -60,7 +68,11 @@ public class Routine {
 	 * @return Value that represents the argument.
 	 */
 	public Value arg(Type type, String name) {
-		return arg(type, name, args.size());
+		return mutableArg(type, name);
+	}
+	
+	public Variable mutableArg(Type type) {
+		return mutableArg(type, null);
 	}
 	
 	/**
@@ -69,7 +81,7 @@ public class Routine {
 	 * @return Value that represents the argument.
 	 */
 	public Value arg(Type type) {
-		return arg(type, null);
+		return mutableArg(type, null);
 	}
 	
 	/**
