@@ -1,5 +1,6 @@
 package fi.benjami.code4jvm.internal;
 
+import java.util.Map;
 import java.util.Optional;
 
 import org.objectweb.asm.MethodVisitor;
@@ -28,7 +29,30 @@ public class CastValue implements Value {
 			DOUBLE_INT = 1 << 13,
 			DOUBLE_LONG = 1 << 14,
 			DOUBLE_FLOAT = 1 << 15,
-			UNBOX = 1 << 16;
+			UNBOX = 1 << 16,
+			BOX = 1 << 17;
+	
+	private static final Map<Type, Type> PRIMITIVE_TO_BOXED = Map.of(
+			Type.BOOLEAN, Type.of(Boolean.class),
+			Type.BYTE, Type.of(Byte.class),
+			Type.SHORT, Type.of(Short.class),
+			Type.CHAR, Type.of(Character.class),
+			Type.INT, Type.of(Integer.class),
+			Type.LONG, Type.of(Long.class),
+			Type.FLOAT, Type.of(Float.class),
+			Type.DOUBLE, Type.of(Double.class)
+			);
+	
+	private static final Map<Type, Type> BOXED_TO_PRIMITIVE = Map.of(
+			Type.of(Boolean.class), Type.BOOLEAN,
+			Type.of(Byte.class), Type.BYTE,
+			Type.of(Short.class), Type.SHORT,
+			Type.of(Character.class), Type.CHAR,
+			Type.of(Integer.class), Type.INT,
+			Type.of(Long.class), Type.LONG,
+			Type.of(Float.class), Type.FLOAT,
+			Type.of(Double.class), Type.DOUBLE
+			);
 		
 	public static Value cast(Value original, Type to) {
 		assert original != null;
@@ -93,7 +117,18 @@ public class CastValue implements Value {
 				}
 			} else {
 				// Try to box a primitive type
-				throw new UnsupportedOperationException("boxing is not yet supported");
+				cast |= BOX;
+				// TODO non-booleans -> j.l.Number
+				if (!to.equals(Type.OBJECT)) {
+					var expectedPrimitive = BOXED_TO_PRIMITIVE.get(from);
+					if (expectedPrimitive == null) {
+						throw new UnsupportedOperationException("cannot cast " + from + " to " + to);
+					}
+					if (!from.equals(expectedPrimitive)) {
+						// Cannot directly box e.g. int into j.l.Long
+						original = cast(original, expectedPrimitive);
+					}
+				}
 			}
 		}
 		
@@ -194,6 +229,9 @@ public class CastValue implements Value {
 			mv.visitInsn(D2L);
 		} else if ((cast & DOUBLE_FLOAT) != 0) {
 			mv.visitInsn(D2F);
+		} else if ((cast & BOX) != 0) {
+			var boxedType = type.equals(Type.OBJECT) ? PRIMITIVE_TO_BOXED.get(original.type()) : type;
+			mv.visitMethodInsn(INVOKESTATIC, boxedType.internalName(), "valueOf", TypeUtils.methodDescriptor(boxedType, original.type()), false);
 		} else if ((cast & OBJECT_OBJECT) != 0) {
 			mv.visitTypeInsn(CHECKCAST, type.internalName());
 		}
