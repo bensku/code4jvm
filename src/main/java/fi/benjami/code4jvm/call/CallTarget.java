@@ -48,6 +48,9 @@ public abstract sealed class CallTarget permits FixedCallTarget, DynamicCallTarg
 	}
 	
 	public static DynamicCallTarget dynamic(FixedCallTarget bootstrapMethod, Type returnType, String name, Type... argTypes) {
+		if (name.isEmpty()) {
+			throw new IllegalArgumentException("JVM requires invokedynamic call sites to have names; use '_' instead of empty string");
+		}
 		return new DynamicCallTarget(returnType, name, argTypes, new Value[0], bootstrapMethod);
 	}
 	

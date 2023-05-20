@@ -32,23 +32,23 @@ public class Type {
 			int return_
 	) {}
 
-	public static final Type VOID = new Type("void", "V",
+	public static final Type VOID = new Type("void", "V", void.class,
 			new TypeOpcodes(NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, RETURN));
-	public static final Type BOOLEAN = new Type("boolean", "Z",
+	public static final Type BOOLEAN = new Type("boolean", "Z", boolean.class,
 			new TypeOpcodes(ILOAD, ISTORE, BALOAD, BASTORE, IADD, ISUB, IMUL, IDIV, IREM, INEG, ISHL, ISHR, IUSHR, IAND, IOR, IXOR, IRETURN));
-	public static final Type BYTE = new Type("byte", "B",
+	public static final Type BYTE = new Type("byte", "B", byte.class,
 			new TypeOpcodes(ILOAD, ISTORE, BALOAD, BASTORE, IADD, ISUB, IMUL, IDIV, IREM, INEG, ISHL, ISHR, IUSHR, IAND, IOR, IXOR, IRETURN));
-	public static final Type SHORT = new Type("short", "S",
+	public static final Type SHORT = new Type("short", "S", short.class,
 			new TypeOpcodes(ILOAD, ISTORE, SALOAD, SASTORE, IADD, ISUB, IMUL, IDIV, IREM, INEG, ISHL, ISHR, IUSHR, IAND, IOR, IXOR, IRETURN));
-	public static final Type CHAR = new Type("char", "C",
+	public static final Type CHAR = new Type("char", "C", char.class,
 			new TypeOpcodes(ILOAD, ISTORE, CALOAD, CASTORE, IADD, ISUB, IMUL, IDIV, IREM, INEG, ISHL, ISHR, IUSHR, IAND, IOR, IXOR, IRETURN));
-	public static final Type INT = new Type("int", "I",
+	public static final Type INT = new Type("int", "I", int.class,
 			new TypeOpcodes(ILOAD, ISTORE, IALOAD, IASTORE, IADD, ISUB, IMUL, IDIV, IREM, INEG, ISHL, ISHR, IUSHR, IAND, IOR, IXOR, IRETURN));
-	public static final Type LONG = new Type("long", "J",
+	public static final Type LONG = new Type("long", "J", long.class,
 			new TypeOpcodes(LLOAD, LSTORE, LALOAD, LASTORE, LADD, LSUB, LMUL, LDIV, LREM, LNEG, LSHL, LSHR, LUSHR, LAND, LOR, LXOR, LRETURN));
-	public static final Type FLOAT = new Type("float", "F",
+	public static final Type FLOAT = new Type("float", "F", float.class,
 			new TypeOpcodes(FLOAD, FSTORE, FALOAD, FASTORE, FADD, FSUB, FMUL, FDIV, FREM, FNEG, NOP, NOP, NOP, NOP, NOP, NOP, FRETURN));
-	public static final Type DOUBLE = new Type("double", "D",
+	public static final Type DOUBLE = new Type("double", "D", double.class,
 			new TypeOpcodes(DLOAD, DSTORE, DALOAD, DASTORE, DADD, DSUB, DMUL, DDIV, DREM, DNEG, NOP, NOP, NOP, NOP, NOP, NOP, DRETURN));
 	
 	private static final int KIND_PRIMITIVE = 0, KIND_CLASS = 1, KIND_INTERFACE = 2;
@@ -58,11 +58,11 @@ public class Type {
 			new TypeOpcodes(ALOAD, ASTORE, AALOAD, AASTORE, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, ARETURN);
 	
 	// j.l.Object is used so often that a constant is nice to have
-	public static final Type OBJECT = new Type("java.lang.Object", "java/lang/Object", KIND_CLASS, "Ljava/lang/Object;", 0, OBJ_OPCODES);
+	public static final Type OBJECT = new Type("java.lang.Object", "java/lang/Object", Object.class, KIND_CLASS, "Ljava/lang/Object;", 0, OBJ_OPCODES);
 	// Same goes for j.l.String, which additionally has some special JVM support (e.g. constants)
-	public static final Type STRING = new Type("java.lang.String", "java/lang/String", KIND_CLASS, "Ljava/lang/String;", 0, OBJ_OPCODES);
+	public static final Type STRING = new Type("java.lang.String", "java/lang/String", String.class, KIND_CLASS, "Ljava/lang/String;", 0, OBJ_OPCODES);
 	
-	public static final Type METHOD_RETURN_TYPE = new Type("code4jvm.special.MethodReturn", "code4jvm/special/MethodReturn",
+	public static final Type METHOD_RETURN_TYPE = new Type("code4jvm.special.MethodReturn", "code4jvm/special/MethodReturn", null,
 			new TypeOpcodes(NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP));
 
 	public static Type of(String name, boolean isInterface) {
@@ -79,13 +79,23 @@ public class Type {
 		case "java.lang.String" -> STRING;
 		default -> {
 			var internalName = name.replace('.', '/');
-			yield new Type(name, internalName, isInterface ? KIND_INTERFACE : KIND_CLASS,
+			yield new Type(name, internalName, null, isInterface ? KIND_INTERFACE : KIND_CLASS,
 					"L" + internalName + ";", 0, OBJ_OPCODES);
 		}
 		};
 	}
 	
 	public static Type of(Class<?> c) {
+		// Handle classes that represent arrays as special case
+		var arrayDimensions = 0;
+		while (c.isArray()) {
+			arrayDimensions++;
+			c = c.componentType();
+		}
+		if (arrayDimensions != 0) {
+			return of(c).array(arrayDimensions);
+		}
+		
 		if (c == boolean.class) {
 			return BOOLEAN;
 		} else if (c == byte.class) {
@@ -110,7 +120,7 @@ public class Type {
 			var name = c.getName();
 			var internalName = name.replace('.', '/');
 			var kind = c.isInterface() ? KIND_INTERFACE : KIND_CLASS;
-			return new Type(name, internalName, kind, "L" + internalName + ";", 0, OBJ_OPCODES);
+			return new Type(name, internalName, c, kind, "L" + internalName + ";", 0, OBJ_OPCODES);
 		}
 	}
 	
@@ -123,6 +133,11 @@ public class Type {
 	 * Internal name (JVM type name).
 	 */
 	private final String internalName;
+	
+	/**
+	 * Loaded class. When a type is constructed from its name, this is null.
+	 */
+	private Class<?> loadedClass;
 	
 	private final int kind;
 
@@ -138,10 +153,11 @@ public class Type {
 	
 	private final TypeOpcodes opcodes;
 	
-	private Type(String name, String internalName, int kind, String descriptor, int arrayDimensions,
+	private Type(String name, String internalName, Class<?> loadedClass, int kind, String descriptor, int arrayDimensions,
 			TypeOpcodes opcodes) {
 		this.name = name;
 		this.internalName = internalName;
+		this.loadedClass = loadedClass;
 		this.kind = kind;
 		this.descriptor = descriptor;
 		this.arrayDimensions = arrayDimensions;
@@ -149,8 +165,8 @@ public class Type {
 	}
 	
 	// For primitive types only
-	private Type(String name, String descriptor, TypeOpcodes opcodes) {
-		this(name, name, KIND_PRIMITIVE, descriptor, 0, opcodes);
+	private Type(String name, String descriptor, Class<?> loadedClass, TypeOpcodes opcodes) {
+		this(name, name, loadedClass, KIND_PRIMITIVE, descriptor, 0, opcodes);
 	}
 	
 	public String name() {
@@ -181,7 +197,7 @@ public class Type {
 	public Type array(int dimensions) {
 		// Array access opcodes are stored in non-array opcodes, so array types can have them
 		// This won't work for multi-dimensional arrays, but getOpcode(...) has special case for them
-		return new Type(name, internalName, kind, "[".repeat(dimensions) + descriptor, arrayDimensions + dimensions, opcodes);
+		return new Type(name, internalName, null, kind, "[".repeat(dimensions) + descriptor, arrayDimensions + dimensions, opcodes);
 	}
 	
 	public Type componentType(int popDimensions) {
@@ -190,7 +206,7 @@ public class Type {
 		}
 		var removedDimensions = Math.min(popDimensions, arrayDimensions);
 		var newDimensions = arrayDimensions - removedDimensions;
-		return new Type(name, internalName, kind, descriptor.substring(removedDimensions), newDimensions, opcodes);
+		return new Type(name, internalName, null, kind, descriptor.substring(removedDimensions), newDimensions, opcodes);
 	}
 	
 	public boolean isPrimitive() {
@@ -297,6 +313,14 @@ public class Type {
 			throw new IllegalArgumentException("opcode " + intOpcode + " is not supported for " + this);
 		}
 		return opcode;
+	}
+	
+	public Class<?> loadedClass() {
+		try {
+			return loadedClass != null ? loadedClass : Class.forName(name);
+		} catch (ClassNotFoundException e) {
+			return null; // TODO is this a good idea?
+		}
 	}
 
 	@Override

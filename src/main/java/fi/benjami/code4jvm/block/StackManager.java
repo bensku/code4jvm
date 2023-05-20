@@ -2,6 +2,7 @@ package fi.benjami.code4jvm.block;
 
 import static org.objectweb.asm.Opcodes.*;
 
+import org.objectweb.asm.ConstantDynamic;
 import org.objectweb.asm.MethodVisitor;
 
 import fi.benjami.code4jvm.Constant;
@@ -180,6 +181,12 @@ public class StackManager {
 	
 	private void emitConstant(Constant constant) {
 		MethodVisitor mv = ctx.asm();
+		
+		if (constant.asmValue() instanceof ConstantDynamic) {
+			// Dynamic constants can't benefit from specialized opcodes
+			mv.visitLdcInsn(constant.asmValue());
+			return;
+		}
 		
 		var type = constant.type();
 		if (constant.value() == null) {
