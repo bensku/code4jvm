@@ -66,7 +66,7 @@ public class LuaOps {
 			return resolveMetatable(lhs, Metamethod.MODULO, rhs);
 		}
 	}
-	
+		
 	private static CallTarget target(String name, int argCount) {
 		var args = new Type[argCount];
 		Arrays.fill(args, Type.OBJECT);
@@ -74,6 +74,6 @@ public class LuaOps {
 	}
 	
 	private static Object resolveMetatable(Object lhs, Metamethod method, Object rhs) {
-		throw new UnsupportedOperationException();
+		throw new UnsupportedOperationException("operation " + method + " is not supported for " + lhs + " and " + rhs);
 	}
 }

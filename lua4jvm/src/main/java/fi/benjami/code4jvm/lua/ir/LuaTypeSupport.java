@@ -3,7 +3,6 @@ package fi.benjami.code4jvm.lua.ir;
 import java.util.Map;
 
 import fi.benjami.code4jvm.Type;
-import fi.benjami.code4jvm.lua.runtime.LuaFunction;
 
 class LuaTypeSupport {
 
@@ -12,8 +11,7 @@ class LuaTypeSupport {
 			Type.of(Boolean.class), LuaType.BOOLEAN,
 			Type.DOUBLE, LuaType.NUMBER,
 			Type.of(Double.class), LuaType.NUMBER,
-			Type.STRING, LuaType.STRING,
-			Type.of(LuaFunction.class), LuaType.FUNCTION
+			Type.STRING, LuaType.STRING
 	);
 	
 	public static final Map<Class<?>, LuaType> CLASS_TO_TYPE = Map.of(
@@ -21,7 +19,6 @@ class LuaTypeSupport {
 			Boolean.class, LuaType.BOOLEAN,
 			double.class, LuaType.NUMBER,
 			Double.class, LuaType.NUMBER,
-			String.class, LuaType.STRING,
-			LuaFunction.class, LuaType.FUNCTION
+			String.class, LuaType.STRING
 	);
 }

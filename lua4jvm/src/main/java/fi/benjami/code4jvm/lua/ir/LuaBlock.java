@@ -20,14 +20,12 @@ public record LuaBlock(
 
 	@Override
 	public LuaType outputType(LuaContext ctx) {
-		var returnTypes = ctx.returnTypes();
-		if (returnTypes.length == 0) {
-			return LuaType.NIL;
-		} else if (returnTypes.length == 1) {
-			return returnTypes[0];
-		} else {
-			return LuaType.tuple(returnTypes);
+		// Go through everything to record return types
+		for (var node : nodes) {
+			node.outputType(ctx);
 		}
+		
+		return ctx.returnType();
 	}
 	
 }

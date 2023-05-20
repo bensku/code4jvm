@@ -1,5 +1,10 @@
 package fi.benjami.code4jvm.lua.ir;
 
+import fi.benjami.code4jvm.Type;
+
 public record LuaLocalVar(
 		String name
-) implements LuaVariable {}
+) implements LuaVariable {
+	
+	public static final Type TYPE = Type.of(LuaLocalVar.class);
+}

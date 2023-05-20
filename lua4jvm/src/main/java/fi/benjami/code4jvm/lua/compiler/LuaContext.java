@@ -1,27 +1,36 @@
 package fi.benjami.code4jvm.lua.compiler;
 
+import java.util.ArrayList;
 import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.Map;
 
+import fi.benjami.code4jvm.Constant;
+import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.Variable;
+import fi.benjami.code4jvm.flag.Access;
+import fi.benjami.code4jvm.flag.FieldFlag;
 import fi.benjami.code4jvm.lua.ir.LuaLocalVar;
 import fi.benjami.code4jvm.lua.ir.LuaType;
 import fi.benjami.code4jvm.lua.ir.LuaVariable;
+import fi.benjami.code4jvm.typedef.ClassDef;
 
 public class LuaContext {
 	
 	private final Map<LuaLocalVar, LuaType> typeTable;
 	private final Map<LuaLocalVar, Variable> variables;
+	private final List<Object> classData;
 	
 	private LuaType[] returnTypes;
 	
-	LuaContext() {
+	public LuaContext() {
 		this.typeTable = new IdentityHashMap<>();
 		this.variables = new IdentityHashMap<>();
+		this.classData = new ArrayList<>();
 	}
 	
 	public void recordType(LuaVariable variable, LuaType type) {
-		if (variable instanceof LuaLocalVar localVar) {			
+		if (variable instanceof LuaLocalVar localVar) {
 			var oldType = typeTable.get(variable);
 			if (oldType == null) {
 				typeTable.put(localVar, type);
@@ -93,8 +102,26 @@ public class LuaContext {
 		}
 	}
 	
-	public LuaType[] returnTypes() {
+	public LuaType returnType() {
 		assert returnTypes != null;
-		return returnTypes;
+		if (returnTypes.length == 0) {
+			return LuaType.NIL;
+		} else if (returnTypes.length == 1) {
+			return returnTypes[0];
+		} else {
+			// JVM has no multiple returns, emulate them with tuples
+			return LuaType.tuple(returnTypes);
+		}
 	}
+	
+	public Constant addClassData(Object value) {
+		var index = classData.size();
+		classData.add(value);
+		return Constant.classDataAt(Type.of(value.getClass()), index);
+	}
+	
+	public Object allClassData() {
+		return classData;
+	}
+
 }
