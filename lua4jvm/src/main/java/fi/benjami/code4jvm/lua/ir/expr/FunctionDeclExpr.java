@@ -1,6 +1,5 @@
 package fi.benjami.code4jvm.lua.ir.expr;
 
-import java.util.Arrays;
 import java.util.List;
 
 import fi.benjami.code4jvm.Constant;

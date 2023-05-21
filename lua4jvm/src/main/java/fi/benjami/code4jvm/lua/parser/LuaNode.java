@@ -1,5 +1,7 @@
 package fi.benjami.code4jvm.lua.parser;
 
+import fi.benjami.code4jvm.lua.ir.IrNode;
+import fi.benjami.code4jvm.lua.semantic.LuaScope;
 import fi.benjami.parserkit.parser.NodeRegistry;
 import fi.benjami.parserkit.parser.ast.AstNode;
 
@@ -17,4 +19,6 @@ public interface LuaNode extends AstNode {
 		
 		return registry;
 	}
+	
+	IrNode toIr(LuaScope scope);
 }

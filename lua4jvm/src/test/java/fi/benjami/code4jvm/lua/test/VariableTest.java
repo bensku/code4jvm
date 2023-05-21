@@ -103,7 +103,7 @@ public class VariableTest {
 				List.of(),
 				List.of(),
 				new LuaBlock(List.of(
-						new ReturnStmt(List.of(new LuaConstant(5d, LuaType.NUMBER), new LuaConstant(6d, LuaType.NUMBER)))
+						new ReturnStmt(List.of(new LuaConstant(5d), new LuaConstant(6d)))
 				)));
 		var calledFunc = new LuaFunction(calledType, new Object[0]);
 		

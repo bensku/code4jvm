@@ -1,7 +1,19 @@
 package fi.benjami.code4jvm.lua.parser;
 
+import java.util.ArrayList;
 import java.util.List;
 
+import fi.benjami.code4jvm.Value;
+import fi.benjami.code4jvm.block.Block;
+import fi.benjami.code4jvm.lua.compiler.LuaContext;
+import fi.benjami.code4jvm.lua.ir.IrNode;
+import fi.benjami.code4jvm.lua.ir.LuaType;
+import fi.benjami.code4jvm.lua.ir.LuaVariable;
+import fi.benjami.code4jvm.lua.ir.expr.LuaConstant;
+import fi.benjami.code4jvm.lua.ir.expr.VariableExpr;
+import fi.benjami.code4jvm.lua.ir.stmt.ReturnStmt;
+import fi.benjami.code4jvm.lua.ir.stmt.SetVariablesStmt;
+import fi.benjami.code4jvm.lua.semantic.LuaScope;
 import fi.benjami.parserkit.parser.Input;
 import fi.benjami.parserkit.parser.VirtualNode;
 import fi.benjami.parserkit.parser.ast.ChildNode;
@@ -16,12 +28,29 @@ public interface Statement extends LuaNode {
 			DoEndBlock.class, WhileLoop.class, RepeatLoop.class, IfBlock.class,
 //			CountingForLoop.class, IteratorForLoop.class,
 			FunctionDeclaration.class,
-			LocalVarDeclaration.class, LocalFunctionDeclaration.class
+			LocalVarDeclaration.class, LocalFunctionDeclaration.class,
+			Return.class
 			);
 	
 	public record Empty() implements Statement {
 		
 		public static final Input PATTERN = Input.token(LuaToken.STATEMENT_END);
+		
+		@Override
+		public IrNode toIr(LuaScope scope) {
+			return new IrNode() {
+				
+				@Override
+				public LuaType outputType(LuaContext ctx) {
+					return LuaType.NIL;
+				}
+				
+				@Override
+				public Value emit(LuaContext ctx, Block block) {
+					return null;
+				}
+			};
+		}
 	}
 	
 	public record VarAssignment(
@@ -42,6 +71,19 @@ public interface Statement extends LuaNode {
 						Input.token(LuaToken.LIST_SEPARATOR)
 						)
 				);
+		
+		@Override
+		public IrNode toIr(LuaScope scope) {
+			var spread = values.size() == 1 && values.get(0) instanceof Expression.FunctionCall;
+			var targets = variables.stream()
+					.map(expr -> expr.toIr(scope))
+					.map(VariableExpr::source)
+					.toList();
+			var sources = values.stream()
+					.map(expr -> expr.toIr(scope))
+					.toList();
+			return new SetVariablesStmt(targets, sources, spread);
+		}
 	}
 	
 	public record LocalVarDeclaration(
@@ -66,6 +108,19 @@ public interface Statement extends LuaNode {
 								)
 						))
 				);
+		
+		@Override
+		public IrNode toIr(LuaScope scope) {
+			var spread = values.size() == 1 && values.get(0) instanceof Expression.FunctionCall;
+			var targets = varNames.stream()
+					// need to cast, List<LuaLocalVar> != List<LuaVariable> for javac
+					.map(name -> (LuaVariable) scope.declare(name))
+					.toList();
+			var sources = values.stream()
+					.map(expr -> expr.toIr(scope))
+					.toList();
+			return new SetVariablesStmt(targets, sources, spread);
+		}
 	}
 	
 	public record Label(
@@ -77,11 +132,21 @@ public interface Statement extends LuaNode {
 				Input.token("name", LuaToken.NAME),
 				Input.token(LuaToken.GOTO_LABEL)
 				);
+		
+		@Override
+		public IrNode toIr(LuaScope scope) {
+			throw new UnsupportedOperationException();
+		}
 	}
 	
 	public record LoopBreak() implements Statement {
 		
 		public static final Input PATTERN = Input.token(LuaToken.LOOP_BREAK);
+		
+		@Override
+		public IrNode toIr(LuaScope scope) {
+			throw new UnsupportedOperationException();
+		}
 	}
 	
 	public record Goto(
@@ -92,6 +157,11 @@ public interface Statement extends LuaNode {
 				Input.token(LuaToken.GOTO_JUMP),
 				Input.token("label", LuaToken.NAME)
 				);
+		
+		@Override
+		public IrNode toIr(LuaScope scope) {
+			throw new UnsupportedOperationException();
+		}
 	}
 	
 	public record DoEndBlock(
@@ -103,6 +173,11 @@ public interface Statement extends LuaNode {
 				Input.childNode("block", SpecialNodes.Block.class),
 				Input.token(LuaToken.END)
 				);
+		
+		@Override
+		public IrNode toIr(LuaScope scope) {
+			return block.toIr(new LuaScope(scope, false));
+		}
 	}
 	
 	public record WhileLoop(
@@ -117,6 +192,11 @@ public interface Statement extends LuaNode {
 				Input.childNode("body", SpecialNodes.Block.class),
 				Input.token(LuaToken.END)
 				);
+		
+		@Override
+		public IrNode toIr(LuaScope scope) {
+			throw new UnsupportedOperationException();
+		}
 	}
 	
 	public record RepeatLoop(
@@ -130,6 +210,11 @@ public interface Statement extends LuaNode {
 				Input.token(LuaToken.REPEAT_UNTIL),
 				Input.virtualNode("condition", Expression.EXPRESSIONS)
 				);
+		
+		@Override
+		public IrNode toIr(LuaScope scope) {
+			throw new UnsupportedOperationException();
+		}
 	}
 	
 	public record IfBlock(
@@ -151,6 +236,11 @@ public interface Statement extends LuaNode {
 						)),
 				Input.token(LuaToken.END)
 				);
+		
+		@Override
+		public IrNode toIr(LuaScope scope) {
+			throw new UnsupportedOperationException();
+		}
 	}
 	
 	public record ElseIfClause(
@@ -164,22 +254,26 @@ public interface Statement extends LuaNode {
 				Input.token(LuaToken.IF_THEN),
 				Input.childNode("block", SpecialNodes.Block.class)
 				);
+		
+		@Override
+		public IrNode toIr(LuaScope scope) {
+			throw new UnsupportedOperationException();
+		}
 	}
 	
-	public record CountingForLoop(
-			
-	) implements Statement {
-		
-	}
+//	public record CountingForLoop(
+//			
+//	) implements Statement {
+//		
+//	}
 	
-	public record IteratorForLoop(
-			
-	) implements Statement {
-		
-	}
+//	public record IteratorForLoop(
+//			
+//	) implements Statement {
+//		
+//	}
 	
 	public record FunctionDeclaration(
-			// TODO fix function name
 			@ChildNode("name") FunctionName name,
 			@ChildNode("body") SpecialNodes.FunctionBody function 
 	) implements Statement {
@@ -189,6 +283,26 @@ public interface Statement extends LuaNode {
 				Input.childNode("name", FunctionName.class),
 				Input.childNode("body", SpecialNodes.FunctionBody.class)
 				);
+		
+		@Override
+		public IrNode toIr(LuaScope scope) {
+			// Convert function name
+			var target = new VariableExpr(scope.resolve(name.parts.get(0)));
+			for (var i = 1; i < name.parts.size(); i++) {
+				target = new VariableExpr(new fi.benjami.code4jvm.lua.ir.TableField(target, new LuaConstant(name.parts.get(i))));
+			}
+			var func = function;
+			if (name.oopPart != null) {
+				target = new VariableExpr(new fi.benjami.code4jvm.lua.ir.TableField(target, new LuaConstant(name.oopPart)));
+				// Add implicit self argument
+				var args = new ArrayList<String>(func.paramNames().size() + 1);
+				args.add("self");
+				args.addAll(func.paramNames());
+				func = new SpecialNodes.FunctionBody(args, func.block());
+			}
+			
+			return new SetVariablesStmt(List.of(target.source()), List.of(function.toIr(scope)), false);
+		}
 	}
 	
 	public record FunctionName(
@@ -207,6 +321,11 @@ public interface Statement extends LuaNode {
 						Input.token("oopPart", LuaToken.NAME)
 						))
 				);
+		
+		@Override
+		public IrNode toIr(LuaScope scope) {
+			throw new AssertionError();
+		}
 	}
 	
 	public record LocalFunctionDeclaration(
@@ -220,6 +339,12 @@ public interface Statement extends LuaNode {
 				Input.token("name", LuaToken.NAME),
 				Input.childNode("body", SpecialNodes.FunctionBody.class)
 				);
+		
+		@Override
+		public IrNode toIr(LuaScope scope) {
+			var target = scope.declare(name);
+			return new SetVariablesStmt(List.of(target), List.of(function.toIr(scope)), false);
+		}
 	}
 	
 	// Official grammar states that return is not a statement, but this
@@ -236,5 +361,12 @@ public interface Statement extends LuaNode {
 						Input.token(LuaToken.LIST_SEPARATOR)
 						)
 				);
+		
+		@Override
+		public IrNode toIr(LuaScope scope) {
+			return new ReturnStmt(values.stream()
+					.map(expr -> expr.toIr(scope))
+					.toList());
+		}
 	}
 }

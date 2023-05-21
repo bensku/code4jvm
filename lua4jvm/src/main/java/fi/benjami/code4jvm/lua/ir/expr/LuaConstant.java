@@ -15,6 +15,10 @@ public record LuaConstant(
 		LuaType type
 ) implements IrNode {
 
+	public LuaConstant(Object value) {
+		this(value, LuaType.of(value));
+	}
+	
 	@Override
 	public Value emit(LuaContext ctx, Block block) {
 		// TODO use non-dynamic constants when possible

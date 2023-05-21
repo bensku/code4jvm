@@ -1,7 +1,15 @@
 package fi.benjami.code4jvm.lua.parser;
 
+import java.util.ArrayList;
 import java.util.List;
 
+import fi.benjami.code4jvm.lua.ir.IrNode;
+import fi.benjami.code4jvm.lua.ir.LuaType;
+import fi.benjami.code4jvm.lua.ir.expr.FunctionCallExpr;
+import fi.benjami.code4jvm.lua.ir.expr.LuaConstant;
+import fi.benjami.code4jvm.lua.ir.expr.TableInitExpr;
+import fi.benjami.code4jvm.lua.ir.expr.VariableExpr;
+import fi.benjami.code4jvm.lua.semantic.LuaScope;
 import fi.benjami.parserkit.parser.Input;
 import fi.benjami.parserkit.parser.VirtualNode;
 import fi.benjami.parserkit.parser.ast.ChildNode;
@@ -59,6 +67,11 @@ public interface Expression extends LuaNode {
 	) implements Constant {
 		
 		public static final Input PATTERN = Input.token("value", LuaToken.STRING_LITERAL);
+		
+		@Override
+		public IrNode toIr(LuaScope scope) {
+			return new LuaConstant(value, LuaType.STRING);
+		}
 	}
 	
 	public record SimpleConstant(
@@ -70,12 +83,22 @@ public interface Expression extends LuaNode {
 				Input.token("value", LuaToken.LITERAL_NIL),
 				Input.token("value", LuaToken.LITERAL_FALSE),
 				Input.token("value", LuaToken.LITERAL_TRUE)
-				); 
+				);
+		
+		@Override
+		public IrNode toIr(LuaScope scope) {
+			return new LuaConstant(value, LuaType.of(value));
+		}
 	}
 	
 	public record VarArgs() implements Expression {
 		
 		public static final Input PATTERN = Input.token(LuaToken.VARARGS);
+		
+		@Override
+		public IrNode toIr(LuaScope scope) {
+			throw new UnsupportedOperationException();
+		}
 	}
 	
 	public record FunctionDefinition(
@@ -86,6 +109,11 @@ public interface Expression extends LuaNode {
 				Input.token(LuaToken.FUNCTION),
 				Input.childNode("body", SpecialNodes.FunctionBody.class)
 				);
+		
+		@Override
+		public IrNode toIr(LuaScope scope) {
+			return body.toIr(scope);
+		}
 	}
 	
 	public interface PrefixExpr extends Expression {
@@ -109,6 +137,21 @@ public interface Expression extends LuaNode {
 						Input.token(LuaToken.TABLE_INDEX_END)
 						))
 				);
+		
+		@Override
+		public VariableExpr toIr(LuaScope scope) {
+			// First part may refer to a local variable, a
+			var node = new VariableExpr(scope.resolve(parts.get(0)));
+			// Table lookup separated by dots, a.b.c
+			for (var i = 1; i < parts.size(); i++) {
+				node = new VariableExpr(new fi.benjami.code4jvm.lua.ir.TableField(node, new LuaConstant(parts.get(i))));
+			}
+			// Dynamic table access, a.b.c["foo"]
+			if (tableIndex != null) {
+				node = new VariableExpr(new fi.benjami.code4jvm.lua.ir.TableField(node, tableIndex.toIr(scope)));
+			}
+			return node;
+		}
 	}
 	
 	public record FunctionCall(
@@ -136,6 +179,19 @@ public interface Expression extends LuaNode {
 						Input.childNode("args", StringConstant.class)
 						)
 				);
+		
+		@Override
+		public IrNode toIr(LuaScope scope) {
+			var function = path.toIr(scope);
+			var irArgs = new ArrayList<IrNode>();
+			if (oopCallName != null) {
+				// Syntactic sugar for "OOP"; table:func(...) -> table.func(table, ...)
+				irArgs.add(function); // i.e. the table is first argument
+				function = new VariableExpr(new fi.benjami.code4jvm.lua.ir.TableField(function, new LuaConstant(oopCallName)));
+			}
+			irArgs.addAll(args.stream().map(arg -> arg.toIr(scope)).toList()); // Rest of arguments
+			return new FunctionCallExpr(function, irArgs);
+		}
 	}
 	
 	public record Group(
@@ -147,12 +203,26 @@ public interface Expression extends LuaNode {
 				Input.virtualNode("expr", EXPRESSIONS),
 				Input.token(LuaToken.GROUP_END)
 				);
+		
+		@Override
+		public IrNode toIr(LuaScope scope) {
+			return expr.toIr(scope);
+		}
 	}
 	
 	public record TableConstructor(
 			@ChildNode("fields") List<TableField> fields
 	) implements Expression {
 		
+		@Override
+		public IrNode toIr(LuaScope scope) {
+			return new TableInitExpr(fields.stream()
+					.map(field -> new TableInitExpr.Entry(
+							field.name != null ? new LuaConstant(field.name) : field.nameExpr.toIr(scope),
+							field.value.toIr(scope)
+							))
+					.toList());
+		}
 	}
 	
 	public record TableField(
@@ -161,5 +231,9 @@ public interface Expression extends LuaNode {
 			@ChildNode("value") Expression value
 	) implements LuaNode {
 		
+		@Override
+		public IrNode toIr(LuaScope scope) {
+			throw new AssertionError(); // TableConstructor#toIr handles this
+		}
 	}
 }

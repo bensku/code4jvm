@@ -1,5 +1,8 @@
 package fi.benjami.code4jvm.lua.parser;
 
+import fi.benjami.code4jvm.lua.ir.IrNode;
+import fi.benjami.code4jvm.lua.ir.expr.ArithmeticExpr;
+import fi.benjami.code4jvm.lua.semantic.LuaScope;
 import fi.benjami.parserkit.parser.Input;
 import fi.benjami.parserkit.parser.ast.ChildNode;
 
@@ -22,6 +25,11 @@ public interface BinaryExpr extends Expression {
 				Input.token(LuaToken.POWER),
 				Input.virtualNode("rhs", Expression.EXPRESSIONS)
 				);
+
+		@Override
+		public IrNode toIr(LuaScope scope) {
+			return new ArithmeticExpr(lhs.toIr(scope), ArithmeticExpr.Kind.POWER, rhs.toIr(scope));
+		}
 	}
 	
 	public record Multiply(
@@ -34,6 +42,11 @@ public interface BinaryExpr extends Expression {
 				Input.token(LuaToken.MULTIPLY),
 				Input.virtualNode("rhs", Expression.EXPRESSIONS)
 				);
+		
+		@Override
+		public IrNode toIr(LuaScope scope) {
+			return new ArithmeticExpr(lhs.toIr(scope), ArithmeticExpr.Kind.MULTIPLY, rhs.toIr(scope));
+		}
 	}
 
 	public record Divide(
@@ -46,6 +59,11 @@ public interface BinaryExpr extends Expression {
 				Input.token(LuaToken.DIVIDE),
 				Input.virtualNode("rhs", Expression.EXPRESSIONS)
 				);
+		
+		@Override
+		public IrNode toIr(LuaScope scope) {
+			return new ArithmeticExpr(lhs.toIr(scope), ArithmeticExpr.Kind.DIVIDE, rhs.toIr(scope));
+		}
 	}
 	
 	public record FloorDivide(
@@ -58,6 +76,11 @@ public interface BinaryExpr extends Expression {
 				Input.token(LuaToken.FLOOR_DIVIDE),
 				Input.virtualNode("rhs", Expression.EXPRESSIONS)
 				);
+		
+		@Override
+		public IrNode toIr(LuaScope scope) {
+			return new ArithmeticExpr(lhs.toIr(scope), ArithmeticExpr.Kind.FLOOR_DIVIDE, rhs.toIr(scope));
+		}
 	}
 	
 	public record Modulo(
@@ -70,6 +93,11 @@ public interface BinaryExpr extends Expression {
 				Input.token(LuaToken.MODULO),
 				Input.virtualNode("rhs", Expression.EXPRESSIONS)
 				);
+		
+		@Override
+		public IrNode toIr(LuaScope scope) {
+			return new ArithmeticExpr(lhs.toIr(scope), ArithmeticExpr.Kind.MODULO, rhs.toIr(scope));
+		}
 	}
 	
 	public record Add(
@@ -82,6 +110,11 @@ public interface BinaryExpr extends Expression {
 				Input.token(LuaToken.ADD),
 				Input.virtualNode("rhs", Expression.EXPRESSIONS)
 				);
+		
+		@Override
+		public IrNode toIr(LuaScope scope) {
+			return new ArithmeticExpr(lhs.toIr(scope), ArithmeticExpr.Kind.ADD, rhs.toIr(scope));
+		}
 	}
 	
 	public record Subtract(
@@ -94,6 +127,11 @@ public interface BinaryExpr extends Expression {
 				Input.token(LuaToken.SUBTRACT_OR_NEGATE),
 				Input.virtualNode("rhs", Expression.EXPRESSIONS)
 				);
+		
+		@Override
+		public IrNode toIr(LuaScope scope) {
+			return new ArithmeticExpr(lhs.toIr(scope), ArithmeticExpr.Kind.SUBTRACT, rhs.toIr(scope));
+		}
 	}
 	
 	public record StringConcat(
@@ -106,6 +144,11 @@ public interface BinaryExpr extends Expression {
 				Input.token(LuaToken.STRING_CONCAT),
 				Input.virtualNode("rhs", Expression.EXPRESSIONS)
 				);
+		
+		@Override
+		public IrNode toIr(LuaScope scope) {
+			throw new UnsupportedOperationException();
+		}
 	}
 	
 	public record BitShiftLeft(
@@ -118,6 +161,11 @@ public interface BinaryExpr extends Expression {
 				Input.token(LuaToken.BIT_SHIFT_LEFT),
 				Input.virtualNode("rhs", Expression.EXPRESSIONS)
 				);
+		
+		@Override
+		public IrNode toIr(LuaScope scope) {
+			throw new UnsupportedOperationException();
+		}
 	}
 	
 	public record BitShiftRight(
@@ -130,6 +178,11 @@ public interface BinaryExpr extends Expression {
 				Input.token(LuaToken.BIT_SHIFT_RIGHT),
 				Input.virtualNode("rhs", Expression.EXPRESSIONS)
 				);
+		
+		@Override
+		public IrNode toIr(LuaScope scope) {
+			throw new UnsupportedOperationException();
+		}
 	}
 	
 	public record BitwiseAnd(
@@ -142,6 +195,11 @@ public interface BinaryExpr extends Expression {
 				Input.token(LuaToken.BITWISE_AND),
 				Input.virtualNode("rhs", Expression.EXPRESSIONS)
 				);
+		
+		@Override
+		public IrNode toIr(LuaScope scope) {
+			throw new UnsupportedOperationException();
+		}
 	}
 	
 	public record BitwiseXor(
@@ -154,6 +212,11 @@ public interface BinaryExpr extends Expression {
 				Input.token(LuaToken.BITWISE_XOR_OR_NOT),
 				Input.virtualNode("rhs", Expression.EXPRESSIONS)
 				);
+		
+		@Override
+		public IrNode toIr(LuaScope scope) {
+			throw new UnsupportedOperationException();
+		}
 	}
 	
 	public record BitwiseOr(
@@ -166,6 +229,11 @@ public interface BinaryExpr extends Expression {
 				Input.token(LuaToken.BITWISE_OR),
 				Input.virtualNode("rhs", Expression.EXPRESSIONS)
 				);
+		
+		@Override
+		public IrNode toIr(LuaScope scope) {
+			throw new UnsupportedOperationException();
+		}
 	}
 	
 	public record LessThan(
@@ -178,6 +246,11 @@ public interface BinaryExpr extends Expression {
 				Input.token(LuaToken.LESS_THAN),
 				Input.virtualNode("rhs", Expression.EXPRESSIONS)
 				);
+		
+		@Override
+		public IrNode toIr(LuaScope scope) {
+			throw new UnsupportedOperationException();
+		}
 	}
 	
 	public record MoreThan(
@@ -190,6 +263,11 @@ public interface BinaryExpr extends Expression {
 				Input.token(LuaToken.MORE_THAN),
 				Input.virtualNode("rhs", Expression.EXPRESSIONS)
 				);
+		
+		@Override
+		public IrNode toIr(LuaScope scope) {
+			throw new UnsupportedOperationException();
+		}
 	}
 	
 	public record LessOrEqual(
@@ -202,6 +280,11 @@ public interface BinaryExpr extends Expression {
 				Input.token(LuaToken.LESS_OR_EQUAL),
 				Input.virtualNode("rhs", Expression.EXPRESSIONS)
 				);
+		
+		@Override
+		public IrNode toIr(LuaScope scope) {
+			throw new UnsupportedOperationException();
+		}
 	}
 	
 	public record MoreOrEqual(
@@ -214,6 +297,11 @@ public interface BinaryExpr extends Expression {
 				Input.token(LuaToken.MORE_OR_EQUAL),
 				Input.virtualNode("rhs", Expression.EXPRESSIONS)
 				);
+		
+		@Override
+		public IrNode toIr(LuaScope scope) {
+			throw new UnsupportedOperationException();
+		}
 	}
 	
 	public record NotEqual(
@@ -226,6 +314,11 @@ public interface BinaryExpr extends Expression {
 				Input.token(LuaToken.NOT_EQUAL),
 				Input.virtualNode("rhs", Expression.EXPRESSIONS)
 				);
+		
+		@Override
+		public IrNode toIr(LuaScope scope) {
+			throw new UnsupportedOperationException();
+		}
 	}
 	
 	public record Equal(
@@ -238,6 +331,11 @@ public interface BinaryExpr extends Expression {
 				Input.token(LuaToken.EQUAL),
 				Input.virtualNode("rhs", Expression.EXPRESSIONS)
 				);
+		
+		@Override
+		public IrNode toIr(LuaScope scope) {
+			throw new UnsupportedOperationException();
+		}
 	}
 	
 	public record LogicalAnd(
@@ -250,6 +348,11 @@ public interface BinaryExpr extends Expression {
 				Input.token(LuaToken.LOGICAL_AND),
 				Input.virtualNode("rhs", Expression.EXPRESSIONS)
 				);
+		
+		@Override
+		public IrNode toIr(LuaScope scope) {
+			throw new UnsupportedOperationException();
+		}
 	}
 	
 	public record LogicalOr(
@@ -262,5 +365,10 @@ public interface BinaryExpr extends Expression {
 				Input.token(LuaToken.LOGICAL_OR),
 				Input.virtualNode("rhs", Expression.EXPRESSIONS)
 				);
+		
+		@Override
+		public IrNode toIr(LuaScope scope) {
+			throw new UnsupportedOperationException();
+		}
 	}
 }

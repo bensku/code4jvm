@@ -2,6 +2,10 @@ package fi.benjami.code4jvm.lua.parser;
 
 import java.util.List;
 
+import fi.benjami.code4jvm.lua.ir.IrNode;
+import fi.benjami.code4jvm.lua.ir.LuaBlock;
+import fi.benjami.code4jvm.lua.ir.expr.FunctionDeclExpr;
+import fi.benjami.code4jvm.lua.semantic.LuaScope;
 import fi.benjami.parserkit.parser.Input;
 import fi.benjami.parserkit.parser.ast.AstNode;
 import fi.benjami.parserkit.parser.ast.ChildNode;
@@ -16,6 +20,11 @@ public class SpecialNodes {
 	) implements LuaNode {
 		
 		public static final Input PATTERN = Input.childNode("block", Block.class);
+
+		@Override
+		public LuaBlock toIr(LuaScope scope) {
+			return block.toIr(scope);
+		}
 	}
 	
 	public record Block(
@@ -23,6 +32,13 @@ public class SpecialNodes {
 	) implements LuaNode {
 		
 		public static final Input PATTERN = Input.repeating(Input.virtualNode("statements", Statement.STATEMENTS));
+		
+		@Override
+		public LuaBlock toIr(LuaScope scope) {
+			return new LuaBlock(statements.stream()
+					.map(node -> node.toIr(scope))
+					.toList());
+		}
 	}
 			
 	// Other
@@ -46,6 +62,17 @@ public class SpecialNodes {
 				Input.childNode("block", Block.class),
 				Input.token(LuaToken.END)
 				);
+
+		@Override
+		public IrNode toIr(LuaScope scope) {
+			var funcScope = new LuaScope(scope, true);
+			var body = block.toIr(funcScope);
+			
+			var args = paramNames.stream()
+					.map(funcScope::declare)
+					.toList();
+			return new FunctionDeclExpr(funcScope.upvalues(), args, body);
+		}
 	}
 	
 }

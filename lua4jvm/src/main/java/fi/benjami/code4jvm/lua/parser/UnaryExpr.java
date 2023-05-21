@@ -1,5 +1,7 @@
 package fi.benjami.code4jvm.lua.parser;
 
+import fi.benjami.code4jvm.lua.ir.IrNode;
+import fi.benjami.code4jvm.lua.semantic.LuaScope;
 import fi.benjami.parserkit.parser.Input;
 import fi.benjami.parserkit.parser.ast.ChildNode;
 
@@ -15,6 +17,11 @@ public interface UnaryExpr extends Expression {
 				Input.token(LuaToken.LOGICAL_NOT),
 				Input.virtualNode("expr", Expression.EXPRESSIONS)
 				);
+
+		@Override
+		public IrNode toIr(LuaScope scope) {
+			throw new UnsupportedOperationException();
+		}
 	}
 	
 	public record ArrayLength(
@@ -25,6 +32,11 @@ public interface UnaryExpr extends Expression {
 				Input.token(LuaToken.ARRAY_LENGTH),
 				Input.virtualNode("expr", Expression.EXPRESSIONS)
 				);
+		
+		@Override
+		public IrNode toIr(LuaScope scope) {
+			throw new UnsupportedOperationException();
+		}
 	}
 	
 	public record Negate(
@@ -35,6 +47,11 @@ public interface UnaryExpr extends Expression {
 				Input.token(LuaToken.SUBTRACT_OR_NEGATE),
 				Input.virtualNode("expr", Expression.EXPRESSIONS)
 				);
+		
+		@Override
+		public IrNode toIr(LuaScope scope) {
+			throw new UnsupportedOperationException();
+		}
 	}
 	
 	public record BitwiseNot(
@@ -45,5 +62,10 @@ public interface UnaryExpr extends Expression {
 				Input.token(LuaToken.BITWISE_XOR_OR_NOT),
 				Input.virtualNode("expr", Expression.EXPRESSIONS)
 				);
+		
+		@Override
+		public IrNode toIr(LuaScope scope) {
+			throw new UnsupportedOperationException();
+		}
 	}
 }
