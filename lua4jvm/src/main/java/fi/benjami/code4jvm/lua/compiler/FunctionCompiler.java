@@ -56,7 +56,7 @@ public class FunctionCompiler {
 					
 					// Cache the constructor and actual function MHs
 					// They'll hold references to the underlying class
-					var jvmUpvalueTypes = Arrays.stream(function.type().upvalues())
+					var jvmUpvalueTypes = function.type().upvalues().stream()
 							.map(UpvalueTemplate::type)
 							.map(LuaType::backingType)
 							.map(Type::loadedClass)
@@ -127,21 +127,21 @@ public class FunctionCompiler {
 		// Add function arguments to the method
 		// TODO varargs
 		var acceptedArgs = type.acceptedArgs();
-		for (var i = 0; i < Math.min(argTypes.length, acceptedArgs.length); i++) {
-			var luaVar = acceptedArgs[i];
+		for (var i = 0; i < Math.min(argTypes.length, acceptedArgs.size()); i++) {
+			var luaVar = acceptedArgs.get(i);
 			var arg = method.mutableArg(argTypes[i].backingType(), luaVar.name());
 			ctx.addFunctionArg(luaVar, arg);
 		}
-		if (argTypes.length < acceptedArgs.length) {
+		if (argTypes.length < acceptedArgs.size()) {
 			// Too few arguments, make the rest nil
-			for (var i = argTypes.length; i < acceptedArgs.length; i++) {				
+			for (var i = argTypes.length; i < acceptedArgs.size(); i++) {
 				var missingArg = Variable.create(Type.OBJECT);
 				method.add(missingArg.set(Constant.nullValue(Type.OBJECT)));
-				ctx.addFunctionArg(acceptedArgs[i], missingArg);
+				ctx.addFunctionArg(acceptedArgs.get(i), missingArg);
 			}
 		} else {
 			// Too many arguments; accept and never use them
-			for (var i = acceptedArgs.length; i < argTypes.length; i++) {
+			for (var i = acceptedArgs.size(); i < argTypes.length; i++) {
 				method.arg(argTypes[i].backingType(), "_");
 			}
 		}

@@ -5,7 +5,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.Value;
@@ -71,13 +70,13 @@ public interface LuaType {
 	
 	class Function implements LuaType {
 		
-		private final UpvalueTemplate[] upvalues;
-		private final LuaLocalVar[] acceptedArgs;
+		private final List<UpvalueTemplate> upvalues;
+		private final List<LuaLocalVar> acceptedArgs;
 		private final LuaBlock body;
 		
 		private final Map<LuaType.Tuple, CompiledFunction> specializations;
 		
-		private Function(UpvalueTemplate[] upvalues, LuaLocalVar[] args, LuaBlock body) {
+		private Function(List<UpvalueTemplate> upvalues, List<LuaLocalVar> args, LuaBlock body) {
 			this.upvalues = upvalues;
 			this.acceptedArgs = args;
 			this.body = body;
@@ -88,11 +87,11 @@ public interface LuaType {
 			return body;
 		}
 		
-		public UpvalueTemplate[] upvalues() {
+		public List<UpvalueTemplate> upvalues() {
 			return upvalues;
 		}
 		
-		public LuaLocalVar[] acceptedArgs() {
+		public List<LuaLocalVar> acceptedArgs() {
 			return acceptedArgs;
 		}
 		
@@ -109,11 +108,11 @@ public interface LuaType {
 
 			// Add types of function arguments
 			// Missing arguments are allowed and treated as nil
-			for (var i = 0; i < acceptedArgs.length; i++) {
+			for (var i = 0; i < acceptedArgs.size(); i++) {
 				if (argTypes.length > i) {				
-					ctx.recordType(acceptedArgs[i], argTypes[i]);
+					ctx.recordType(acceptedArgs.get(i), argTypes[i]);
 				} else {
-					ctx.recordType(acceptedArgs[i], LuaType.NIL);
+					ctx.recordType(acceptedArgs.get(i), LuaType.NIL);
 				}
 			}
 			
@@ -161,7 +160,7 @@ public interface LuaType {
 		return new Tuple(types);
 	}
 	
-	public static Function function(UpvalueTemplate[] upvalues, LuaLocalVar[] args, LuaBlock body) {
+	public static Function function(List<UpvalueTemplate> upvalues, List<LuaLocalVar> args, LuaBlock body) {
 		return new Function(upvalues, args, body);
 	}
 	

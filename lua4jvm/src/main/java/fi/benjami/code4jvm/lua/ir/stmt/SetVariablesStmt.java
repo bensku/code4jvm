@@ -1,5 +1,7 @@
 package fi.benjami.code4jvm.lua.ir.stmt;
 
+import java.util.List;
+
 import fi.benjami.code4jvm.Condition;
 import fi.benjami.code4jvm.Constant;
 import fi.benjami.code4jvm.Statement;
@@ -24,12 +26,12 @@ public record SetVariablesStmt(
 		/**
 		 * Variables to set.
 		 */
-		LuaVariable[] targets,
+		List<LuaVariable> targets,
 		
 		/**
 		 * Expressions that produce the values for variables.
 		 */
-		IrNode[] sources,
+		List<IrNode> sources,
 		
 		/**
 		 * Whether or not the value returned by first source should be spread
@@ -39,9 +41,9 @@ public record SetVariablesStmt(
 ) implements IrNode {
 	
 	public SetVariablesStmt {
-		assert targets.length >= 1;
-		assert !spread || sources.length == 1;
-		assert sources.length >= 1;
+		assert targets.size() >= 1;
+		assert !spread || sources.size() == 1;
+		assert sources.size() >= 1;
 	}
 
 	@Override
@@ -50,17 +52,17 @@ public record SetVariablesStmt(
 		if (spread) {
 			// One source spread to multiple targets
 			// This is tricky, especially if we have unknown types (i.e. no help from static analysis)
-			var type = sources[0].outputType(ctx);
-			var value = sources[0].emit(ctx, block);
+			var type = sources.get(0).outputType(ctx);
+			var value = sources.get(0).emit(ctx, block);
 			if (type instanceof LuaType.Tuple tuple) {
 				// The source is an array, copy values from there to variables
-				for (var i = 0; i < Math.min(tuple.types().length, targets.length); i++) {
+				for (var i = 0; i < Math.min(tuple.types().length, targets.size()); i++) {
 					var source = block.add(ArrayAccess.get(value, Constant.of(i)));
-					block.add(setVariable(ctx, targets[i], source));
+					block.add(setVariable(ctx, targets.get(i), source));
 				}
 				// Set rest of them null (Lua type nil)
-				for (var i = tuple.types().length - 1; i < targets.length; i++) {
-					block.add(setVariable(ctx, targets[i], Constant.nullValue(Type.OBJECT)));
+				for (var i = tuple.types().length; i < targets.size(); i++) {
+					block.add(setVariable(ctx, targets.get(i), Constant.nullValue(Type.OBJECT)));
 				}
 			} else if (type.equals(LuaType.UNKNOWN)) {
 				// We need to check whether or not the source is an array
@@ -71,44 +73,46 @@ public record SetVariablesStmt(
 					var isArray = nested.add(c.callVirtual(Type.BOOLEAN, "isArray"));
 					return Condition.isTrue(isArray);
 				}, nested -> {
+					var array = value.cast(Type.OBJECT.array(1));
 					// Function returned multiple values (but we don't know how many!)
 					// First, write nulls to all variables
 					// This probably has a performance hit, but this is slow path anyway
-					for (var i = 0; i < targets.length; i++) {
-						nested.add(setVariable(ctx, targets[i], Constant.nullValue(Type.OBJECT)));
+					for (var i = 0; i < targets.size(); i++) {
+						nested.add(setVariable(ctx, targets.get(i), Constant.nullValue(Type.OBJECT)));
 					}
 					
 					// Then, overwrite nulls with whatever the function returned
-					for (var i = 0; i < targets.length; i++) {
+					var length = nested.add(ArrayAccess.length(array));
+					for (var i = 0; i < targets.size(); i++) {
 						// If the array has no more elements, leave the rest as nulls
-						var length = nested.add(ArrayAccess.length(value));
 						nested.add(Jump.to(nested, Jump.Target.END, Condition.greaterOrEqual(Constant.of(i), length)));
 						
-						var source = block.add(ArrayAccess.get(value, Constant.of(i)));
-						block.add(setVariable(ctx, targets[i], source));
+						var source = nested.add(ArrayAccess.get(array, Constant.of(i)));
+						nested.add(setVariable(ctx, targets.get(i), source));
 					}
 				});
 				arrayTest.fallback(nested -> {
 					// Function returned one value, write it and leave rest as nulls
-					nested.add(setVariable(ctx, targets[0], value));
-					for (var i = 1; i < targets.length; i++) {
-						nested.add(setVariable(ctx, targets[i], Constant.nullValue(Type.OBJECT)));
+					nested.add(setVariable(ctx, targets.get(0), value));
+					for (var i = 1; i < targets.size(); i++) {
+						nested.add(setVariable(ctx, targets.get(i), Constant.nullValue(Type.OBJECT)));
 					}
 				});
+				block.add(arrayTest);
 			} else {
 				// The source is known not to be an array
-				block.add(setVariable(ctx, targets[0], value));
-				for (var i = 1; i < targets.length; i++) {
-					block.add(setVariable(ctx, targets[i], Constant.nullValue(Type.OBJECT)));
+				block.add(setVariable(ctx, targets.get(0), value));
+				for (var i = 1; i < targets.size(); i++) {
+					block.add(setVariable(ctx, targets.get(0), Constant.nullValue(Type.OBJECT)));
 				}
 			}
 		} else {
 			// One source per target (this makes everything easier)
 			// Set values from existing sources to targets
-			for (var i = 0; i < Math.min(sources.length, targets.length); i++) {
-				var type = sources[i].outputType(ctx);
-				var value = sources[i].emit(ctx, block);
-				var target = targets[i];
+			for (var i = 0; i < Math.min(sources.size(), targets.size()); i++) {
+				var type = sources.get(i).outputType(ctx);
+				var value = sources.get(i).emit(ctx, block);
+				var target = targets.get(i);
 				if (type instanceof LuaType.Tuple tuple) {
 					// The source is an array, take the first element of it
 					var firstElement = block.add(ArrayAccess.get(value, Constant.of(0)));
@@ -139,13 +143,13 @@ public record SetVariablesStmt(
 			}
 			
 			// Emit, but ignore outputs of, rest of sources
-			for (var i = targets.length - 1; i < sources.length; i++) {
-				sources[i].emit(ctx, block);
+			for (var i = targets.size() - 1; i < sources.size(); i++) {
+				sources.get(i).emit(ctx, block);
 			}
 			
 			// Set targets without sources to null/nil
-			for (var i = sources.length - 1; i < targets.length; i++) {
-				setVariable(ctx, targets[i], Constant.nullValue(Type.OBJECT));
+			for (var i = sources.size() - 1; i < targets.size(); i++) {
+				setVariable(ctx, targets.get(i), Constant.nullValue(Type.OBJECT));
 			}
 		}
 		return null; // Statements don't have outputs
@@ -168,38 +172,38 @@ public record SetVariablesStmt(
 	@Override
 	public LuaType outputType(LuaContext ctx) {
 		if (spread) {
-			var type = sources[0].outputType(ctx);
+			var type = sources.get(0).outputType(ctx);
 			if (type instanceof LuaType.Tuple tuple) {
 				// Function WILL return multiple values, spread them to targets
-				for (var i = 0; i < Math.min(tuple.types().length, targets.length); i++) {
-					ctx.recordType(targets[i], tuple.types()[i]);
+				for (var i = 0; i < Math.min(tuple.types().length, targets.size()); i++) {
+					ctx.recordType(targets.get(i), tuple.types()[i]);
 				}
 				// Rest of the target variables are nil
-				for (var i = tuple.types().length - 1; i < targets.length; i++) {
-					ctx.recordType(targets[i], LuaType.NIL);
+				for (var i = tuple.types().length - 1; i < targets.size(); i++) {
+					ctx.recordType(targets.get(i), LuaType.NIL);
 				}
 			} else if (type.equals(LuaType.UNKNOWN)) {
 				// Function might or might not return multiple values
 				// All targets are unknown (potentially nil)
-				for (var i = 0; i < targets.length; i++) {
-					ctx.recordType(targets[i], LuaType.UNKNOWN);
+				for (var i = 0; i < targets.size(); i++) {
+					ctx.recordType(targets.get(i), LuaType.UNKNOWN);
 				}
 			} else {
 				// Function returns only one value, put it to first target
-				ctx.recordType(targets[0], type);
+				ctx.recordType(targets.get(0), type);
 				// Rest of target variables are nil
-				for (var i = 1; i < targets.length; i++) {
-					ctx.recordType(targets[i], LuaType.NIL);
+				for (var i = 1; i < targets.size(); i++) {
+					ctx.recordType(targets.get(i), LuaType.NIL);
 				}
 			}
 		} else {
 			// One source = one target
-			for (var i = 0; i < Math.min(sources.length, targets.length); i++) {
-				var type = sources[i].outputType(ctx);
+			for (var i = 0; i < Math.min(sources.size(), targets.size()); i++) {
+				var type = sources.get(i).outputType(ctx);
 				if (type instanceof LuaType.Tuple tuple) {
 					type = tuple.types()[0]; // Take first result, ignore rest
 				}
-				ctx.recordType(targets[i], type);
+				ctx.recordType(targets.get(i), type);
 			}			
 		}
 		return LuaType.NIL;

@@ -7,7 +7,6 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
-import fi.benjami.code4jvm.lua.ir.IrNode;
 import fi.benjami.code4jvm.lua.ir.LuaBlock;
 import fi.benjami.code4jvm.lua.ir.LuaLocalVar;
 import fi.benjami.code4jvm.lua.ir.LuaType;
@@ -25,8 +24,8 @@ public class FunctionTest {
 	@Test
 	public void emptyFunction() throws Throwable {
 		// Empty function with no upvalues or arguments that returns nothing
-		var type = LuaType.function(new UpvalueTemplate[0], new LuaLocalVar[0], new LuaBlock(List.of(
-				new ReturnStmt(new IrNode[0])
+		var type = LuaType.function(List.of(), List.of(), new LuaBlock(List.of(
+				new ReturnStmt(List.of())
 				)));
 		var func = new LuaFunction(type, new Object[0]);
 		func.call();
@@ -38,11 +37,11 @@ public class FunctionTest {
 		var a = new LuaLocalVar("a");
 		var b = new LuaLocalVar("b");
 		var type = LuaType.function(
-				new UpvalueTemplate[0], 
-				new LuaLocalVar[] {a, b},
-				new LuaBlock(List.of(new ReturnStmt(new IrNode[] {
+				List.of(), 
+				List.of(a, b),
+				new LuaBlock(List.of(new ReturnStmt(List.of(
 						new ArithmeticExpr(new VariableExpr(a), ArithmeticExpr.Kind.ADD, new VariableExpr(b))
-						})
+						))
 				)));
 		var func = new LuaFunction(type, new Object[0]);
 		assertEquals(3d, func.call(1d, 2d));
@@ -54,12 +53,12 @@ public class FunctionTest {
 		// A function that computes sum of an upvalue and an argument
 		var a = new LuaLocalVar("a");
 		var b = new LuaLocalVar("b");
-		var type = LuaType.function(new UpvalueTemplate[] {
-				new UpvalueTemplate(a, LuaType.NUMBER)},
-				new LuaLocalVar[] {b},
-				new LuaBlock(List.of(new ReturnStmt(new IrNode[] {
+		var type = LuaType.function(
+				List.of(new UpvalueTemplate(a, LuaType.NUMBER)),
+				List.of(b),
+				new LuaBlock(List.of(new ReturnStmt(List.of(
 						new ArithmeticExpr(new VariableExpr(a), ArithmeticExpr.Kind.ADD, new VariableExpr(b))
-						})
+						))
 				)));
 		var func = new LuaFunction(type, new Object[] {10d});
 		assertEquals(12d, func.call(2d));
@@ -71,25 +70,25 @@ public class FunctionTest {
 		var a1 = new LuaLocalVar("a");
 		var b1 = new LuaLocalVar("b");
 		var targetType = LuaType.function(
-				new UpvalueTemplate[0], 
-				new LuaLocalVar[] {a1, b1},
-				new LuaBlock(List.of(new ReturnStmt(new IrNode[] {
+				List.of(), 
+				List.of(a1, b1),
+				new LuaBlock(List.of(new ReturnStmt(List.of(
 						new ArithmeticExpr(new VariableExpr(a1), ArithmeticExpr.Kind.ADD, new VariableExpr(b1))
-						})
+						))
 				)));
 		var target = new LuaFunction(targetType, new Object[0]);
 		
 		var a2 = new LuaLocalVar("a");
 		var b2 = new LuaLocalVar("b");
 		var wrapperType = LuaType.function(
-				new UpvalueTemplate[0], 
-				new LuaLocalVar[] {a2, b2},
+				List.of(), 
+				List.of(a2, b2),
 				new LuaBlock(List.of(
-						new ReturnStmt(new IrNode[] {
+						new ReturnStmt(List.of(
 								new FunctionCallExpr(
 										new LuaConstant(target, targetType),
-										new IrNode[] {new VariableExpr(a2), new VariableExpr(b2)}
-								)})
+										List.of(new VariableExpr(a2), new VariableExpr(b2))
+								)))
 				)));
 		var wrapper = new LuaFunction(wrapperType, new Object[0]);
 		assertEquals(40d, wrapper.call(15d, 25d));
@@ -104,17 +103,17 @@ public class FunctionTest {
 		var insideB = new LuaLocalVar("b");
 		var c = new LuaLocalVar("c");
 		var type = LuaType.function(
-				new UpvalueTemplate[] {new UpvalueTemplate(a, LuaType.NUMBER)}, 
-				new LuaLocalVar[] {b},
+				List.of(new UpvalueTemplate(a, LuaType.NUMBER)), 
+				List.of(b),
 				new LuaBlock(List.of(
-						new ReturnStmt(new IrNode[] {new FunctionDeclExpr(
-								new FunctionDeclExpr.Upvalue[] {
+						new ReturnStmt(List.of(new FunctionDeclExpr(
+								List.of(
 										new FunctionDeclExpr.Upvalue(insideA, a),
 										new FunctionDeclExpr.Upvalue(insideB, b)
-								},
-								new LuaLocalVar[] {c},
+								),
+								List.of(c),
 								new LuaBlock(List.of(
-										new ReturnStmt(new IrNode[] {
+										new ReturnStmt(List.of(
 												new ArithmeticExpr(
 														new VariableExpr(insideA),
 														ArithmeticExpr.Kind.ADD,
@@ -123,9 +122,9 @@ public class FunctionTest {
 																ArithmeticExpr.Kind.MULTIPLY,
 																new VariableExpr(c)
 																)
-														)})
+														)))
 										))
-								)})
+								)))
 				)));
 		var func = new LuaFunction(type, new Object[] {10d});
 		var nested = (LuaFunction) func.call(5d);

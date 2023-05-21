@@ -1,6 +1,7 @@
 package fi.benjami.code4jvm.lua.ir.expr;
 
 import java.util.Arrays;
+import java.util.List;
 
 import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.Value;
@@ -13,14 +14,14 @@ import fi.benjami.code4jvm.lua.runtime.CallResolver;
 
 public record FunctionCallExpr(
 		IrNode function,
-		IrNode[] args
+		List<IrNode> args
 ) implements IrNode {
 
 	@Override
 	public Value emit(LuaContext ctx, Block block) {
 		// TODO try to cache these
 		var funcType = function.outputType(ctx);
-		var argTypes = Arrays.stream(args)
+		var argTypes = args.stream()
 				.map(node -> node.outputType(ctx))
 				.toArray(LuaType[]::new);
 		var returnType = outputType(ctx);
@@ -30,10 +31,10 @@ public record FunctionCallExpr(
 		bootstrap = bootstrap.withCapturedArgs(ctx.addClassData(argTypes));
 		
 		// Evaluate arguments to values (function is first argument)
-		var argValues = new Value[args.length + 1];
+		var argValues = new Value[args.size() + 1];
 		argValues[0] = function.emit(ctx, block).asType(Type.OBJECT);
-		for (var i = 0; i < args.length; i++) {
-			argValues[i + 1] = args[i].emit(ctx, block);
+		for (var i = 0; i < args.size(); i++) {
+			argValues[i + 1] = args.get(i).emit(ctx, block);
 		}
 		
 		// Call the function using invokedynamic
@@ -49,7 +50,7 @@ public record FunctionCallExpr(
 		var type = function.outputType(ctx);
 		if (type instanceof LuaType.Function function) {
 			// Analyze types of arguments in this call
-			var argTypes = Arrays.stream(args)
+			var argTypes = args.stream()
 					.map(node -> node.outputType(ctx))
 					.toArray(LuaType[]::new);
 			// Run type analysis for the entire function to figure out the return type
