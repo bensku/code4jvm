@@ -10,6 +10,7 @@ import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.Value;
 import fi.benjami.code4jvm.lua.compiler.CompiledFunction;
 import fi.benjami.code4jvm.lua.compiler.LuaContext;
+import fi.benjami.code4jvm.lua.runtime.LuaFunction;
 import fi.benjami.code4jvm.lua.runtime.LuaTable;
 
 public interface LuaType {
@@ -154,8 +155,14 @@ public interface LuaType {
 		return of(value.type());
 	}
 	
-	public static LuaType of(Class<?> type) {
-		return LuaTypeSupport.CLASS_TO_TYPE.getOrDefault(type, LuaType.UNKNOWN);
+	public static LuaType of(Object obj) {
+		if (obj == null) {
+			return LuaType.NIL;
+		} else if (obj instanceof LuaFunction function) {
+			return function.type();
+		} else {			
+			return LuaTypeSupport.CLASS_TO_TYPE.getOrDefault(obj.getClass(), LuaType.UNKNOWN);
+		}
 	}
 	
 	public static Tuple tuple(LuaType... types) {

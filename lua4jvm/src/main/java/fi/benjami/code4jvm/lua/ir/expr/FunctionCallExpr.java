@@ -20,7 +20,7 @@ public record FunctionCallExpr(
 	@Override
 	public Value emit(LuaContext ctx, Block block) {
 		// TODO try to cache these
-		var funcType = function.outputType(ctx);
+//		var funcType = function.outputType(ctx);
 		var argTypes = args.stream()
 				.map(node -> node.outputType(ctx))
 				.toArray(LuaType[]::new);

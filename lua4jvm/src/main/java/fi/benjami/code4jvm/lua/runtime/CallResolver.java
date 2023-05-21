@@ -47,7 +47,13 @@ public class CallResolver {
 	@SuppressWarnings("unused") // MethodHandle
 	private static MethodHandle updateSite(CallableHolder holder, MutableCallSite site, LuaType[] types, Object callable) {
 		// Compile the method
-		var target = FunctionCompiler.callTarget(types, callable).asType(site.type());
+		MethodHandle target;
+		if (callable instanceof LuaFunction function) {
+			target = FunctionCompiler.callTarget(types, function);
+		} else {
+			throw new UnsupportedOperationException(callable + " is not callable");
+		}
+		target = target.asType(site.type());
 		
 		// Set call site to target a new guarded handle, in case callable changes again
 		holder.callable = callable;

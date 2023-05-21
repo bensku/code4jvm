@@ -16,7 +16,6 @@ import fi.benjami.code4jvm.flag.Access;
 import fi.benjami.code4jvm.flag.FieldFlag;
 import fi.benjami.code4jvm.flag.MethodFlag;
 import fi.benjami.code4jvm.lua.ir.LuaType;
-import fi.benjami.code4jvm.lua.ir.UpvalueTemplate;
 import fi.benjami.code4jvm.lua.runtime.CallResolver;
 import fi.benjami.code4jvm.lua.runtime.LuaFunction;
 import fi.benjami.code4jvm.statement.Return;
@@ -34,66 +33,66 @@ public class FunctionCompiler {
 	private static final MethodHandles.Lookup LOOKUP = MethodHandles.lookup();
 	
 	/**
-	 * Fetches or compiles a specialization for given callable.
+	 * Fetches or compiles a specialization for given Lua function.
 	 * @param argTypes Argument types to use for compilation.
-	 * @param callable The callable object, e.g. a function.
+	 * @param callable The Lua function object.
 	 * @return Method handle that may be called.
 	 */
-	public static MethodHandle callTarget(LuaType[] argTypes, Object callable) {
-		if (callable instanceof LuaFunction function) {
-			// Compile and load the function code, or use something that is already cached
-			var compiledFunc = function.type().specializations().computeIfAbsent(LuaType.tuple(argTypes), t -> {
-				var ctx = function.type().newContext(argTypes);
-				var code = generateCode(ctx, function.type(), argTypes);
-				try {
-					Files.write(Path.of("Debug.class"), code);
-				} catch (IOException e1) {
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
-				}
-				try {
-					var lookup = LOOKUP.defineHiddenClassWithClassData(code, ctx.allClassData(), true);
-					
-					// Cache the constructor and actual function MHs
-					// They'll hold references to the underlying class
-					var jvmUpvalueTypes = function.type().upvalues().stream()
-							.map(UpvalueTemplate::type)
-							.map(LuaType::backingType)
-							.map(Type::loadedClass)
-							.toArray(Class[]::new);
-					var constructor = lookup.findConstructor(lookup.lookupClass(),
-							MethodType.methodType(void.class, jvmUpvalueTypes));
-					
-					var jvmArgTypes = Stream.concat(Stream.of(Object.class), Arrays.stream(argTypes)
-							.map(LuaType::backingType)
-							.map(Type::loadedClass))
-							.toArray(Class[]::new);
-					var jvmReturnType = ctx.returnType().equals(LuaType.NIL)
-							? Type.VOID : ctx.returnType().backingType();
-					var method = LOOKUP.findVirtual(lookup.lookupClass(), "call",
-							MethodType.methodType(jvmReturnType.loadedClass(), jvmArgTypes));
-					
-					return new CompiledFunction(constructor, method);
-				} catch (IllegalAccessException | NoSuchMethodException e) {
-					throw new AssertionError(e);
-				}
-			});
-			
-			// Create new instance of the function with these upvalues
-			// Bind the instance to returned method handle
+	public static MethodHandle callTarget(LuaType[] argTypes, LuaFunction function) {
+		var upvalueTypes = function.upvalueTypes();
+		var cacheKey = new LuaType[argTypes.length + upvalueTypes.length];
+		System.arraycopy(upvalueTypes, 0, cacheKey, 0, upvalueTypes.length);
+		System.arraycopy(argTypes, 0, cacheKey, upvalueTypes.length, argTypes.length);
+		
+		// Compile and load the function code, or use something that is already cached
+		var compiledFunc = function.type().specializations().computeIfAbsent(LuaType.tuple(cacheKey), t -> {
+			var ctx = function.type().newContext(argTypes);
+			var code = generateCode(ctx, function.type(), argTypes, upvalueTypes);
 			try {
-				var instance = compiledFunc.constructor().invokeWithArguments(function.upvalues());
-				return compiledFunc.function().bindTo(instance);
-			} catch (Throwable e) {
+				Files.write(Path.of("Debug.class"), code);
+			} catch (IOException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+			try {
+				var lookup = LOOKUP.defineHiddenClassWithClassData(code, ctx.allClassData(), true);
+				
+				// Cache the constructor and actual function MHs
+				// They'll hold references to the underlying class
+				var jvmUpvalueTypes = Arrays.stream(upvalueTypes)
+						.map(LuaType::backingType)
+						.map(Type::loadedClass)
+						.toArray(Class[]::new);
+				var constructor = lookup.findConstructor(lookup.lookupClass(),
+						MethodType.methodType(void.class, jvmUpvalueTypes));
+				
+				var jvmArgTypes = Stream.concat(Stream.of(Object.class), Arrays.stream(argTypes)
+						.map(LuaType::backingType)
+						.map(Type::loadedClass))
+						.toArray(Class[]::new);
+				var jvmReturnType = ctx.returnType().equals(LuaType.NIL)
+						? Type.VOID : ctx.returnType().backingType();
+				var method = LOOKUP.findVirtual(lookup.lookupClass(), "call",
+						MethodType.methodType(jvmReturnType.loadedClass(), jvmArgTypes));
+				
+				return new CompiledFunction(constructor, method);
+			} catch (IllegalAccessException | NoSuchMethodException e) {
 				throw new AssertionError(e);
 			}
-		} else {
-			// TODO revisit with metatables
-			throw new UnsupportedOperationException(callable + " is not callable");
+		});
+		
+		// Create new instance of the function with these upvalues
+		// Bind the instance to returned method handle
+		try {
+			var instance = compiledFunc.constructor().invokeWithArguments(function.upvalues());
+			return compiledFunc.function().bindTo(instance);
+		} catch (Throwable e) {
+			throw new AssertionError(e);
 		}
 	}
 	
-	private static byte[] generateCode(LuaContext ctx, LuaType.Function type, LuaType[] argTypes) {
+	private static byte[] generateCode(LuaContext ctx, LuaType.Function type,
+			LuaType[] argTypes, LuaType[] upvalueTypes) {
 		// Compute types of local variables and the return type
 		var returnType = type.body().outputType(ctx);
 		
@@ -103,16 +102,20 @@ public class FunctionCompiler {
 		
 		// Add fields for upvalues
 		// Whoever loads the compiled class must set these (using e.g. reflection)
-		for (var upvalue : type.upvalues()) {
-			def.addInstanceField(Access.PUBLIC, upvalue.type().backingType(), upvalue.variable().name(), FieldFlag.SYNTHETIC);
+		for (var i = 0; i < upvalueTypes.length; i++) {
+			var template = type.upvalues().get(i);
+			assert template.type().equals(LuaType.UNKNOWN) || template.type().equals(upvalueTypes[i]);
+			def.addInstanceField(Access.PUBLIC, upvalueTypes[i].backingType(),
+					template.variable().name(), FieldFlag.SYNTHETIC);
 		}
 		
 		// Create constructor that puts upvalues to fields
 		var constructor = def.addConstructor(Access.PUBLIC, MethodFlag.SYNTHETIC);
 		constructor.add(constructor.self().callPrivate(Type.OBJECT, Type.VOID, "<init>"));
-		for (var upvalue : type.upvalues()) {
-			var arg = constructor.arg(upvalue.type().backingType());
-			constructor.add(constructor.self().putField(upvalue.variable().name(), arg));
+		for (var i = 0; i < upvalueTypes.length; i++) {
+			var template = type.upvalues().get(i);
+			var arg = constructor.arg(upvalueTypes[i].backingType());
+			constructor.add(constructor.self().putField(template.variable().name(), arg));
 		}
 		constructor.add(Return.nothing());
 		
@@ -147,10 +150,11 @@ public class FunctionCompiler {
 		}
 		
 		// Read upvalues from fields to local variables
-		for (var upvalue : type.upvalues()) {
-			var value = method.add(upvalue.variable().name(), method.self()
-					.getField(upvalue.type().backingType(), upvalue.variable().name()));
-			ctx.addFunctionArg(upvalue.variable(), value);
+		for (var i = 0; i < upvalueTypes.length; i++) {
+			var template = type.upvalues().get(i);
+			var value = method.add(template.variable().name(), method.self()
+					.getField(upvalueTypes[i].backingType(), template.variable().name()));
+			ctx.addFunctionArg(template.variable(), value);
 		}
 		
 		// Emit Lua code as JVM bytecode

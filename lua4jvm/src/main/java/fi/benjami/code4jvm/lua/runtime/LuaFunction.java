@@ -15,14 +15,25 @@ public record LuaFunction(
 		/**
 		 * The values captured by this function when it was defined.
 		 */
-		Object[] upvalues
+		Object[] upvalues,
+		
+		/**
+		 * Types of upvalues.
+		 */
+		LuaType[] upvalueTypes
 ) {
 
 	public static final Type TYPE = Type.of(LuaFunction.class);
 	
+	public LuaFunction(LuaType.Function type, Object[] upvalues) {
+		this(type, upvalues, Arrays.stream(upvalues)
+				.map(LuaType::of)
+				.toArray(LuaType[]::new));
+	}
+	
 	public Object call(Object... args) throws Throwable {
 		var types = Arrays.stream(args)
-				.map(arg -> arg != null ? LuaType.of(arg.getClass()) : LuaType.NIL)
+				.map(LuaType::of)
 				.toArray(LuaType[]::new);
 		var handle = FunctionCompiler.callTarget(types, this);
 		return handle.bindTo(this).invokeWithArguments(args);
