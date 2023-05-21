@@ -10,6 +10,7 @@ import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.Value;
 import fi.benjami.code4jvm.lua.compiler.CompiledFunction;
 import fi.benjami.code4jvm.lua.compiler.LuaContext;
+import fi.benjami.code4jvm.lua.runtime.LuaTable;
 
 public interface LuaType {
 
@@ -138,7 +139,8 @@ public interface LuaType {
 	static final LuaType BOOLEAN = new Simple("boolean", Type.BOOLEAN);
 	static final LuaType NUMBER = new Simple("number", Type.DOUBLE);
 	static final LuaType STRING = new Simple("string", Type.STRING);
-	// TODO userdata, thread, table
+	static final LuaType TABLE = new Simple("table", LuaTable.TYPE);
+	// TODO userdata, thread
 	// TODO table specialization
 	
 	// code4jvm-specific types

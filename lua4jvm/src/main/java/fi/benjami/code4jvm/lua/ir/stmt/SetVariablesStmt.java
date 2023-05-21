@@ -14,6 +14,7 @@ import fi.benjami.code4jvm.lua.ir.LuaLocalVar;
 import fi.benjami.code4jvm.lua.ir.LuaType;
 import fi.benjami.code4jvm.lua.ir.LuaVariable;
 import fi.benjami.code4jvm.lua.ir.TableField;
+import fi.benjami.code4jvm.lua.runtime.LuaTable;
 import fi.benjami.code4jvm.statement.ArrayAccess;
 import fi.benjami.code4jvm.statement.Jump;
 import fi.benjami.code4jvm.structure.IfBlock;
@@ -161,8 +162,9 @@ public record SetVariablesStmt(
 				var jvmVar = ctx.resolveLocalVar(localVar);
 				block.add(jvmVar.set(value.cast(jvmVar.type())));
 			} else if (variable instanceof TableField tableField) {
-				var table = tableField.table().emit(ctx, block);
-				// TODO lua table set method
+				var table = tableField.table().emit(ctx, block).cast(LuaTable.TYPE);
+				var field = tableField.field().emit(ctx, block);
+				block.add(table.callVirtual(Type.VOID, "set", field.asType(Type.OBJECT), value.cast(Type.OBJECT)));
 			} else {				
 				throw new AssertionError();
 			}

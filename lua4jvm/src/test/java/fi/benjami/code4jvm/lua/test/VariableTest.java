@@ -12,13 +12,16 @@ import org.junit.jupiter.api.Test;
 import fi.benjami.code4jvm.lua.ir.LuaBlock;
 import fi.benjami.code4jvm.lua.ir.LuaLocalVar;
 import fi.benjami.code4jvm.lua.ir.LuaType;
+import fi.benjami.code4jvm.lua.ir.TableField;
 import fi.benjami.code4jvm.lua.ir.expr.ArithmeticExpr;
 import fi.benjami.code4jvm.lua.ir.expr.FunctionCallExpr;
 import fi.benjami.code4jvm.lua.ir.expr.LuaConstant;
+import fi.benjami.code4jvm.lua.ir.expr.TableInitExpr;
 import fi.benjami.code4jvm.lua.ir.expr.VariableExpr;
 import fi.benjami.code4jvm.lua.ir.stmt.ReturnStmt;
 import fi.benjami.code4jvm.lua.ir.stmt.SetVariablesStmt;
 import fi.benjami.code4jvm.lua.runtime.LuaFunction;
+import fi.benjami.code4jvm.lua.runtime.LuaTable;
 
 public class VariableTest {
 
@@ -142,5 +145,71 @@ public class VariableTest {
 			var func = new LuaFunction(type, new Object[0]);
 			assertArrayEquals(new Object[] {5d, 6d, null}, (Object[]) func.call());
 		}
+	}
+	
+	@Test
+	public void createTable() throws Throwable {
+		// Table initializer makes a table that is then returned
+		var a = new LuaLocalVar("a");
+		var b = new LuaLocalVar("b");
+		var c = new LuaLocalVar("c");
+		var type = LuaType.function(
+				List.of(), 
+				List.of(a, b),
+				new LuaBlock(List.of(
+						new SetVariablesStmt(
+								List.of(c),
+								List.of(new TableInitExpr(List.of(new TableInitExpr.Entry(new VariableExpr(a), new VariableExpr(b))))),
+								false),
+						new ReturnStmt(List.of(new VariableExpr(c)))
+				)));
+		var func = new LuaFunction(type, new Object[0]);
+		var res = (LuaTable) func.call("foo", "bar");
+		assertEquals("bar", res.get("foo"));
+	}
+	
+	@Test
+	public void writeTable() throws Throwable {
+		// Table is created, modified, and finally returned
+		var a = new LuaLocalVar("a");
+		var b = new LuaLocalVar("b");
+		var c = new LuaLocalVar("c");
+		var type = LuaType.function(
+				List.of(), 
+				List.of(a, b),
+				new LuaBlock(List.of(
+						new SetVariablesStmt(
+								List.of(c),
+								List.of(new TableInitExpr(List.of())),
+								false),
+						new SetVariablesStmt(
+								List.of(
+										new TableField(new VariableExpr(c), new LuaConstant(1, LuaType.NUMBER)),
+										new TableField(new VariableExpr(c), new LuaConstant(2, LuaType.NUMBER))
+										),
+								List.of(new VariableExpr(a), new VariableExpr(b)),
+								false),
+						new ReturnStmt(List.of(new VariableExpr(c)))
+				)));
+		var func = new LuaFunction(type, new Object[0]);
+		var res = (LuaTable) func.call("foo", "bar");
+		assertEquals("foo", res.get(1));
+		assertEquals("bar", res.get(2));
+	}
+	
+	@Test
+	public void readTable() throws Throwable {
+		// A value is read from table and returned
+		var a = new LuaLocalVar("a");
+		var b = new LuaLocalVar("b");
+		var type = LuaType.function(List.of(), List.of(a, b), new LuaBlock(List.of(
+				new ReturnStmt(List.of(
+						new VariableExpr(new TableField(new VariableExpr(a), new VariableExpr(b)))
+						))
+				)));
+		var func = new LuaFunction(type, new Object[0]);
+		var table = new LuaTable(0);
+		table.set("foo", "bar");
+		assertEquals("bar", func.call(table, "foo"));
 	}
 }
