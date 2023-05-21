@@ -59,7 +59,7 @@ public class LuaContext {
 		var backingVar = variables.get(variable);
 		if (backingVar == null) {
 			var type = typeTable.get(variable);
-			backingVar = Variable.create(type.backingType());
+			backingVar = Variable.create(type.backingType(), variable.name());
 			variables.put(variable, backingVar);
 		}
 		return backingVar;

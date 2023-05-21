@@ -26,7 +26,7 @@ public class FunctionTest {
 	public void emptyFunction() throws Throwable {
 		// Empty function with no upvalues or arguments that returns nothing
 		var type = LuaType.function(new UpvalueTemplate[0], new LuaLocalVar[0], new LuaBlock(List.of(
-				new ReturnStmt(null)
+				new ReturnStmt(new IrNode[0])
 				)));
 		var func = new LuaFunction(type, new Object[0]);
 		func.call();
@@ -40,8 +40,9 @@ public class FunctionTest {
 		var type = LuaType.function(
 				new UpvalueTemplate[0], 
 				new LuaLocalVar[] {a, b},
-				new LuaBlock(List.of(
-						new ReturnStmt(new ArithmeticExpr(new VariableExpr(a), ArithmeticExpr.Kind.ADD, new VariableExpr(b)))
+				new LuaBlock(List.of(new ReturnStmt(new IrNode[] {
+						new ArithmeticExpr(new VariableExpr(a), ArithmeticExpr.Kind.ADD, new VariableExpr(b))
+						})
 				)));
 		var func = new LuaFunction(type, new Object[0]);
 		assertEquals(3d, func.call(1d, 2d));
@@ -56,8 +57,9 @@ public class FunctionTest {
 		var type = LuaType.function(new UpvalueTemplate[] {
 				new UpvalueTemplate(a, LuaType.NUMBER)},
 				new LuaLocalVar[] {b},
-				new LuaBlock(List.of(
-						new ReturnStmt(new ArithmeticExpr(new VariableExpr(a), ArithmeticExpr.Kind.ADD, new VariableExpr(b)))
+				new LuaBlock(List.of(new ReturnStmt(new IrNode[] {
+						new ArithmeticExpr(new VariableExpr(a), ArithmeticExpr.Kind.ADD, new VariableExpr(b))
+						})
 				)));
 		var func = new LuaFunction(type, new Object[] {10d});
 		assertEquals(12d, func.call(2d));
@@ -71,8 +73,9 @@ public class FunctionTest {
 		var targetType = LuaType.function(
 				new UpvalueTemplate[0], 
 				new LuaLocalVar[] {a1, b1},
-				new LuaBlock(List.of(
-						new ReturnStmt(new ArithmeticExpr(new VariableExpr(a1), ArithmeticExpr.Kind.ADD, new VariableExpr(b1)))
+				new LuaBlock(List.of(new ReturnStmt(new IrNode[] {
+						new ArithmeticExpr(new VariableExpr(a1), ArithmeticExpr.Kind.ADD, new VariableExpr(b1))
+						})
 				)));
 		var target = new LuaFunction(targetType, new Object[0]);
 		
@@ -82,10 +85,11 @@ public class FunctionTest {
 				new UpvalueTemplate[0], 
 				new LuaLocalVar[] {a2, b2},
 				new LuaBlock(List.of(
-						new ReturnStmt(new FunctionCallExpr(
-								new LuaConstant(target, targetType),
-								new IrNode[] {new VariableExpr(a2), new VariableExpr(b2)}
-								))
+						new ReturnStmt(new IrNode[] {
+								new FunctionCallExpr(
+										new LuaConstant(target, targetType),
+										new IrNode[] {new VariableExpr(a2), new VariableExpr(b2)}
+								)})
 				)));
 		var wrapper = new LuaFunction(wrapperType, new Object[0]);
 		assertEquals(40d, wrapper.call(15d, 25d));
@@ -100,17 +104,17 @@ public class FunctionTest {
 		var insideB = new LuaLocalVar("b");
 		var c = new LuaLocalVar("c");
 		var type = LuaType.function(
-				new UpvalueTemplate[] {new UpvalueTemplate(a, LuaType.NUMBER), new UpvalueTemplate(b, LuaType.NUMBER)}, 
-				new LuaLocalVar[0],
+				new UpvalueTemplate[] {new UpvalueTemplate(a, LuaType.NUMBER)}, 
+				new LuaLocalVar[] {b},
 				new LuaBlock(List.of(
-						new ReturnStmt(new FunctionDeclExpr(
+						new ReturnStmt(new IrNode[] {new FunctionDeclExpr(
 								new FunctionDeclExpr.Upvalue[] {
 										new FunctionDeclExpr.Upvalue(insideA, a),
 										new FunctionDeclExpr.Upvalue(insideB, b)
 								},
 								new LuaLocalVar[] {c},
 								new LuaBlock(List.of(
-										new ReturnStmt(
+										new ReturnStmt(new IrNode[] {
 												new ArithmeticExpr(
 														new VariableExpr(insideA),
 														ArithmeticExpr.Kind.ADD,
@@ -119,12 +123,12 @@ public class FunctionTest {
 																ArithmeticExpr.Kind.MULTIPLY,
 																new VariableExpr(c)
 																)
-														))
+														)})
 										))
-								))
+								)})
 				)));
-		var func = new LuaFunction(type, new Object[] {10d, 5d});
-		var nested = (LuaFunction) func.call();
+		var func = new LuaFunction(type, new Object[] {10d});
+		var nested = (LuaFunction) func.call(5d);
 		assertEquals(27.5d, nested.call(3.5d));
 		assertThrows(UnsupportedOperationException.class, () -> nested.call(new Object()));
 	}

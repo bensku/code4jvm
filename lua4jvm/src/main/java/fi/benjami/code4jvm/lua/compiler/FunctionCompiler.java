@@ -1,8 +1,11 @@
 package fi.benjami.code4jvm.lua.compiler;
 
+import java.io.IOException;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.stream.Stream;
 
@@ -42,6 +45,12 @@ public class FunctionCompiler {
 			var compiledFunc = function.type().specializations().computeIfAbsent(LuaType.tuple(argTypes), t -> {
 				var ctx = function.type().newContext(argTypes);
 				var code = generateCode(ctx, function.type(), argTypes);
+				try {
+					Files.write(Path.of("Debug.class"), code);
+				} catch (IOException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
 				try {
 					var lookup = LOOKUP.defineHiddenClassWithClassData(code, ctx.allClassData(), true);
 					

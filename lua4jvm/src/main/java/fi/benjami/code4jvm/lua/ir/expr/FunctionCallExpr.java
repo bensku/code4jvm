@@ -25,7 +25,8 @@ public record FunctionCallExpr(
 				.toArray(LuaType[]::new);
 		var returnType = outputType(ctx);
 		
-		var bootstrap = funcType == LuaType.UNKNOWN ? CallResolver.BOOTSTRAP_DYNAMIC : CallResolver.BOOTSTRAP_CONSTANT;
+		// TODO constant bootstrap is broken due to upvalues
+		var bootstrap = CallResolver.BOOTSTRAP_DYNAMIC;
 		bootstrap = bootstrap.withCapturedArgs(ctx.addClassData(argTypes));
 		
 		// Evaluate arguments to values (function is first argument)

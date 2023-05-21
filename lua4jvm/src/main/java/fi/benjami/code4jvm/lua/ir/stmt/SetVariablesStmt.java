@@ -107,7 +107,7 @@ public record SetVariablesStmt(
 			// Set values from existing sources to targets
 			for (var i = 0; i < Math.min(sources.length, targets.length); i++) {
 				var type = sources[i].outputType(ctx);
-				var value = sources[0].emit(ctx, block);
+				var value = sources[i].emit(ctx, block);
 				var target = targets[i];
 				if (type instanceof LuaType.Tuple tuple) {
 					// The source is an array, take the first element of it
@@ -115,6 +115,7 @@ public record SetVariablesStmt(
 					block.add(setVariable(ctx, target, firstElement));
 				} else if (type.equals(LuaType.UNKNOWN)) {
 					// Check whether or not the source is an array
+					// E.g. return values of unknown functions take this path
 					// TODO specialized tuples need special handling here
 					var arrayTest = new IfBlock();
 					arrayTest.branch(nested -> {
@@ -123,13 +124,14 @@ public record SetVariablesStmt(
 						return Condition.isTrue(isArray);
 					}, nested -> {
 						// It is, take first element only
-						var firstElement = block.add(ArrayAccess.get(value, Constant.of(0)));
-						block.add(setVariable(ctx, target, firstElement));
+						var firstElement = nested.add(ArrayAccess.get(value.cast(Type.OBJECT.array(1)), Constant.of(0)));
+						nested.add(setVariable(ctx, target, firstElement));
 					});
 					arrayTest.fallback(nested -> {
 						// Not array, use value as-is
-						block.add(setVariable(ctx, target, value));
+						nested.add(setVariable(ctx, target, value));
 					});
+					block.add(arrayTest);
 				} else {
 					// The source is known not to be an array, use it as-is
 					block.add(setVariable(ctx, target, value));
@@ -153,12 +155,13 @@ public record SetVariablesStmt(
 		return block -> {			
 			if (variable instanceof LuaLocalVar localVar) {
 				var jvmVar = ctx.resolveLocalVar(localVar);
-				block.add(jvmVar.set(value));
+				block.add(jvmVar.set(value.cast(jvmVar.type())));
 			} else if (variable instanceof TableField tableField) {
 				var table = tableField.table().emit(ctx, block);
 				// TODO lua table set method
+			} else {				
+				throw new AssertionError();
 			}
-			throw new AssertionError();
 		};
 	}
 
