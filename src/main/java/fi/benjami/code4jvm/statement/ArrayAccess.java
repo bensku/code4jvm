@@ -16,6 +16,8 @@ import fi.benjami.code4jvm.Value;
  *
  */
 public class ArrayAccess {
+	
+	// TODO add type checks for arrays
 
 	/**
 	 * Creates an expression that gets a value from an array.

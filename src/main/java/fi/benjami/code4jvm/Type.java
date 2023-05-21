@@ -316,11 +316,18 @@ public class Type {
 	}
 	
 	public Class<?> loadedClass() {
-		try {
-			return loadedClass != null ? loadedClass : Class.forName(name);
-		} catch (ClassNotFoundException e) {
-			return null; // TODO is this a good idea?
+		if (loadedClass == null) {
+			try {
+				loadedClass = Class.forName(name);
+			} catch (ClassNotFoundException e) {
+				return null; // TODO is this a good idea?
+			}
+			// Add array dimensions
+			for (var i = 0; i < arrayDimensions; i++) {
+				loadedClass = loadedClass.arrayType();
+			}
 		}
+		return loadedClass;
 	}
 
 	@Override

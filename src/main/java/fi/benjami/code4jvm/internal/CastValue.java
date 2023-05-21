@@ -233,8 +233,14 @@ public class CastValue implements Value {
 			var boxedType = type.equals(Type.OBJECT) ? PRIMITIVE_TO_BOXED.get(original.type()) : type;
 			mv.visitMethodInsn(INVOKESTATIC, boxedType.internalName(), "valueOf", TypeUtils.methodDescriptor(boxedType, original.type()), false);
 		} else if ((cast & OBJECT_OBJECT) != 0) {
-			mv.visitTypeInsn(CHECKCAST, type.internalName());
+			// For some reason, JVM expects descriptor for arrays but NOT for anything else
+			mv.visitTypeInsn(CHECKCAST, type.isArray() ? type.descriptor() : type.internalName());
 		}
+	}
+	
+	@Override
+	public String toString() {
+		return "(" + type + ") " + original;
 	}
 
 }
