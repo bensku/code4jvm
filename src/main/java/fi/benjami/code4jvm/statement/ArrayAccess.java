@@ -6,6 +6,7 @@ import fi.benjami.code4jvm.Expression;
 import fi.benjami.code4jvm.Statement;
 import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.Value;
+import fi.benjami.code4jvm.util.TypeCheck;
 
 /**
  * Access operations to array contents.
@@ -17,8 +18,6 @@ import fi.benjami.code4jvm.Value;
  */
 public class ArrayAccess {
 	
-	// TODO add type checks for arrays
-
 	/**
 	 * Creates an expression that gets a value from an array.
 	 * @param array The array to read from.
@@ -26,6 +25,8 @@ public class ArrayAccess {
 	 * @return Expression that reads a value from the array.
 	 */
 	public static Expression get(Value array, Value index) {
+		TypeCheck.mustBeArray(array);
+		TypeCheck.mustBe(index, Type.INT);
 		return block -> {
 			return block.add(Bytecode.run(array.type().componentType(1), new Value[] {array, index}, ctx -> {
 				ctx.asm().visitInsn(array.type().getOpcode(Opcodes.IALOAD, ctx));
@@ -41,6 +42,9 @@ public class ArrayAccess {
 	 * @return Statement that writes a value to the array.
 	 */
 	public static Statement set(Value array, Value index, Value newValue) {
+		TypeCheck.mustBeArray(array);
+		TypeCheck.mustBe(index, Type.INT);
+		TypeCheck.mustBe(array.type().componentType(1), newValue.type());
 		return block -> {
 			block.add(Bytecode.run(Type.VOID, new Value[] {array, index, newValue}, ctx -> {
 				ctx.asm().visitInsn(array.type().getOpcode(Opcodes.IASTORE, ctx));
@@ -57,6 +61,7 @@ public class ArrayAccess {
 	 * @return Expression that gets array length
 	 */
 	public static Expression length(Value array) {
+		TypeCheck.mustBeArray(array);
 		return block -> {
 			return block.add(Bytecode.run(Type.INT, new Value[] {array}, ctx -> {
 				ctx.asm().visitInsn(Opcodes.ARRAYLENGTH);

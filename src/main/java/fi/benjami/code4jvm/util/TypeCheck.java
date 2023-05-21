@@ -50,5 +50,15 @@ public class TypeCheck {
 			throw new IllegalArgumentException("type " + type + " cannot possible contain methods");
 		}
 	}
+	
+	public static void mustBeArray(Type type) {
+		if (!type.isArray()) {
+			throw new IllegalArgumentException("expected an array type, got " + type);
+		}
+	}
+	
+	public static void mustBeArray(Value value) {
+		mustBeArray(value.type());
+	}
 
 }

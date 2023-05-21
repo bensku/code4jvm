@@ -66,11 +66,17 @@ public class CastValue implements Value {
 		
 		// CastValue supports multiple casts (e.g. float -> int -> byte)
 		if (original instanceof CastValue cast) {
-			original = cast.original;
+			original = cast.original();
 		}
 		
 		int cast = 0;
-		if (to.equals(Type.BYTE)) {
+		if (from.isObject() && to.isPrimitive()) {
+			// Unbox can directly target different primitive type
+			cast |= UNBOX;
+			if (!from.equals(Type.OBJECT) && !BOXED_TO_PRIMITIVE.containsKey(from)) {
+				throw new UnsupportedOperationException("cannot cast " + from + " to " + to);
+			}
+		} else if (to.equals(Type.BYTE)) {
 			cast |= convertToInt(from);
 			cast |= INT_BYTE;
 		} else if (to.equals(Type.SHORT)) {
@@ -82,7 +88,6 @@ public class CastValue implements Value {
 		} else if (to.equals(Type.INT)) {
 			cast |= convertToInt(from);
 		} else if (to.equals(Type.LONG)) {
-			from = unboxType(from);
 			if (TypeUtils.isIntLike(from)) {
 				cast |= INT_LONG;
 			} else if (from.equals(Type.FLOAT)) {
@@ -91,7 +96,6 @@ public class CastValue implements Value {
 				cast |= DOUBLE_LONG;
 			}
 		} else if (to.equals(Type.FLOAT)) {
-			from = unboxType(from);
 			if (TypeUtils.isIntLike(from)) {
 				cast |= INT_FLOAT;
 			} else if (from.equals(Type.LONG)) {
@@ -100,7 +104,6 @@ public class CastValue implements Value {
 				cast |= DOUBLE_FLOAT;
 			}
 		} else if (to.equals(Type.DOUBLE)) {
-			from = unboxType(from);
 			if (TypeUtils.isIntLike(from)) {
 				cast |= INT_DOUBLE;
 			} else if (from.equals(Type.LONG)) {
@@ -157,11 +160,15 @@ public class CastValue implements Value {
 		}
 	}
 	
+	private static int unboxIfNeeded(Type type) {
+		return type.isPrimitive() ? 0 : UNBOX;
+	}
+	
 	private static Type unboxType(Type type) {
 		if (type.isPrimitive()) {
 			return type; // Already primitive type
 		}
-		throw new UnsupportedOperationException("todo");
+		return BOXED_TO_PRIMITIVE.get(type);
 	}
 
 	private final Value original;
@@ -186,19 +193,28 @@ public class CastValue implements Value {
 	
 	@Override
 	public Value original() {
-		return original;
+		return original.original();
 	}
 	
 	public void emitCast(MethodVisitor mv) {
 		if (cast == 0) {
 			return;
 		}
+		// FIXME this is VERY fishy, need better tests
 		// The cast order is important!
 		// 1. Unboxing
 		// 2. Casts to int
 		// 3. Everything else
 		if ((cast & UNBOX) != 0) {
-			// TODO
+			// FIXME unusual boolean and char casts
+			var boxedType = original.type();
+			if (boxedType.equals(Type.OBJECT)) {
+				// j.l.Object doesn't have intValue() and friends
+				boxedType = PRIMITIVE_TO_BOXED.get(type);
+				mv.visitTypeInsn(CHECKCAST, boxedType.internalName());
+			}
+			mv.visitMethodInsn(INVOKEVIRTUAL, boxedType.internalName(), type.name() + "Value",
+					TypeUtils.methodDescriptor(type), false);
 		} else if ((cast & LONG_INT) != 0) {
 			mv.visitInsn(L2I);
 		} else if ((cast & FLOAT_INT) != 0) {
