@@ -50,8 +50,12 @@ public class CallResolver {
 		MethodHandle target;
 		if (callable instanceof LuaFunction function) {
 			target = FunctionCompiler.callTarget(types, function);
+		} else if (callable instanceof MethodHandle handle) {
+			// Calling from Lua to Java
+			// TODO something better than this
+			target = MethodHandles.dropArguments(handle, 0, Object.class);
 		} else {
-			throw new UnsupportedOperationException(callable + " is not callable");
+			throw new UnsupportedOperationException(callable + " is not callable");			
 		}
 		target = target.asType(site.type());
 		

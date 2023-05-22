@@ -49,12 +49,6 @@ public class FunctionCompiler {
 			var ctx = function.type().newContext(argTypes);
 			var code = generateCode(ctx, function.type(), argTypes, upvalueTypes);
 			try {
-				Files.write(Path.of("Debug.class"), code);
-			} catch (IOException e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
-			}
-			try {
 				var lookup = LOOKUP.defineHiddenClassWithClassData(code, ctx.allClassData(), true);
 				
 				// Cache the constructor and actual function MHs

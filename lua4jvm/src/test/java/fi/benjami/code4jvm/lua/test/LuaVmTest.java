@@ -3,6 +3,10 @@ package fi.benjami.code4jvm.lua.test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
+import java.util.function.Function;
+
 import org.junit.jupiter.api.Test;
 
 import fi.benjami.code4jvm.lua.LuaVm;
@@ -193,6 +197,26 @@ public class LuaVmTest {
 					a = a + 1
 				until a >= 10
 				return a
+				"""));
+	}
+	
+	@Test
+	public void callJavaFunction() throws Throwable {
+		Function<String, String> javaFunc = str -> str + str;
+		var handle = MethodHandles.lookup().findVirtual(Function.class, "apply",
+				MethodType.methodType(Object.class, Object.class)).bindTo(javaFunc);
+		var func = (LuaFunction) vm.execute("""
+				return function (f, arg)
+					return f(arg)
+				end
+				""");
+		func.call(handle, "a");
+		
+		assertEquals("10.5", vm.execute("""
+				return tostring(10.5)
+				"""));
+		assertEquals("number", vm.execute("""
+				return type(10.5)
 				"""));
 	}
 }

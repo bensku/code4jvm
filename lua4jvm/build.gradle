@@ -17,7 +17,7 @@ dependencies {
 
 jar {
 	manifest {
-		attributes('Main-Class': 'fi.benjami.parserkit.minipl.AppMain')
+		attributes('Main-Class': 'fi.benjami.code4jvm.lua.LuaRunner')
 	}
 }
 

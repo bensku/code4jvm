@@ -48,7 +48,19 @@ public class LuaLexer implements Lexer {
 		};
 		case ',' -> LuaToken.LIST_SEPARATOR.read(pos, ",");
 		case '+' -> LuaToken.ADD.read(pos, "+");
-		case '-' -> LuaToken.SUBTRACT_OR_NEGATE.read(pos, "-");
+		case '-' -> switch (input.getCodepoint(1)) {
+			case '-' -> {
+				// Comment until line end
+				for (var i = 2; i < input.codepointsLeft(); i++) {
+					if (input.getCodepoint(i) == '\n') {
+						input.advance(i);
+						yield getToken(input);
+					}
+				}
+				yield null; // Reached program end while reading comment
+			}
+			default -> LuaToken.SUBTRACT_OR_NEGATE.read(pos, "-");
+		};
 		case '*' -> LuaToken.MULTIPLY.read(pos, "*");
 		case '/' -> switch (input.getCodepoint(1)) {
 			case '/' -> LuaToken.FLOOR_DIVIDE.read(pos, "//");
@@ -88,7 +100,9 @@ public class LuaLexer implements Lexer {
 			}
 		}
 		};
-		input.advance(token.length());
+		if (token != null) {			
+			input.advance(token.length());
+		}
 		
 		return token;
 	}

@@ -318,4 +318,10 @@ public class ParserTest {
 				new BinaryExpr.Equal(new VarReference(List.of("b"), null), new VarReference(List.of("c"), null))
 				))))), parse(SpecialNodes.Block.class, "return a == b and b == c"));
 	}
+	
+	@Test
+	public void functionDeclarations() {
+		parse(SpecialNodes.Block.class, "function f(x) end");
+		parse(SpecialNodes.Block.class, "local function f(x) end");
+	}
 }

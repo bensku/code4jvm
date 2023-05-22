@@ -26,7 +26,7 @@ public record VariableExpr(
 		} else if (source instanceof TableField tableField) {
 			var table = tableField.table().emit(ctx, block).cast(LuaTable.TYPE);
 			var field = tableField.field().emit(ctx, block);
-			return block.add(table.callVirtual(Type.OBJECT, "get", field.asType(Type.OBJECT)));
+			return block.add(table.callVirtual(Type.OBJECT, "get", field.cast(Type.OBJECT)));
 		}
 		throw new AssertionError();
 	}

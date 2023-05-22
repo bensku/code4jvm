@@ -26,7 +26,21 @@ public class LuaVm {
 		this.lexer = lexer;
 		this.transformer = transformer;
 		this.parser = parser;
-		this.globals = new LuaTable(0);
+		this.globals = initGlobals();
+	}
+	
+	private static LuaTable initGlobals() {
+		var globals = new LuaTable(0);
+		
+		globals.set("_G", globals);
+		globals.set("_VERSION", "lua4jvm DEV (Lua 5.4)");
+		
+		globals.set("print", LuaStdLib.PRINT);
+		globals.set("tostring", LuaStdLib.TO_STRING);
+		globals.set("type", LuaStdLib.TYPE);
+		globals.set("tonumber", LuaStdLib.TO_NUMBER);
+		
+		return globals;
 	}
 	
 	public LuaTable globals() {

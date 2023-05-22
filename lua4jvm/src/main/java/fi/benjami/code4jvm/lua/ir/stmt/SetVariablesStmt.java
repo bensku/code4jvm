@@ -124,8 +124,7 @@ public record SetVariablesStmt(
 					// TODO specialized tuples need special handling here
 					var arrayTest = new IfBlock();
 					arrayTest.branch(nested -> {
-						var c = nested.add(value.callVirtual(Type.of(Class.class), "getClass"));
-						var isArray = nested.add(c.callVirtual(Type.BOOLEAN, "isArray"));
+						var isArray = nested.add(Type.of(SetVariablesStmt.class).callStatic(Type.BOOLEAN, "isArray", value));
 						return Condition.isTrue(isArray);
 					}, nested -> {
 						// It is, take first element only
@@ -209,5 +208,9 @@ public record SetVariablesStmt(
 			}			
 		}
 		return LuaType.NIL;
+	}
+	
+	public static boolean isArray(Object obj) {
+		return obj != null ? obj.getClass().isArray() : false;
 	}
 }
