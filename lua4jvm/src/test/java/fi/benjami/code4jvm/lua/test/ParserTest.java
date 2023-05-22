@@ -167,6 +167,11 @@ public class ParserTest {
 		assertEquals(new Expression.FunctionCall(
 				new Expression.VarReference(List.of("f"), null),
 				null,
+				List.of()
+				), parse(Expression.FunctionCall.class, "f()"));
+		assertEquals(new Expression.FunctionCall(
+				new Expression.VarReference(List.of("f"), null),
+				null,
 				List.of(
 						new Expression.VarReference(List.of("a"), null),
 						new Expression.VarReference(List.of("b"), null)
@@ -193,5 +198,21 @@ public class ParserTest {
 						new Expression.VarReference(List.of("b"), null)
 						)
 				), parse(Expression.FunctionCall.class, "f.g:h(a, b)"));
+		
+		parse(SpecialNodes.Block.class, "f(1, 2)");
+		parse(Statement.DoEndBlock.class, "do f(1, 2) end");
+	}
+	
+	@Test
+	public void returnStmt() {
+		parse(Statement.Return.class, "return");
+		parse(Statement.Return.class, "return 1");
+		parse(Statement.Return.class, "return f");
+		parse(Statement.Return.class, "return f(1)");
+	}
+	
+	@Test
+	public void callInsideFunction() {
+		parse(Expression.FunctionDefinition.class, "function (f) return f(1, 2.5) end");
 	}
 }

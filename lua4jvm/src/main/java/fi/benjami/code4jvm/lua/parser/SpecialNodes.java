@@ -66,11 +66,10 @@ public class SpecialNodes {
 		@Override
 		public IrNode toIr(LuaScope scope) {
 			var funcScope = new LuaScope(scope, true);
-			var body = block.toIr(funcScope);
-			
 			var args = paramNames.stream()
 					.map(funcScope::declare)
 					.toList();
+			var body = block.toIr(funcScope);			
 			return new FunctionDeclExpr(funcScope.upvalues(), args, body);
 		}
 	}

@@ -39,6 +39,7 @@ public class LuaLexer implements Lexer {
 			default -> LuaToken.ASSIGNMENT.read(pos, "=");
 		};
 		case '.' -> switch (input.getCodepoint(1)) {
+			// TODO .5 style decimal numbers
 			case '.' -> switch (input.getCodepoint(2)) {
 				case '.' -> LuaToken.VARARGS.read(pos, "...");
 				default -> LuaToken.STRING_CONCAT.read(pos, "..");
@@ -147,16 +148,24 @@ public class LuaLexer implements Lexer {
 	private Token parseNumber(LexerInput input) {
 		var str = new StringBuilder();
 		
+		var decimalDots = 0;
 		for (var i = 0; i < input.codepointsLeft(); i++) {
 			var c = input.getCodepoint(i);
 			if (isNumber(c)) {
+				str.appendCodePoint(c);
+			} else if (c == '.') {
+				decimalDots++;
 				str.appendCodePoint(c);
 			} else {
 				break;
 			}
 		}
 		
-		return LuaToken.LITERAL_NUMBER.read(input.pos(), str.toString());
+		if (decimalDots > 1) {
+			return LuaToken.ERROR.read(input.pos(), str.toString());
+		} else {			
+			return LuaToken.LITERAL_NUMBER.read(input.pos(), str.toString());
+		}
 	}
 	
 	private Token parseName(LexerInput input) {
@@ -172,6 +181,7 @@ public class LuaLexer implements Lexer {
 				break;
 			}
 		}
+		
 		
 		return LuaToken.NAME.read(input.pos(), str.toString());
 	}

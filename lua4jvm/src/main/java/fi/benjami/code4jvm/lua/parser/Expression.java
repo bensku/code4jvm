@@ -19,6 +19,7 @@ public interface Expression extends LuaNode {
 	
 	// Nested expression parsing is allowed to fail!
 	public static VirtualNode EXPRESSIONS = VirtualNode.of(
+			FunctionCall.class,
 			// Expressions are in priority order (highest to lowest)
 			// To implement maximal munch rule, the order is generally
 			// 1. Binary expressions
@@ -49,11 +50,11 @@ public interface Expression extends LuaNode {
 			
 			SimpleConstant.class, StringConstant.class,
 			VarArgs.class, FunctionDefinition.class, // Generic expressions
-			VarReference.class,  Group.class // Prefix expressions
+			VarReference.class, Group.class // Prefix expressions
 //			TableConstructor.class, // Generic expressions, continued
 			);
 	
-	public static VirtualNode PREFIX_EXPRS = VirtualNode.parseOrError(0,
+	public static VirtualNode PREFIX_EXPRS = VirtualNode.of(
 			VarReference.class, FunctionCall.class, Group.class
 			);
 
