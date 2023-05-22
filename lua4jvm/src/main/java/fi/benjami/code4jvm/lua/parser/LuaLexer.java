@@ -73,6 +73,8 @@ public class LuaLexer implements Lexer {
 			default -> LuaToken.LESS_THAN.read(pos, "<");
 		};
 		case '#' -> LuaToken.ARRAY_LENGTH.read(pos, "#");
+		case '{' -> LuaToken.TABLE_INIT_START.read(pos, "{");
+		case '}' -> LuaToken.TABLE_INIT_END.read(pos, "}");
 		case '"' -> parseShortString('"', input);
 		case '\'' -> parseShortString('\'', input);
 		// TODO long strings, i.e. [==[ ]==]

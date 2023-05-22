@@ -50,8 +50,8 @@ public interface Expression extends LuaNode {
 			
 			SimpleConstant.class, StringConstant.class,
 			VarArgs.class, FunctionDefinition.class, // Generic expressions
-			VarReference.class, Group.class // Prefix expressions
-//			TableConstructor.class, // Generic expressions, continued
+			VarReference.class, Group.class, // Prefix expressions
+			TableConstructor.class // Generic expressions, continued
 			);
 	
 	public static VirtualNode PREFIX_EXPRS = VirtualNode.of(
@@ -215,14 +215,31 @@ public interface Expression extends LuaNode {
 			@ChildNode("fields") List<TableField> fields
 	) implements Expression {
 		
+		public static final Input PATTERN = Input.allOf(
+				Input.token(LuaToken.TABLE_INIT_START),
+				Input.list(Input.childNode("fields", TableField.class), 0, Input.token(LuaToken.LIST_SEPARATOR)),
+				Input.optional(Input.token(LuaToken.LIST_SEPARATOR)), // One extra comma allowed
+				Input.token(LuaToken.TABLE_INIT_END)
+				);
+		
 		@Override
 		public IrNode toIr(LuaScope scope) {
-			return new TableInitExpr(fields.stream()
-					.map(field -> new TableInitExpr.Entry(
-							field.name != null ? new LuaConstant(field.name) : field.nameExpr.toIr(scope),
-							field.value.toIr(scope)
-							))
-					.toList());
+			var entries = new ArrayList<TableInitExpr.Entry>(fields.size());
+			var arrayIndex = 1d;
+			for (var field : fields) {
+				IrNode key;
+				if (field.name == null) {
+					if (field.nameExpr == null) {
+						key = new LuaConstant(arrayIndex++);
+					} else {
+						key = field.nameExpr.toIr(scope);
+					}
+				} else {
+					key = new LuaConstant(field.name);
+				}
+				entries.add(new TableInitExpr.Entry(key, field.value.toIr(scope)));
+			}
+			return new TableInitExpr(entries);
 		}
 	}
 	
@@ -231,6 +248,22 @@ public interface Expression extends LuaNode {
 			@ChildNode("nameExpr") Expression nameExpr,
 			@ChildNode("value") Expression value
 	) implements LuaNode {
+		
+		public static final Input PATTERN = Input.oneOf(
+				Input.allOf(
+						Input.token(LuaToken.TABLE_INDEX_BEGIN),
+						Input.virtualNode("nameExpr", EXPRESSIONS),
+						Input.token(LuaToken.TABLE_INDEX_END),
+						Input.token(LuaToken.ASSIGNMENT),
+						Input.virtualNode("value", EXPRESSIONS)
+						),
+				Input.allOf(
+						Input.token("name", LuaToken.NAME),
+						Input.token(LuaToken.ASSIGNMENT),
+						Input.virtualNode("value", EXPRESSIONS)
+						),
+				Input.virtualNode("value", EXPRESSIONS)
+				);
 		
 		@Override
 		public IrNode toIr(LuaScope scope) {

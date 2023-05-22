@@ -15,6 +15,7 @@ public interface LuaNode extends AstNode {
 		registry.register(Statement.STATEMENTS.astNodeTypes());
 		registry.register(Statement.FunctionName.class); // Move these somewhere else
 		registry.register(Statement.ElseIfClause.class);
+		registry.register(Expression.TableField.class);
 		registry.register(Expression.EXPRESSIONS.astNodeTypes());
 		
 		return registry;

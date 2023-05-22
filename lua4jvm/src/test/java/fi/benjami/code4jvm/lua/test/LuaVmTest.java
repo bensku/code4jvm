@@ -11,6 +11,7 @@ import fi.benjami.code4jvm.lua.parser.LuaNode;
 import fi.benjami.code4jvm.lua.parser.LuaToken;
 import fi.benjami.code4jvm.lua.parser.LuaTokenTransformer;
 import fi.benjami.code4jvm.lua.runtime.LuaFunction;
+import fi.benjami.code4jvm.lua.runtime.LuaTable;
 import fi.benjami.parserkit.parser.Parser;
 
 public class LuaVmTest {
@@ -50,5 +51,48 @@ public class LuaVmTest {
 				end
 				""");
 		assertEquals(4.5d, func2.call(func));
+	}
+	
+	@Test
+	public void createTable() throws Throwable {
+		var empty = (LuaTable) vm.execute("""
+				return {}
+				""");
+		assertEquals(0, empty.size());
+		
+		var list = (LuaTable) vm.execute("""
+				return {1, 2, 3}
+				""");
+		assertEquals(1d, list.get(1d));
+		assertEquals(2d, list.get(2d));
+		assertEquals(3d, list.get(3d));
+		
+		var foo = (LuaTable) vm.execute("""
+				return {foo = "bar"}
+				""");
+		assertEquals("bar", foo.get("foo"));
+		
+		var tableCreator = (LuaFunction) vm.execute("""
+				return function (key, value)
+					return {[key] = value}
+				end
+				""");
+		var dynamicTable = (LuaTable) tableCreator.call(3d, "bar");
+		assertEquals("bar", dynamicTable.get(3d));
+		
+		var tableSetter = (LuaFunction) vm.execute("""
+				return function (tbl, key, value)
+				tbl.foo = {}
+				tbl.foo.bar = {}
+				tbl.foo.bar[1] = "baz"
+				tbl[key] = value
+				return tbl
+			end
+			""");
+		var parent = (LuaTable) tableSetter.call(new LuaTable(0), "test", "ok");
+		assertEquals("ok", parent.get("test"));
+		var fooTbl = (LuaTable) parent.get("foo");
+		var barTbl = (LuaTable) fooTbl.get("bar");
+		assertEquals("baz", barTbl.get(1d));
 	}
 }

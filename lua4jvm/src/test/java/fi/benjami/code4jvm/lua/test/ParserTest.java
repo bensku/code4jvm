@@ -19,6 +19,8 @@ import fi.benjami.code4jvm.lua.parser.LuaToken;
 import fi.benjami.code4jvm.lua.parser.LuaTokenTransformer;
 import fi.benjami.code4jvm.lua.parser.SpecialNodes;
 import fi.benjami.code4jvm.lua.parser.Statement;
+import fi.benjami.code4jvm.lua.parser.Expression.SimpleConstant;
+import fi.benjami.code4jvm.lua.parser.Expression.TableConstructor;
 import fi.benjami.code4jvm.lua.parser.Expression.VarReference;
 import fi.benjami.parserkit.lexer.Lexer;
 import fi.benjami.parserkit.lexer.TokenTransformer;
@@ -214,5 +216,42 @@ public class ParserTest {
 	@Test
 	public void callInsideFunction() {
 		parse(Expression.FunctionDefinition.class, "function (f) return f(1, 2.5) end");
+	}
+	
+	@Test
+	public void tableConstructor() {
+		assertEquals(new Expression.TableConstructor(List.of()),
+				parse(Expression.TableConstructor.class, "{}"));
+		assertEquals(new Expression.TableConstructor(List.of(
+				new Expression.TableField(null, null, new Expression.SimpleConstant(1d)),
+				new Expression.TableField(null, null, new Expression.SimpleConstant(2d)),
+				new Expression.TableField(null, null, new Expression.SimpleConstant(3d))
+				)),
+				parse(Expression.TableConstructor.class, "{1, 2, 3}"));
+		assertEquals(new Expression.TableConstructor(List.of(
+				new Expression.TableField("a", null, new Expression.SimpleConstant(1d)),
+				new Expression.TableField("b", null, new Expression.SimpleConstant(2d)),
+				new Expression.TableField(null, null, new Expression.SimpleConstant(3d))
+				)),
+				parse(Expression.TableConstructor.class, "{a = 1, b = 2, 3}"));
+		assertEquals(new Expression.TableConstructor(List.of(
+				new Expression.TableField("a", null, new Expression.SimpleConstant(1d)),
+				new Expression.TableField(null, new Expression.StringConstant("b"), new Expression.SimpleConstant(2d)),
+				new Expression.TableField(null, null, new Expression.SimpleConstant(3d))
+				)),
+				parse(Expression.TableConstructor.class, "{a = 1, ['b'] = 2, 3}"));
+		assertEquals(new Expression.TableConstructor(List.of(
+				new Expression.TableField("a", null, new Expression.SimpleConstant(1d)),
+				new Expression.TableField(null, new Expression.StringConstant("b"), new Expression.SimpleConstant(2d)),
+				new Expression.TableField(
+						null,
+						new Expression.FunctionCall(
+								new Expression.VarReference(List.of("f"), null),
+								null,
+								List.of(new Expression.StringConstant("c"))
+								),
+						new Expression.SimpleConstant(3d))
+				)),
+				parse(Expression.TableConstructor.class, "{a = 1, ['b'] = 2, [f('c')] = 3}"));
 	}
 }

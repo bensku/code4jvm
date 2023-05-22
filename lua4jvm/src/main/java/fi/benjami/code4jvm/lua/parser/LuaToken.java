@@ -70,6 +70,8 @@ public enum LuaToken implements TokenType {
 	EQUAL(TokenType.discardText()), // ==
 	NOT_EQUAL(TokenType.discardText()), // ~=
 	ARRAY_LENGTH(TokenType.discardText()), // #
+	TABLE_INIT_START(TokenType.discardText()), // {
+	TABLE_INIT_END(TokenType.discardText()), // }
 	
 	ERROR(TokenType.collectText());
 	

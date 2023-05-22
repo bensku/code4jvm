@@ -22,4 +22,8 @@ public class LuaTable {
 	public void set(Object key, Object value) {
 		map.put(key, value);
 	}
+	
+	public int size() {
+		return map.size();
+	}
 }

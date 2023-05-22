@@ -164,7 +164,7 @@ public record SetVariablesStmt(
 			} else if (variable instanceof TableField tableField) {
 				var table = tableField.table().emit(ctx, block).cast(LuaTable.TYPE);
 				var field = tableField.field().emit(ctx, block);
-				block.add(table.callVirtual(Type.VOID, "set", field.asType(Type.OBJECT), value.cast(Type.OBJECT)));
+				block.add(table.callVirtual(Type.VOID, "set", field.cast(Type.OBJECT), value.cast(Type.OBJECT)));
 			} else {				
 				throw new AssertionError();
 			}
