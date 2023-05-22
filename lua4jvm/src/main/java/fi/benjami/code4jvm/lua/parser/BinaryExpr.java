@@ -2,6 +2,8 @@ package fi.benjami.code4jvm.lua.parser;
 
 import fi.benjami.code4jvm.lua.ir.IrNode;
 import fi.benjami.code4jvm.lua.ir.expr.ArithmeticExpr;
+import fi.benjami.code4jvm.lua.ir.expr.CompareExpr;
+import fi.benjami.code4jvm.lua.ir.expr.LogicalExpr;
 import fi.benjami.code4jvm.lua.semantic.LuaScope;
 import fi.benjami.parserkit.parser.Input;
 import fi.benjami.parserkit.parser.ast.ChildNode;
@@ -249,7 +251,7 @@ public interface BinaryExpr extends Expression {
 		
 		@Override
 		public IrNode toIr(LuaScope scope) {
-			throw new UnsupportedOperationException();
+			return new CompareExpr(lhs.toIr(scope), CompareExpr.Kind.LESS_THAN, rhs.toIr(scope));
 		}
 	}
 	
@@ -266,7 +268,7 @@ public interface BinaryExpr extends Expression {
 		
 		@Override
 		public IrNode toIr(LuaScope scope) {
-			throw new UnsupportedOperationException();
+			return new CompareExpr(lhs.toIr(scope), CompareExpr.Kind.MORE_THAN, rhs.toIr(scope));
 		}
 	}
 	
@@ -283,7 +285,7 @@ public interface BinaryExpr extends Expression {
 		
 		@Override
 		public IrNode toIr(LuaScope scope) {
-			throw new UnsupportedOperationException();
+			return new CompareExpr(lhs.toIr(scope), CompareExpr.Kind.LESS_OR_EQUAL, rhs.toIr(scope));
 		}
 	}
 	
@@ -300,7 +302,7 @@ public interface BinaryExpr extends Expression {
 		
 		@Override
 		public IrNode toIr(LuaScope scope) {
-			throw new UnsupportedOperationException();
+			return new CompareExpr(lhs.toIr(scope), CompareExpr.Kind.MORE_OR_EQUAL, rhs.toIr(scope));
 		}
 	}
 	
@@ -317,7 +319,7 @@ public interface BinaryExpr extends Expression {
 		
 		@Override
 		public IrNode toIr(LuaScope scope) {
-			throw new UnsupportedOperationException();
+			return new CompareExpr(lhs.toIr(scope), CompareExpr.Kind.NOT_EQUAL, rhs.toIr(scope));
 		}
 	}
 	
@@ -334,7 +336,7 @@ public interface BinaryExpr extends Expression {
 		
 		@Override
 		public IrNode toIr(LuaScope scope) {
-			throw new UnsupportedOperationException();
+			return new CompareExpr(lhs.toIr(scope), CompareExpr.Kind.EQUAL, rhs.toIr(scope));
 		}
 	}
 	
@@ -351,7 +353,7 @@ public interface BinaryExpr extends Expression {
 		
 		@Override
 		public IrNode toIr(LuaScope scope) {
-			throw new UnsupportedOperationException();
+			return new LogicalExpr(lhs.toIr(scope), LogicalExpr.Kind.AND, rhs.toIr(scope));
 		}
 	}
 	
@@ -368,7 +370,7 @@ public interface BinaryExpr extends Expression {
 		
 		@Override
 		public IrNode toIr(LuaScope scope) {
-			throw new UnsupportedOperationException();
+			return new LogicalExpr(lhs.toIr(scope), LogicalExpr.Kind.OR, rhs.toIr(scope));
 		}
 	}
 }

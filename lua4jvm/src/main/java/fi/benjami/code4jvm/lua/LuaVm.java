@@ -1,9 +1,7 @@
 package fi.benjami.code4jvm.lua;
 
-import java.util.ArrayList;
 import java.util.List;
 
-import fi.benjami.code4jvm.lua.ir.LuaBlock;
 import fi.benjami.code4jvm.lua.ir.LuaLocalVar;
 import fi.benjami.code4jvm.lua.ir.LuaType;
 import fi.benjami.code4jvm.lua.ir.UpvalueTemplate;
@@ -29,6 +27,10 @@ public class LuaVm {
 		this.transformer = transformer;
 		this.parser = parser;
 		this.globals = new LuaTable(0);
+	}
+	
+	public LuaTable globals() {
+		return globals;
 	}
 	
 	public Object execute(String chunk) throws Throwable {

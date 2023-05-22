@@ -5,12 +5,16 @@ import java.util.List;
 
 import fi.benjami.code4jvm.Value;
 import fi.benjami.code4jvm.block.Block;
+import fi.benjami.code4jvm.lua.LuaParserException;
 import fi.benjami.code4jvm.lua.compiler.LuaContext;
 import fi.benjami.code4jvm.lua.ir.IrNode;
 import fi.benjami.code4jvm.lua.ir.LuaType;
 import fi.benjami.code4jvm.lua.ir.LuaVariable;
 import fi.benjami.code4jvm.lua.ir.expr.LuaConstant;
 import fi.benjami.code4jvm.lua.ir.expr.VariableExpr;
+import fi.benjami.code4jvm.lua.ir.stmt.IfBlockStmt;
+import fi.benjami.code4jvm.lua.ir.stmt.LoopBreakStmt;
+import fi.benjami.code4jvm.lua.ir.stmt.LoopStmt;
 import fi.benjami.code4jvm.lua.ir.stmt.ReturnStmt;
 import fi.benjami.code4jvm.lua.ir.stmt.SetVariablesStmt;
 import fi.benjami.code4jvm.lua.semantic.LuaScope;
@@ -145,7 +149,11 @@ public interface Statement extends LuaNode {
 		
 		@Override
 		public IrNode toIr(LuaScope scope) {
-			throw new UnsupportedOperationException();
+			var loop = scope.currentLoop();
+			if (loop == null) {
+				throw new LuaParserException("semantic error: break outside of a loop");
+			}
+			return new LoopBreakStmt(loop);
 		}
 	}
 	
@@ -195,7 +203,8 @@ public interface Statement extends LuaNode {
 		
 		@Override
 		public IrNode toIr(LuaScope scope) {
-			throw new UnsupportedOperationException();
+			var ref = new LoopStmt.LoopRef();
+			return new LoopStmt(condition.toIr(scope), body.toIr(new LuaScope(scope, false, ref)), LoopStmt.Kind.WHILE, ref);
 		}
 	}
 	
@@ -213,7 +222,8 @@ public interface Statement extends LuaNode {
 		
 		@Override
 		public IrNode toIr(LuaScope scope) {
-			throw new UnsupportedOperationException();
+			var ref = new LoopStmt.LoopRef();
+			return new LoopStmt(condition.toIr(scope), body.toIr(new LuaScope(scope, false, ref)), LoopStmt.Kind.REPEAT_UNTIL, ref);
 		}
 	}
 	
@@ -239,7 +249,15 @@ public interface Statement extends LuaNode {
 		
 		@Override
 		public IrNode toIr(LuaScope scope) {
-			throw new UnsupportedOperationException();
+			var branches = new ArrayList<IfBlockStmt.Branch>();
+			branches.add(new IfBlockStmt.Branch(condition.toIr(scope),
+					block.toIr(new LuaScope(scope, false))));
+			for (var elseIf : elseIfs) {
+				branches.add(new IfBlockStmt.Branch(elseIf.condition.toIr(scope),
+						elseIf.block.toIr(new LuaScope(scope, false))));
+			}
+			return new IfBlockStmt(branches, fallback != null
+					? fallback.toIr(new LuaScope(scope, false)) : null);
 		}
 	}
 	
@@ -257,7 +275,7 @@ public interface Statement extends LuaNode {
 		
 		@Override
 		public IrNode toIr(LuaScope scope) {
-			throw new UnsupportedOperationException();
+			throw new AssertionError(); // IfBlock handles this
 		}
 	}
 	

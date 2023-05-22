@@ -12,6 +12,7 @@ import fi.benjami.code4jvm.lua.ir.TableField;
 import fi.benjami.code4jvm.lua.ir.expr.LuaConstant;
 import fi.benjami.code4jvm.lua.ir.expr.VariableExpr;
 import fi.benjami.code4jvm.lua.ir.expr.FunctionDeclExpr.Upvalue;
+import fi.benjami.code4jvm.lua.ir.stmt.LoopStmt;
 
 public class LuaScope {
 	
@@ -28,15 +29,26 @@ public class LuaScope {
 	private final Map<String, LuaLocalVar> locals;
 	private final Map<String, Upvalue> upvalues;
 	
-	public LuaScope(LuaScope parent, boolean functionRoot) {
+	/**
+	 * Reference to current loop or null, used for break'ing out of loop.
+	 * TODO this is kinda hacky
+	 */
+	private final LoopStmt.LoopRef currentLoop;
+	
+	public LuaScope(LuaScope parent, boolean functionRoot, LoopStmt.LoopRef currentLoop) {
 		this.parent = parent;
 		this.functionRoot = functionRoot;
 		this.locals = new HashMap<>();
+		this.currentLoop = currentLoop;
 		if (functionRoot) {
 			this.upvalues = new HashMap<>();
 		} else {
 			this.upvalues = parent.upvalues;
 		}
+	}
+	
+	public LuaScope(LuaScope parent, boolean functionRoot) {
+		this(parent, functionRoot, functionRoot ? null : parent.currentLoop);
 	}
 	
 	public LuaLocalVar declare(String name) {
@@ -87,6 +99,10 @@ public class LuaScope {
 	
 	public List<Upvalue> upvalues() {
 		return new ArrayList<>(upvalues.values());
+	}
+	
+	public LoopStmt.LoopRef currentLoop() {
+		return currentLoop;
 	}
 	
 }

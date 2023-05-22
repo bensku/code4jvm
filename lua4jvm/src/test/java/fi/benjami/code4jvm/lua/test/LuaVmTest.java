@@ -95,4 +95,104 @@ public class LuaVmTest {
 		var barTbl = (LuaTable) fooTbl.get("bar");
 		assertEquals("baz", barTbl.get(1d));
 	}
+	
+	@Test
+	public void complexMath() throws Throwable {
+		assertEquals(2.0048d, vm.execute("return 1 * 2 + 3 / 5 ^ 2 ^ 2"));
+		assertEquals(8d, vm.execute("return 2 * (3 + 2.5) - 3"));
+	}
+	
+	@Test
+	public void doEnd() throws Throwable {
+		vm.execute("do do end end");
+	}
+	
+	@Test
+	public void ifBlock() throws Throwable {
+		assertEquals(true, vm.execute("""
+				if true then
+					return true
+				else
+					return false
+				end
+				"""));
+		assertEquals(false, vm.execute("""
+				if 1 == 2 then
+					return true
+				else
+					return false
+				end
+				"""));
+		var func = (LuaFunction) vm.execute("""
+				return function (a, b)
+					if a > b then
+						return "a"
+					elseif a < b then
+						return "b"
+					elseif a == b then
+						return "c"
+					end
+				end
+				""");
+		assertEquals("a", func.call(2d, 1d));
+		assertEquals("b", func.call(2d, 3d));
+		assertEquals("c", func.call(2d, 2d));
+		
+		var func2 = (LuaFunction) vm.execute("""
+				return function (a, b)
+					if a ~= b then
+						return "a"
+					else
+						return "b"
+					end
+				end
+				""");
+		assertEquals("a", func2.call(1d, 2d));
+		assertEquals("a", func2.call("foo", "bar"));
+		assertEquals("b", func2.call("foo", "foo"));
+		assertEquals("b", func2.call(func, func));
+		
+		var func3 = (LuaFunction) vm.execute("""
+				return function (a, b, c)
+					if a == b and b == c then
+						return "a"
+					else
+						return "b"
+					end
+				end
+				""");
+		assertEquals("a", func3.call(1d, 1d, 1d));
+		assertEquals("b", func3.call("", 1d, 2d));
+		
+		var func4 = (LuaFunction) vm.execute("""
+				return function (a, b, c, d)
+					if a == b and b == c or b == c and c == d then
+						return "a"
+					else
+						return "b"
+					end
+				end
+				""");
+		assertEquals("a", func4.call(1d, 1d, 1d, 1d));
+		assertEquals("b", func4.call("", 1d, 2d, 3d));
+		assertEquals("a", func4.call("foo", "bar", "bar", "bar"));
+	}
+	
+	@Test
+	public void conditionalLoops() throws Throwable {
+		assertEquals(10d, vm.execute("""
+				local a = 0
+				while a < 10 do
+					a = a + 1
+				end
+				return a
+				"""));
+		assertEquals(10d, vm.execute("""
+				local a = 0
+				repeat
+					a = a + 1
+				until a >= 10
+				return a
+				"""));
+	}
 }

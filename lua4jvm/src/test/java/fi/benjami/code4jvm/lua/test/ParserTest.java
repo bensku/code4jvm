@@ -3,6 +3,8 @@ package fi.benjami.code4jvm.lua.test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
 
@@ -13,15 +15,13 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
 
 import fi.benjami.code4jvm.lua.parser.BinaryExpr;
 import fi.benjami.code4jvm.lua.parser.Expression;
+import fi.benjami.code4jvm.lua.parser.Expression.VarReference;
 import fi.benjami.code4jvm.lua.parser.LuaLexer;
 import fi.benjami.code4jvm.lua.parser.LuaNode;
 import fi.benjami.code4jvm.lua.parser.LuaToken;
 import fi.benjami.code4jvm.lua.parser.LuaTokenTransformer;
 import fi.benjami.code4jvm.lua.parser.SpecialNodes;
 import fi.benjami.code4jvm.lua.parser.Statement;
-import fi.benjami.code4jvm.lua.parser.Expression.SimpleConstant;
-import fi.benjami.code4jvm.lua.parser.Expression.TableConstructor;
-import fi.benjami.code4jvm.lua.parser.Expression.VarReference;
 import fi.benjami.parserkit.lexer.Lexer;
 import fi.benjami.parserkit.lexer.TokenTransformer;
 import fi.benjami.parserkit.lexer.TokenizedText;
@@ -51,7 +51,7 @@ public class ParserTest {
 	public void init() throws IllegalArgumentException, IllegalAccessException, NoSuchFieldException, SecurityException, IOException {
 //		DebugOptions.PRINT_METHODS = true;
 		parser = Parser.compileAndLoad(LuaNode.REGISTRY, LuaToken.values());
-//		Files.write(Path.of("Debug.class"), Parser.compile("foo", LuaNode.REGISTRY, LuaToken.values()));
+		Files.write(Path.of("Debug.class"), Parser.compile("foo", LuaNode.REGISTRY, LuaToken.values()));
 		System.out.println(Parser.compile("foo", LuaNode.REGISTRY, LuaToken.values()).length / 1024);
 //		parser.getClass().getField("HOOK").set(null, new TestParserHook());
 	}
@@ -253,5 +253,69 @@ public class ParserTest {
 						new Expression.SimpleConstant(3d))
 				)),
 				parse(Expression.TableConstructor.class, "{a = 1, ['b'] = 2, [f('c')] = 3}"));
+	}
+	
+	@Test
+	public void ifBlock() {
+		assertEquals(new Statement.IfBlock(
+				new VarReference(List.of("a"), null),
+				new SpecialNodes.Block(List.of(
+						new Statement.Return(List.of(new VarReference(List.of("b"), null)))
+						)),
+				List.of(),
+				null
+				),
+				parse(Statement.IfBlock.class, "if a then return b end"));
+		assertEquals(new Statement.IfBlock(
+				new VarReference(List.of("a"), null),
+				new SpecialNodes.Block(List.of(
+						new Statement.Return(List.of(new VarReference(List.of("b"), null)))
+						)),
+				List.of(),
+				new SpecialNodes.Block(List.of(
+						new Statement.Return(List.of(new VarReference(List.of("c"), null)))
+						))
+				),
+				parse(Statement.IfBlock.class, "if a then return b else return c end"));
+		assertEquals(new Statement.IfBlock(
+				new VarReference(List.of("a"), null),
+				new SpecialNodes.Block(List.of(
+						new Statement.Return(List.of(new VarReference(List.of("b"), null)))
+						)),
+				List.of(new Statement.ElseIfClause(
+						new VarReference(List.of("c"), null),
+						new SpecialNodes.Block(List.of(
+								new Statement.Return(List.of(new VarReference(List.of("d"), null)))
+								))
+						)),
+				new SpecialNodes.Block(List.of(
+						new Statement.Return(List.of(new VarReference(List.of("e"), null)))
+						))
+				),
+				parse(Statement.IfBlock.class, "if a then return b elseif c then return d else return e end"));
+		assertEquals(new Statement.IfBlock(
+				new BinaryExpr.Equal(new VarReference(List.of("a"), null), new Expression.SimpleConstant(3d)),
+				new SpecialNodes.Block(List.of(
+						new Statement.Return(List.of(new VarReference(List.of("b"), null)))
+						)),
+				List.of(new Statement.ElseIfClause(
+						new BinaryExpr.NotEqual(new Expression.SimpleConstant(5d), new VarReference(List.of("c"), null)),
+						new SpecialNodes.Block(List.of(
+								new Statement.Return(List.of(new VarReference(List.of("d"), null)))
+								))
+						)),
+				new SpecialNodes.Block(List.of(
+						new Statement.Return(List.of(new VarReference(List.of("e"), null)))
+						))
+				),
+				parse(Statement.IfBlock.class, "if a == 3 then return b elseif 5 ~= c then return d else return e end"));
+	}
+	
+	@Test
+	public void logicalExpressions() {
+		assertEquals(new SpecialNodes.Block(List.of(new Statement.Return(List.of(new BinaryExpr.LogicalAnd(
+				new BinaryExpr.Equal(new VarReference(List.of("a"), null), new VarReference(List.of("b"), null)),
+				new BinaryExpr.Equal(new VarReference(List.of("b"), null), new VarReference(List.of("c"), null))
+				))))), parse(SpecialNodes.Block.class, "return a == b and b == c"));
 	}
 }

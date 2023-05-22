@@ -19,7 +19,6 @@ public interface Expression extends LuaNode {
 	
 	// Nested expression parsing is allowed to fail!
 	public static VirtualNode EXPRESSIONS = VirtualNode.of(
-			FunctionCall.class,
 			// Expressions are in priority order (highest to lowest)
 			// To implement maximal munch rule, the order is generally
 			// 1. Binary expressions
@@ -33,21 +32,23 @@ public interface Expression extends LuaNode {
 			// Lowest precedence first
 			BinaryExpr.LogicalOr.class, // Precedence 11
 			BinaryExpr.LogicalAnd.class, // Precedence 10
+			BinaryExpr.Equal.class, BinaryExpr.NotEqual.class,
 			BinaryExpr.LessThan.class, BinaryExpr.LessOrEqual.class, // Precedence 9
 			BinaryExpr.MoreThan.class, BinaryExpr.MoreOrEqual.class,
-			BinaryExpr.Equal.class, BinaryExpr.NotEqual.class,
-			BinaryExpr.BitwiseOr.class, // Precedence 8
-			BinaryExpr.BitwiseXor.class, // Precedence 7
-			BinaryExpr.BitwiseAnd.class, // Precedence 6
-			BinaryExpr.BitShiftLeft.class, BinaryExpr.BitShiftRight.class, // Precedence 5
+			// TODO bitwise operations, not implemented and disabled to save stack
+//			BinaryExpr.BitwiseOr.class, // Precedence 8
+//			BinaryExpr.BitwiseXor.class, // Precedence 7
+//			BinaryExpr.BitwiseAnd.class, // Precedence 6
+//			BinaryExpr.BitShiftLeft.class, BinaryExpr.BitShiftRight.class, // Precedence 5
 			BinaryExpr.StringConcat.class, // Precedence 4
 			BinaryExpr.Add.class, BinaryExpr.Subtract.class, // Precedence 3
 			BinaryExpr.Multiply.class, BinaryExpr.Divide.class, BinaryExpr.FloorDivide.class, BinaryExpr.Modulo.class, // Precedence 2
 			// Unary expressions have higher precedence than binary expressions (1)
 			UnaryExpr.LogicalNot.class, UnaryExpr.ArrayLength.class,
-			UnaryExpr.Negate.class, UnaryExpr.BitwiseNot.class,			
+//			UnaryExpr.Negate.class, UnaryExpr.BitwiseNot.class,			
 			BinaryExpr.Power.class, // Exponentiation (precedence 0)
 			
+			FunctionCall.class, // FIXME IMPORTANT: due to caching wonkiness, this MUST be after binary expressions
 			SimpleConstant.class, StringConstant.class,
 			VarArgs.class, FunctionDefinition.class, // Generic expressions
 			VarReference.class, Group.class, // Prefix expressions

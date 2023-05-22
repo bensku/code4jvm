@@ -19,13 +19,17 @@ public record ReturnStmt(
 	@Override
 	public Value emit(LuaContext ctx, Block block) {
 		if (values.isEmpty()) {
-			block.add(Return.nothing());
+			if (ctx.returnType().equals(LuaType.NIL)) {				
+				block.add(Return.nothing());
+			} else {
+				block.add(Return.value(Constant.nullValue(ctx.returnType().backingType())));
+			}
 		} else if (values.size() == 1) {
 			var value = values.get(0);
 			if (value.outputType(ctx).equals(LuaType.NIL)) {
 				block.add(Return.nothing());
-			} else {				
-				block.add(Return.value(values.get(0).emit(ctx, block)));
+			} else {
+				block.add(Return.value(value.emit(ctx, block).cast(ctx.returnType().backingType())));
 			}
 		} else {
 			// TODO specialized tuples

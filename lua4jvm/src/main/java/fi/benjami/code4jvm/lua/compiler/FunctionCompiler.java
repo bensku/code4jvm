@@ -93,9 +93,6 @@ public class FunctionCompiler {
 	
 	private static byte[] generateCode(LuaContext ctx, LuaType.Function type,
 			LuaType[] argTypes, LuaType[] upvalueTypes) {
-		// Compute types of local variables and the return type
-		var returnType = type.body().outputType(ctx);
-		
 		// Create class that wraps the method acting as function body
 		// TODO store name in function if available?
 		var def = ClassDef.create("fi.benjami.code4jvm.lua.compiler.CompiledFunction", Access.PUBLIC);
@@ -120,7 +117,8 @@ public class FunctionCompiler {
 		constructor.add(Return.nothing());
 		
 		// Generate method contents
-		var jvmReturnType = returnType.equals(LuaType.NIL) ? Type.VOID : returnType.backingType();
+		var jvmReturnType = ctx.returnType().equals(LuaType.NIL)
+				? Type.VOID : ctx.returnType().backingType();
 		var method = def.addMethod(jvmReturnType, "call", Access.PUBLIC);
 		
 		// Add the LuaFunction ('self') argument

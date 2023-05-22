@@ -25,7 +25,7 @@ public record LuaBlock(
 			node.outputType(ctx);
 		}
 		
-		return ctx.returnType();
+		return LuaType.NIL;
 	}
 	
 	@Override

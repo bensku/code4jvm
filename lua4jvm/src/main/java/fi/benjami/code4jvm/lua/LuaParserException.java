@@ -15,6 +15,12 @@ public class LuaParserException extends RuntimeException {
 		this.errors = errors;
 	}
 	
+	// TODO temp constructor
+	public LuaParserException(String error) {
+		super(error);
+		this.errors = Set.of();
+	}
+	
 	public Set<ParseError> errors() {
 		return errors;
 	}
