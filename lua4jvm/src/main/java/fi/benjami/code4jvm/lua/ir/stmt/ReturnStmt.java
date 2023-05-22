@@ -21,7 +21,12 @@ public record ReturnStmt(
 		if (values.isEmpty()) {
 			block.add(Return.nothing());
 		} else if (values.size() == 1) {
-			block.add(Return.value(values.get(0).emit(ctx, block)));
+			var value = values.get(0);
+			if (value.outputType(ctx).equals(LuaType.NIL)) {
+				block.add(Return.nothing());
+			} else {				
+				block.add(Return.value(values.get(0).emit(ctx, block)));
+			}
 		} else {
 			// TODO specialized tuples
 			var tuple = block.add(Type.OBJECT.array(1).newInstance(Constant.of(values.size())));
@@ -44,5 +49,10 @@ public record ReturnStmt(
 					.toArray(LuaType[]::new));
 		}
 		return LuaType.NIL;
+	}
+	
+	@Override
+	public boolean hasReturn() {
+		return true;
 	}
 }

@@ -28,4 +28,15 @@ public record LuaBlock(
 		return ctx.returnType();
 	}
 	
+	@Override
+	public boolean hasReturn() {
+		// The return might be inside a sub-block
+		for (var node : nodes) {
+			if (node.hasReturn()) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
 }

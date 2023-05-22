@@ -10,6 +10,7 @@ import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.Value;
 import fi.benjami.code4jvm.lua.compiler.CompiledFunction;
 import fi.benjami.code4jvm.lua.compiler.LuaContext;
+import fi.benjami.code4jvm.lua.ir.stmt.ReturnStmt;
 import fi.benjami.code4jvm.lua.runtime.LuaFunction;
 import fi.benjami.code4jvm.lua.runtime.LuaTable;
 
@@ -170,6 +171,12 @@ public interface LuaType {
 	}
 	
 	public static Function function(List<UpvalueTemplate> upvalues, List<LuaLocalVar> args, LuaBlock body) {
+		if (!body.hasReturn()) {
+			// If the function doesn't always return, insert return nil at end
+			var nodes = new ArrayList<>(body.nodes());
+			nodes.add(new ReturnStmt(List.of()));
+			body = new LuaBlock(nodes);
+		}
 		return new Function(upvalues, args, body);
 	}
 	

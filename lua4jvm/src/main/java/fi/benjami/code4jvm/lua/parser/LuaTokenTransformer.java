@@ -31,8 +31,8 @@ public class LuaTokenTransformer implements TokenTransformer {
 			case "or" -> LuaToken.LOGICAL_OR.convert(input);
 			case "not" -> LuaToken.LOGICAL_NOT.convert(input);
 			case "nil" -> LuaToken.LITERAL_NIL.convert(input);
-			case "false" -> LuaToken.LITERAL_FALSE.convert(input);
-			case "true" -> LuaToken.LITERAL_TRUE.convert(input);
+			case "false" -> LuaToken.LITERAL_FALSE.convert(input, false);
+			case "true" -> LuaToken.LITERAL_TRUE.convert(input, true);
 			default -> input;
 			};
 		} else {

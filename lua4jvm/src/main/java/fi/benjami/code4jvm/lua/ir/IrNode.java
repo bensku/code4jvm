@@ -9,4 +9,8 @@ public interface IrNode {
 	Value emit(LuaContext ctx, Block block);
 	
 	LuaType outputType(LuaContext ctx);
+	
+	default boolean hasReturn() {
+		return false;
+	}
 }

@@ -1,5 +1,7 @@
 package fi.benjami.code4jvm.lua.ir.expr;
 
+import fi.benjami.code4jvm.Constant;
+import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.Value;
 import fi.benjami.code4jvm.block.Block;
 import fi.benjami.code4jvm.lua.compiler.LuaContext;
@@ -21,8 +23,17 @@ public record LuaConstant(
 	
 	@Override
 	public Value emit(LuaContext ctx, Block block) {
-		// TODO use non-dynamic constants when possible
-		return ctx.addClassData(value);
+		if (value == null) {
+			return Constant.nullValue(Type.OBJECT);
+		} else if (value instanceof Boolean bool) {
+			return Constant.of(bool);
+		} else if (value instanceof Double num) {
+			return Constant.of(num);
+		} else if (value instanceof String str) {
+			return Constant.of(str);
+		} else {
+			return ctx.addClassData(value);			
+		}
 	}
 
 	@Override
