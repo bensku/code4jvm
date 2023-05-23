@@ -1,9 +1,12 @@
 package fi.benjami.code4jvm.lua.parser;
 
+import java.util.List;
+
 import fi.benjami.code4jvm.lua.ir.IrNode;
 import fi.benjami.code4jvm.lua.ir.expr.ArithmeticExpr;
 import fi.benjami.code4jvm.lua.ir.expr.CompareExpr;
 import fi.benjami.code4jvm.lua.ir.expr.LogicalExpr;
+import fi.benjami.code4jvm.lua.ir.expr.StringConcatExpr;
 import fi.benjami.code4jvm.lua.semantic.LuaScope;
 import fi.benjami.parserkit.parser.Input;
 import fi.benjami.parserkit.parser.ast.ChildNode;
@@ -149,7 +152,8 @@ public interface BinaryExpr extends Expression {
 		
 		@Override
 		public IrNode toIr(LuaScope scope) {
-			throw new UnsupportedOperationException();
+			// TODO flatten multiple concatenations into single one to improve performance
+			return new StringConcatExpr(List.of(lhs.toIr(scope), rhs.toIr(scope)));
 		}
 	}
 	

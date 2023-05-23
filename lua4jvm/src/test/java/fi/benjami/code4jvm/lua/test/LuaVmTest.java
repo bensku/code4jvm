@@ -180,6 +180,18 @@ public class LuaVmTest {
 		assertEquals("a", func4.call(1d, 1d, 1d, 1d));
 		assertEquals("b", func4.call("", 1d, 2d, 3d));
 		assertEquals("a", func4.call("foo", "bar", "bar", "bar"));
+		
+		var func5 = (LuaFunction) vm.execute("""
+				return function (a)
+					if a ~= nil then
+						return "a"
+					else
+						return "b"
+					end
+				end
+				""");
+		assertEquals("a", func5.call(new Object()));
+		assertEquals("b", func5.call(new Object[] {null}));
 	}
 	
 	@Test
@@ -218,5 +230,15 @@ public class LuaVmTest {
 		assertEquals("number", vm.execute("""
 				return type(10.5)
 				"""));
+	}
+	
+	@Test
+	public void stringConcat() throws Throwable {
+		var func = (LuaFunction) vm.execute("""
+				return function (a, b)
+					return a..b
+				end
+				""");
+		assertEquals("foobar", func.call("foo", "bar"));
 	}
 }
