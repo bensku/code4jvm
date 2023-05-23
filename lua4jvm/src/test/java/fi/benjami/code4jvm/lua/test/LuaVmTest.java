@@ -86,10 +86,10 @@ public class LuaVmTest {
 		
 		var tableSetter = (LuaFunction) vm.execute("""
 				return function (tbl, key, value)
-				tbl.foo = {}
-				tbl.foo.bar = {}
-				tbl.foo.bar[1] = "baz"
-				tbl[key] = value
+					tbl.foo = {}
+					tbl.foo.bar = {}
+					tbl.foo.bar[1] = "baz"
+					tbl[key] = value
 				return tbl
 			end
 			""");
@@ -240,5 +240,12 @@ public class LuaVmTest {
 				end
 				""");
 		assertEquals("foobar", func.call("foo", "bar"));
+		
+		var func2 = (LuaFunction) vm.execute("""
+				return function (a, b)
+					return a..b.."baz"
+				end
+				""");
+		assertEquals("foobarbaz", func2.call("foo", "bar"));
 	}
 }

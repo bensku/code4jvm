@@ -24,6 +24,7 @@ public class LuaLexer implements Lexer {
 		// and identifiers/literals are parsed separately
 		var ch = input.getCodepoint(0);
 		var pos = input.pos();
+		var advance = true;
 		var token = switch (ch) {
 		case '(' -> LuaToken.GROUP_BEGIN.read(pos, "(");
 		case ')' -> LuaToken.GROUP_END.read(pos, ")");
@@ -54,9 +55,11 @@ public class LuaLexer implements Lexer {
 				for (var i = 2; i < input.codepointsLeft(); i++) {
 					if (input.getCodepoint(i) == '\n') {
 						input.advance(i);
+						advance = false;
 						yield getToken(input);
 					}
 				}
+				advance = false;
 				yield null; // Reached program end while reading comment
 			}
 			default -> LuaToken.SUBTRACT_OR_NEGATE.read(pos, "-");
@@ -100,7 +103,7 @@ public class LuaLexer implements Lexer {
 			}
 		}
 		};
-		if (token != null) {			
+		if (advance) {			
 			input.advance(token.length());
 		}
 		
@@ -111,6 +114,7 @@ public class LuaLexer implements Lexer {
 		var str = new StringBuilder();
 		
 		var escape = false;
+		var len = -1;
 		for (var i = 1; i < input.codepointsLeft(); i++) {
 			var c = input.getCodepoint(i);
 			
@@ -149,16 +153,18 @@ public class LuaLexer implements Lexer {
 				// Invalid, unescaped line break
 				// End string, but produce an error token immediately after it
 				input.setError(1); // TODO real error id
+				len = i;
 				break;
 			} else if (c == startChar) {
 				// Valid string end
+				len = i + 1;
 				break;
 			} else {
 				str.appendCodePoint(c);
 			}
 		}
 		
-		return LuaToken.STRING_LITERAL.read(input.pos(), str.toString(), str.length() + 2);
+		return LuaToken.STRING_LITERAL.read(input.pos(), str.toString(), len);
 	}
 	
 	private Token parseNumber(LexerInput input) {

@@ -47,7 +47,7 @@ public class LuaContext {
 	
 	public LuaType variableType(LuaVariable variable) {
 		if (variable instanceof LuaLocalVar) {			
-			assert typeTable.containsKey(variable);
+			assert typeTable.containsKey(variable) : variable;
 			return typeTable.get(variable);
 		} else {
 			// TODO non-local variable optimization

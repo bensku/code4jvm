@@ -36,10 +36,10 @@ public record CompareExpr(
 		var lhsValue = lhs.emit(ctx, block);
 		var rhsValue = rhs.emit(ctx, block);
 		if (kind == Kind.EQUAL || kind == Kind.NOT_EQUAL) {
-			if (!lhsValue.type().equals(rhsValue.type())) {
+//			if (!lhsValue.type().equals(rhsValue.type())) {
 				lhsValue = lhsValue.cast(Type.OBJECT);
 				rhsValue = rhsValue.cast(Type.OBJECT);
-			}
+//			}
 		} else {
 			// TODO unnecessary casts AND incompatibility with metatables
 			lhsValue = lhsValue.cast(Type.DOUBLE);

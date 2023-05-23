@@ -3,8 +3,6 @@ package fi.benjami.code4jvm.lua.test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
 
@@ -51,7 +49,7 @@ public class ParserTest {
 	public void init() throws IllegalArgumentException, IllegalAccessException, NoSuchFieldException, SecurityException, IOException {
 //		DebugOptions.PRINT_METHODS = true;
 		parser = Parser.compileAndLoad(LuaNode.REGISTRY, LuaToken.values());
-		Files.write(Path.of("Debug.class"), Parser.compile("foo", LuaNode.REGISTRY, LuaToken.values()));
+//		Files.write(Path.of("Debug.class"), Parser.compile("foo", LuaNode.REGISTRY, LuaToken.values()));
 		System.out.println(Parser.compile("foo", LuaNode.REGISTRY, LuaToken.values()).length / 1024);
 //		parser.getClass().getField("HOOK").set(null, new TestParserHook());
 	}

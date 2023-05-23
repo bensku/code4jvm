@@ -60,6 +60,7 @@ public class Jump implements Statement {
 		if (isConditional) {
 			var type = condition.values()[0].type();
 			var isObject = type.isObject();
+			var isBoolean = type.equals(Type.BOOLEAN);
 			var intLike = TypeUtils.isIntLike(type);
 			block.add(Bytecode.run(Type.VOID, condition.values(), ctx -> {
 				var mv = ctx.asm();
@@ -75,7 +76,7 @@ public class Jump implements Statement {
 					if (isObject) {
 						objectsEquals(mv);
 						mv.visitJumpInsn(IFNE, label);
-					} else if (intLike) {
+					} else if (intLike || isBoolean) {
 						mv.visitJumpInsn(IF_ICMPEQ, label);
 					} else {
 						mv.visitInsn(primitiveCompare(type, true));
@@ -86,7 +87,7 @@ public class Jump implements Statement {
 					if (isObject) {
 						objectsEquals(mv);
 						mv.visitJumpInsn(IFEQ, label);
-					} else if (intLike) {
+					} else if (intLike || isBoolean) {
 						mv.visitJumpInsn(IF_ICMPNE, label);
 					} else {
 						mv.visitInsn(primitiveCompare(type, true));
@@ -169,7 +170,7 @@ public class Jump implements Statement {
 		} else if (type.equals(Type.DOUBLE)) {
 			return negativeNan ? DCMPL : DCMPG;
 		}
-		throw new AssertionError();
+		throw new AssertionError(type);
 	}
 	
 	private static final String EQUALS_DESCRIPTOR = TypeUtils.methodDescriptor(Type.BOOLEAN, Type.OBJECT, Type.OBJECT);

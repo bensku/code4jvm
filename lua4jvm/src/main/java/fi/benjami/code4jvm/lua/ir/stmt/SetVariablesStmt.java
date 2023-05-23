@@ -44,7 +44,6 @@ public record SetVariablesStmt(
 	public SetVariablesStmt {
 		assert targets.size() >= 1;
 		assert !spread || sources.size() == 1;
-		assert sources.size() >= 1;
 	}
 
 	@Override
@@ -148,7 +147,7 @@ public record SetVariablesStmt(
 			}
 			
 			// Set targets without sources to null/nil
-			for (var i = sources.size() - 1; i < targets.size(); i++) {
+			for (var i = Math.max(sources.size() - 1, 0); i < targets.size(); i++) {
 				setVariable(ctx, targets.get(i), Constant.nullValue(Type.OBJECT));
 			}
 		}
@@ -162,8 +161,8 @@ public record SetVariablesStmt(
 				block.add(jvmVar.set(value.cast(jvmVar.type())));
 			} else if (variable instanceof TableField tableField) {
 				var table = tableField.table().emit(ctx, block).cast(LuaTable.TYPE);
-				var field = tableField.field().emit(ctx, block);
-				block.add(table.callVirtual(Type.VOID, "set", field.cast(Type.OBJECT), value.cast(Type.OBJECT)));
+				var field = tableField.field().emit(ctx, block).cast(Type.OBJECT);
+				block.add(table.callVirtual(Type.VOID, "set", field, value.cast(Type.OBJECT)));
 			} else {				
 				throw new AssertionError();
 			}
@@ -205,7 +204,12 @@ public record SetVariablesStmt(
 					type = tuple.types()[0]; // Take first result, ignore rest
 				}
 				ctx.recordType(targets.get(i), type);
-			}			
+			}
+			
+			for (var i = sources.size(); i < targets.size(); i++) {
+				ctx.recordType(targets.get(i), LuaType.NIL);
+			}
+			
 		}
 		return LuaType.NIL;
 	}

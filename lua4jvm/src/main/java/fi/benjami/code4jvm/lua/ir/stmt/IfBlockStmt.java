@@ -3,6 +3,7 @@ package fi.benjami.code4jvm.lua.ir.stmt;
 import java.util.List;
 
 import fi.benjami.code4jvm.Condition;
+import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.Value;
 import fi.benjami.code4jvm.block.Block;
 import fi.benjami.code4jvm.lua.compiler.LuaContext;
@@ -24,7 +25,7 @@ public record IfBlockStmt(
 		for (var branch : branches) {
 			// TODO optimize to use all available conditions either here or in code4jvm
 			ifBlock.branch(inner -> {
-				var value = branch.condition.emit(ctx, inner);
+				var value = branch.condition.emit(ctx, inner).cast(Type.BOOLEAN);
 				return Condition.isTrue(value);
 			}, inner -> {
 				branch.body.emit(ctx, inner);

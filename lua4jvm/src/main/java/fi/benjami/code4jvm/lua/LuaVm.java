@@ -40,6 +40,11 @@ public class LuaVm {
 		globals.set("type", LuaStdLib.TYPE);
 		globals.set("tonumber", LuaStdLib.TO_NUMBER);
 		
+		var ourLib = new LuaTable(0);
+		ourLib.set("read", LuaStdLib.READ);
+		ourLib.set("write", LuaStdLib.WRITE);
+		globals.set("code4jvm", ourLib);
+		
 		return globals;
 	}
 	
