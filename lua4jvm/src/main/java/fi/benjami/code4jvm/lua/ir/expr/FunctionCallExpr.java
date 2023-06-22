@@ -10,7 +10,7 @@ import fi.benjami.code4jvm.call.CallTarget;
 import fi.benjami.code4jvm.lua.compiler.LuaContext;
 import fi.benjami.code4jvm.lua.ir.IrNode;
 import fi.benjami.code4jvm.lua.ir.LuaType;
-import fi.benjami.code4jvm.lua.runtime.CallResolver;
+import fi.benjami.code4jvm.lua.runtime.LuaLinker;
 
 public record FunctionCallExpr(
 		IrNode function,
@@ -27,7 +27,7 @@ public record FunctionCallExpr(
 		var returnType = outputType(ctx);
 		
 		// TODO constant bootstrap is broken due to upvalues
-		var bootstrap = CallResolver.BOOTSTRAP_DYNAMIC;
+		var bootstrap = LuaLinker.BOOTSTRAP_DYNAMIC;
 		bootstrap = bootstrap.withCapturedArgs(ctx.addClassData(argTypes));
 		
 		// Evaluate arguments to values (function is first argument)

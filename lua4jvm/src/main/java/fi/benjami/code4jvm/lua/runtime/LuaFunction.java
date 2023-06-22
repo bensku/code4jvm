@@ -35,7 +35,7 @@ public record LuaFunction(
 		var types = Arrays.stream(args)
 				.map(LuaType::of)
 				.toArray(LuaType[]::new);
-		var handle = FunctionCompiler.callTarget(types, this);
+		var handle = FunctionCompiler.callTarget(types, this, true);
 		return handle.bindTo(this).invokeWithArguments(args);
 	}
 	

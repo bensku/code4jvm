@@ -16,7 +16,7 @@ import fi.benjami.code4jvm.flag.Access;
 import fi.benjami.code4jvm.flag.FieldFlag;
 import fi.benjami.code4jvm.flag.MethodFlag;
 import fi.benjami.code4jvm.lua.ir.LuaType;
-import fi.benjami.code4jvm.lua.runtime.CallResolver;
+import fi.benjami.code4jvm.lua.runtime.LuaLinker;
 import fi.benjami.code4jvm.lua.runtime.LuaFunction;
 import fi.benjami.code4jvm.statement.Return;
 import fi.benjami.code4jvm.typedef.ClassDef;
@@ -25,7 +25,7 @@ import fi.benjami.code4jvm.typedef.ClassDef;
  * Compiles specializations for {@link LuaFunction functions} and (in future)
  * other callables based on types of their upvalues and arguments.
  * 
- * @see CallResolver
+ * @see LuaLinker
  *
  */
 public class FunctionCompiler {
@@ -36,13 +36,20 @@ public class FunctionCompiler {
 	 * Fetches or compiles a specialization for given Lua function.
 	 * @param argTypes Argument types to use for compilation.
 	 * @param callable The Lua function object.
+	 * @param useUpvalueTypes Whether or not the upvalue types should be
+	 * considered known.
 	 * @return Method handle that may be called.
 	 */
-	public static MethodHandle callTarget(LuaType[] argTypes, LuaFunction function) {
+	public static MethodHandle callTarget(LuaType[] argTypes, LuaFunction function, boolean useUpvalueTypes) {
 		var upvalueTypes = function.upvalueTypes();
-		var cacheKey = new LuaType[argTypes.length + upvalueTypes.length];
-		System.arraycopy(upvalueTypes, 0, cacheKey, 0, upvalueTypes.length);
-		System.arraycopy(argTypes, 0, cacheKey, upvalueTypes.length, argTypes.length);
+		LuaType[] cacheKey;
+		if (useUpvalueTypes) {			
+			cacheKey = new LuaType[argTypes.length + upvalueTypes.length];
+			System.arraycopy(upvalueTypes, 0, cacheKey, 0, upvalueTypes.length);
+			System.arraycopy(argTypes, 0, cacheKey, upvalueTypes.length, argTypes.length);
+		} else {
+			cacheKey = argTypes.clone();
+		}
 		
 		// Compile and load the function code, or use something that is already cached
 		var compiledFunc = function.type().specializations().computeIfAbsent(LuaType.tuple(cacheKey), t -> {
