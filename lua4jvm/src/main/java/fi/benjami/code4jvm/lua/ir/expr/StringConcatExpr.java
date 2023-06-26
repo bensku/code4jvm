@@ -13,6 +13,10 @@ import fi.benjami.code4jvm.statement.StringConcat;
 public record StringConcatExpr(
 		List<IrNode> parts
 ) implements IrNode {
+	
+	public StringConcatExpr {
+		// TODO lower nested string concatenations to one operation
+	}
 
 	@Override
 	public Value emit(LuaContext ctx, Block block) {

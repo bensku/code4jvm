@@ -10,19 +10,12 @@ import java.util.function.Function;
 import org.junit.jupiter.api.Test;
 
 import fi.benjami.code4jvm.lua.LuaVm;
-import fi.benjami.code4jvm.lua.parser.LuaLexer;
-import fi.benjami.code4jvm.lua.parser.LuaNode;
-import fi.benjami.code4jvm.lua.parser.LuaToken;
-import fi.benjami.code4jvm.lua.parser.LuaTokenTransformer;
 import fi.benjami.code4jvm.lua.runtime.LuaFunction;
 import fi.benjami.code4jvm.lua.runtime.LuaTable;
-import fi.benjami.parserkit.parser.Parser;
 
 public class LuaVmTest {
 
-	// Create parser only once, it is relatively slow to compile
-	private static final Parser PARSER = Parser.compileAndLoad(LuaNode.REGISTRY, LuaToken.values());
-	private final LuaVm vm = new LuaVm(new LuaLexer(), new LuaTokenTransformer(), PARSER);
+	private final LuaVm vm = new LuaVm();
 	
 	@Test
 	public void emptyModule() throws Throwable {
@@ -90,7 +83,7 @@ public class LuaVmTest {
 					tbl.foo.bar = {}
 					tbl.foo.bar[1] = "baz"
 					tbl[key] = value
-				return tbl
+					return tbl
 			end
 			""");
 		var parent = (LuaTable) tableSetter.call(new LuaTable(0), "test", "ok");

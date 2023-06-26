@@ -27,7 +27,7 @@ public record SetVariablesStmt(
 		/**
 		 * Variables to set.
 		 */
-		List<LuaVariable> targets,
+		List<? extends LuaVariable> targets,
 		
 		/**
 		 * Expressions that produce the values for variables.

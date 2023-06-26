@@ -1,6 +1,7 @@
 plugins {
 	id 'com.github.johnrengelman.shadow' version '8.1.0'
 	id 'java'
+	id 'antlr'
 }
 
 repositories {
@@ -8,11 +9,11 @@ repositories {
 }
 
 dependencies {
-	implementation project(':parserkit')
 	implementation project(':')
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.9.1'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.9.1'
     implementation 'org.ow2.asm:asm-util:9.2' // TODO temporary, remove
+    antlr 'org.antlr:antlr4:4.13.0'
 }
 
 jar {
@@ -23,4 +24,8 @@ jar {
 
 tasks.named('test') {
     useJUnitPlatform()
+}
+
+generateGrammarSource {
+	arguments += ['-visitor', '-no-listener']
 }
