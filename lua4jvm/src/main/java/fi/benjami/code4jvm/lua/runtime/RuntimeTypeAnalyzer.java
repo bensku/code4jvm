@@ -41,11 +41,12 @@ class RuntimeTypeAnalyzer {
 	 */
 	public static MethodHandle bridgeCompiler(LuaCallSite meta, LuaFunction function) {
 		// Capture metadata and target function as arguments to specialization creator
-		// Accept arguments as varargs to check their types
-		var specialize = MethodHandles.insertArguments(SPECIALIZE, 0, meta, function)
+		// Accept arguments as array to check their types
+		var specialize = MethodHandles.insertArguments(SPECIALIZE, 0, meta, function);
+		// Collect arguments as array for specialization creator
+		// Unwrap them from array and invoke the specialized method
+		return MethodHandles.foldArguments(MethodHandles.spreadInvoker(meta.site.type(), 0), specialize)
 				.asVarargsCollector(Object[].class);
-		// Call the specialization creator, then call the method returned by 
-		return MethodHandles.foldArguments(MethodHandles.exactInvoker(meta.site.type()), specialize);
 	}
 	
 	@SuppressWarnings("unused") // MethodHandle
@@ -61,11 +62,12 @@ class RuntimeTypeAnalyzer {
 		var target = FunctionCompiler.callTarget(argTypes, function, meta.shouldCheckTarget());
 		
 		// Cast provided arguments to type of our specialization
-		// If this fails runtime (i.e. throws CCE), relink the call
+		// If this fails runtime (i.e. throws CCE), relink the call as usual
 		var castToTarget = MethodHandles.catchException(
 				MethodHandles.explicitCastArguments(target, meta.site.type()),
 				ClassCastException.class,
-				MethodHandles.dropArguments(meta.relink, 0, ClassCastException.class)
+				MethodHandles.dropArguments(MethodHandles.foldArguments(MethodHandles.exactInvoker(meta.site.type()), meta.relink),
+						0, ClassCastException.class)
 				);
 		// TODO detect when Java code called by Lua code throws CCE?
 		// Ideally, do it in exception handler since that is the cold path

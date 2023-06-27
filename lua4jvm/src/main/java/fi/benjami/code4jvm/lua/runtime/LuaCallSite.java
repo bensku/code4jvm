@@ -57,9 +57,9 @@ public class LuaCallSite {
 	public Object currentPrototype;
 	
 	/**
-	 * The current call target.
+	 * The current callable.
 	 */
-	public Object currentTarget;
+	public Object currentCallable;
 	
 	public boolean shouldUseRuntimeTypes() {
 		return hasUnknownTypes && typeChangeCount < 3; // TODO configurable

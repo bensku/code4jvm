@@ -9,6 +9,7 @@ import java.lang.invoke.MutableCallSite;
 import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.call.FixedCallTarget;
 import fi.benjami.code4jvm.lua.compiler.FunctionCompiler;
+import fi.benjami.code4jvm.lua.debug.LuaDebugOptions;
 import fi.benjami.code4jvm.lua.ir.LuaType;
 
 /**
@@ -97,12 +98,12 @@ public class LuaLinker {
 			target = MethodHandles.dropArguments(handle, 0, Object.class);
 		} else {
 			// TODO metatables
-			throw new UnsupportedOperationException(callable + " is not callable");			
+			throw new UnsupportedOperationException(callable.getClass().getName() + " '" + callable + "' is not callable");			
 		}
 		target = target.asType(site.type());
 		
 		// Set call site to target a new guarded handle, in case callable changes again
-		meta.currentTarget = target;
+		meta.currentCallable = callable;
 		site.setTarget(guardedHandle(meta, target));		
 		
 		// But this time, proceed directly to target
@@ -112,7 +113,7 @@ public class LuaLinker {
 	static MethodHandle guardedHandle(LuaCallSite meta, MethodHandle target) {
 		MethodHandle test;
 		if (meta.shouldCheckTarget()) {
-			test = TARGET_HAS_CHANGED.bindTo(meta.currentTarget);
+			test = TARGET_HAS_CHANGED.bindTo(meta.currentCallable);
 		} else {
 			test = PROTOTYPE_HAS_CHANGED.bindTo(meta.currentPrototype);
 		}
@@ -128,6 +129,10 @@ public class LuaLinker {
 			LuaType[] types) {
 		var site = new MutableCallSite(type);
 		var meta = new LuaCallSite(site, types);
+		if (LuaDebugOptions.linkerTrace != null) {
+			assert LuaDebugOptions.linkerTrace.metadata == null;
+			LuaDebugOptions.linkerTrace.metadata = meta;
+		}
 		var handle = MethodHandles.foldArguments(MethodHandles.exactInvoker(type), meta.relink);
 		site.setTarget(handle);
 		return site;

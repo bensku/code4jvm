@@ -12,6 +12,7 @@ import org.antlr.v4.runtime.tree.TerminalNode;
 
 import fi.benjami.code4jvm.lua.ir.IrNode;
 import fi.benjami.code4jvm.lua.ir.LuaBlock;
+import fi.benjami.code4jvm.lua.ir.LuaLocalVar;
 import fi.benjami.code4jvm.lua.ir.LuaVariable;
 import fi.benjami.code4jvm.lua.ir.TableField;
 import fi.benjami.code4jvm.lua.ir.expr.ArithmeticExpr;
@@ -236,7 +237,7 @@ public class IrCompiler extends LuaBaseVisitor<IrNode> {
 
 	@Override
 	public IrNode visitLocalFunction(LocalFunctionContext ctx) {
-		var function = visitFuncbody(ctx.funcbody());
+		var function = visitFuncbody(ctx.funcbody(), false);
 		return new SetVariablesStmt(List.of(currentScope().declare(ctx.Name().getText())), List.of(function), false);
 	}
 
@@ -437,10 +438,10 @@ public class IrCompiler extends LuaBaseVisitor<IrNode> {
 			irArgs.add(visitTableconstructor(ctx.args().tableconstructor()));
 		} else if (ctx.args().LiteralString() != null) { // No parentheses, string literal
 			irArgs.add(new LuaConstant((String) ctx.args().LiteralString().getText()));
-		} else { // Parentheses, 0 or more arguments
+		} else if (ctx.args().explist() != null) { // Parentheses, 1 or more arguments
 			irArgs.addAll(ctx.args().explist().exp().stream()
 					.map(this::visit).toList());
-		}
+		} // else: 0 arguments
 		return new FunctionCallExpr(function, irArgs);
 	}
 
@@ -468,10 +469,10 @@ public class IrCompiler extends LuaBaseVisitor<IrNode> {
 			irArgs.add(visitTableconstructor(ctx.args().tableconstructor()));
 		} else if (ctx.args().LiteralString() != null) { // No parentheses, string literal
 			irArgs.add(new LuaConstant((String) ctx.args().LiteralString().getText()));
-		} else { // Parentheses, 0 or more arguments
+		} else if (ctx.args().explist() != null) { // Parentheses, 1 or more arguments
 			irArgs.addAll(ctx.args().explist().exp().stream()
 					.map(this::visit).toList());
-		}
+		} // else: 0 arguments
 		return new FunctionCallExpr(function, irArgs);
 	}
 
@@ -488,15 +489,20 @@ public class IrCompiler extends LuaBaseVisitor<IrNode> {
 	public IrNode visitFuncbody(FuncbodyContext ctx, boolean addSelfArg) {
 		pushScope(new LuaScope(currentScope(), true));
 		var scope = currentScope();
-		var args = ctx.argList.names.Name().stream()
+		List<LuaLocalVar> args;
+		if (ctx.argList != null) {
+			args = ctx.argList.names.Name().stream()
 				.map(TerminalNode::getText)
 				.map(scope::declare)
 				.collect(Collectors.toCollection(ArrayList::new));
+			if (ctx.argList.rest != null) {
+				throw new UnsupportedOperationException(); // varargs
+			}
+		} else {
+			args = new ArrayList<>();
+		}
 		if (addSelfArg) {
 			throw new UnsupportedOperationException();
-		}
-		if (ctx.argList.rest != null) {
-			throw new UnsupportedOperationException(); // varargs
 		}
 		var body = visitBlock(ctx.block());	
 		popScope();
