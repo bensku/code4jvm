@@ -17,14 +17,14 @@ public record FunctionCallExpr(
 		List<IrNode> args
 ) implements IrNode {
 
+	private record CachedCall(LuaType[] argTypes, LuaType returnType) {}
+	
 	@Override
 	public Value emit(LuaContext ctx, Block block) {
-		// TODO try to cache these
-//		var funcType = function.outputType(ctx);
-		var argTypes = args.stream()
-				.map(node -> node.outputType(ctx))
-				.toArray(LuaType[]::new);
-		var returnType = outputType(ctx);
+		// Get expensive-to-compute types from cache
+		var cache = (CachedCall) ctx.getCache(this);
+		var argTypes = cache.argTypes();
+		var returnType = cache.returnType();
 		
 		// TODO constant bootstrap is broken due to upvalues
 		var bootstrap = LuaLinker.BOOTSTRAP_DYNAMIC;
@@ -48,15 +48,17 @@ public record FunctionCallExpr(
 	@Override
 	public LuaType outputType(LuaContext ctx) {
 		var type = function.outputType(ctx);
+		var argTypes = args.stream()
+				.map(node -> node.outputType(ctx))
+				.toArray(LuaType[]::new);
 		if (type instanceof LuaType.Function function) {
 			// Analyze types of arguments in this call
-			var argTypes = args.stream()
-					.map(node -> node.outputType(ctx))
-					.toArray(LuaType[]::new);
 			// Run type analysis for the entire function to figure out the return type
-			// TODO this is EXPENSIVE, results should be cached!
-			return function.newContext(argTypes).returnType();
+			var returnType = function.newContext(argTypes).returnType();
+			ctx.cached(this, new CachedCall(argTypes, returnType));
+			return returnType;
 		} else {
+			ctx.cached(this, new CachedCall(argTypes, LuaType.UNKNOWN));
 			return LuaType.UNKNOWN;
 		}
 	}

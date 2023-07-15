@@ -46,7 +46,7 @@ public record FunctionDeclExpr(
 			block.add(ArrayAccess.set(upvalueValues, Constant.of(i), value.cast(Type.OBJECT)));
 		}
 		
-		var type = outputType(ctx);
+		var type = (LuaType.Function) ctx.getCache(this);
 		return block.add(LuaFunction.TYPE.newInstance(ctx.addClassData(type), upvalueValues));
 	}
 
@@ -56,7 +56,7 @@ public record FunctionDeclExpr(
 		var upvalueTemplates = upvalues.stream()
 				.map(upvalue -> new UpvalueTemplate(upvalue.inside(), ctx.variableType(upvalue.outside())))
 				.toList();
-		return LuaType.function(upvalueTemplates, arguments, body);
+		return ctx.cached(this, LuaType.function(upvalueTemplates, arguments, body));
 	}
 
 }

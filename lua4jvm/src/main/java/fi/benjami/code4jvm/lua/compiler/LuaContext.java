@@ -8,12 +8,9 @@ import java.util.Map;
 import fi.benjami.code4jvm.Constant;
 import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.Variable;
-import fi.benjami.code4jvm.flag.Access;
-import fi.benjami.code4jvm.flag.FieldFlag;
 import fi.benjami.code4jvm.lua.ir.LuaLocalVar;
 import fi.benjami.code4jvm.lua.ir.LuaType;
 import fi.benjami.code4jvm.lua.ir.LuaVariable;
-import fi.benjami.code4jvm.typedef.ClassDef;
 
 public class LuaContext {
 	
@@ -21,12 +18,18 @@ public class LuaContext {
 	private final Map<LuaLocalVar, Variable> variables;
 	private final List<Object> classData;
 	
+	/**
+	 * Cache for IR nodes.
+	 */
+	private final Map<Object, Object> cache;
+	
 	private LuaType[] returnTypes;
 	
 	public LuaContext() {
 		this.typeTable = new IdentityHashMap<>();
 		this.variables = new IdentityHashMap<>();
 		this.classData = new ArrayList<>();
+		this.cache = new IdentityHashMap<>();
 	}
 	
 	public void recordType(LuaVariable variable, LuaType type) {
@@ -122,6 +125,15 @@ public class LuaContext {
 	
 	public Object allClassData() {
 		return classData;
+	}
+	
+	public <T> T cached(Object key, T value) {
+		cache.put(key, value);
+		return value;
+	}
+	
+	public Object getCache(Object key) {
+		return cache.get(key);
 	}
 
 }
