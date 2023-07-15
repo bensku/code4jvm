@@ -13,6 +13,7 @@ import fi.benjami.code4jvm.flag.Access;
 import fi.benjami.code4jvm.flag.FieldFlag;
 import fi.benjami.code4jvm.flag.MethodFlag;
 import fi.benjami.code4jvm.lua.ir.LuaType;
+import fi.benjami.code4jvm.lua.ir.UpvalueTemplate;
 import fi.benjami.code4jvm.lua.runtime.LuaFunction;
 import fi.benjami.code4jvm.lua.runtime.LuaLinker;
 import fi.benjami.code4jvm.statement.Return;
@@ -38,13 +39,18 @@ public class FunctionCompiler {
 	 * @return Method handle that may be called.
 	 */
 	public static MethodHandle callTarget(LuaType[] argTypes, LuaFunction function, boolean useUpvalueTypes) {
-		var upvalueTypes = function.upvalueTypes();
+		LuaType[] upvalueTypes;
 		LuaType[] cacheKey;
-		if (useUpvalueTypes) {			
+		if (useUpvalueTypes) {
+			upvalueTypes = function.upvalueTypes();;
 			cacheKey = new LuaType[argTypes.length + upvalueTypes.length];
 			System.arraycopy(upvalueTypes, 0, cacheKey, 0, upvalueTypes.length);
 			System.arraycopy(argTypes, 0, cacheKey, upvalueTypes.length, argTypes.length);
 		} else {
+			// If upvalue types are not allowed, do not use them in codegen
+			upvalueTypes = function.type().upvalues().stream()
+					.map(UpvalueTemplate::type)
+					.toArray(LuaType[]::new);
 			cacheKey = argTypes.clone();
 		}
 		
@@ -99,6 +105,7 @@ public class FunctionCompiler {
 		// Whoever loads the compiled class must set these (using e.g. reflection)
 		for (var i = 0; i < upvalueTypes.length; i++) {
 			var template = type.upvalues().get(i);
+			// If (and only if) types of upvalue templates are known, they must also match runtime types
 			assert template.type().equals(LuaType.UNKNOWN) || template.type().equals(upvalueTypes[i]);
 			def.addInstanceField(Access.PUBLIC, upvalueTypes[i].backingType(),
 					template.variable().name(), FieldFlag.SYNTHETIC);
