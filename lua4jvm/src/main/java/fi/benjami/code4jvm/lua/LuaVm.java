@@ -7,6 +7,7 @@ import org.antlr.v4.runtime.CommonTokenStream;
 
 import fi.benjami.code4jvm.lua.compiler.IrCompiler;
 import fi.benjami.code4jvm.lua.ir.LuaLocalVar;
+import fi.benjami.code4jvm.lua.ir.LuaModule;
 import fi.benjami.code4jvm.lua.ir.LuaType;
 import fi.benjami.code4jvm.lua.ir.UpvalueTemplate;
 import fi.benjami.code4jvm.lua.parser.LuaLexer;
@@ -46,7 +47,7 @@ public class LuaVm {
 		return globals;
 	}
 	
-	public Object execute(String chunk) throws Throwable {
+	public LuaModule compile(String chunk) {
 		// Tokenize and parse the chunk
 		var lexer = new LuaLexer(CharStreams.fromString(chunk));
 		var parser = new LuaParser(new CommonTokenStream(lexer));
@@ -55,15 +56,22 @@ public class LuaVm {
 		// Perform semantic analysis and compile to IR
 		var rootScope = LuaScope.chunkRoot();
 		var visitor = new IrCompiler(rootScope);
-		var rootNode = visitor.visitChunk(tree);
-		
+		return new LuaModule(visitor.visitChunk(tree), (LuaLocalVar) rootScope.resolve("_ENV"));
+	}
+	
+	public LuaFunction load(LuaModule module, LuaTable env) {
 		// Instantiate the module
 		var type = LuaType.function(
-				List.of(new UpvalueTemplate((LuaLocalVar) rootScope.resolve("_ENV"), LuaType.TABLE)),
+				List.of(new UpvalueTemplate(module.env(), LuaType.TABLE)),
 				List.of(),
-				rootNode
+				module.root()
 				);
-		var module = new LuaFunction(type, new Object[] {globals});
-		return module.call();
+		return new LuaFunction(type, new Object[] {env});
+	}
+	
+	public Object execute(String chunk) throws Throwable {
+		var module = compile(chunk);
+		var func = load(module, globals());
+		return func.call();
 	}
 }

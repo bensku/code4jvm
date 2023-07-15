@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.Value;
@@ -34,6 +35,11 @@ public interface LuaType {
 		@Override
 		public Type backingType() {
 			return backingType;
+		}
+		
+		@Override
+		public String toString() {
+			return "LuaType.Simple[" + name + "]";
 		}
 	}
 	
@@ -133,7 +139,35 @@ public interface LuaType {
 		public Type backingType() {
 			// TODO make sure this doesn't break function call specialization
 			return Type.of(Object.class);
+		}		
+		
+		@Override
+		public String toString() {
+			return "LuaType.Function[upvalues=" + upvalues + ", acceptedArgs=" + acceptedArgs + ", body=" + body + "]";
 		}
+
+		@Override
+		public int hashCode() {
+			return Objects.hash(acceptedArgs, body, specializations, upvalues);
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj) {
+				return true;
+			}
+			if (obj == null) {
+				return false;
+			}
+			if (getClass() != obj.getClass()) {
+				return false;
+			}
+			Function other = (Function) obj;
+			return Objects.equals(acceptedArgs, other.acceptedArgs) && Objects.equals(body, other.body)
+					&& Objects.equals(specializations, other.specializations)
+					&& Objects.equals(upvalues, other.upvalues);
+		}
+		
 	}
 	
 	// Lua standard types

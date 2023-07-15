@@ -1,11 +1,8 @@
 package fi.benjami.code4jvm.lua.compiler;
 
-import java.io.IOException;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.stream.Stream;
 
@@ -16,8 +13,8 @@ import fi.benjami.code4jvm.flag.Access;
 import fi.benjami.code4jvm.flag.FieldFlag;
 import fi.benjami.code4jvm.flag.MethodFlag;
 import fi.benjami.code4jvm.lua.ir.LuaType;
-import fi.benjami.code4jvm.lua.runtime.LuaLinker;
 import fi.benjami.code4jvm.lua.runtime.LuaFunction;
+import fi.benjami.code4jvm.lua.runtime.LuaLinker;
 import fi.benjami.code4jvm.statement.Return;
 import fi.benjami.code4jvm.typedef.ClassDef;
 

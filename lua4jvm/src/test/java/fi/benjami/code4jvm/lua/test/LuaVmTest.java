@@ -241,4 +241,29 @@ public class LuaVmTest {
 				""");
 		assertEquals("foobarbaz", func2.call("foo", "bar"));
 	}
+	
+	@Test
+	public void localFunction() throws Throwable {
+		var func = (LuaFunction) vm.execute("""
+				local function f(a, b)
+					return a + b
+				end
+				return f
+				""");
+		assertEquals(10d, func.call(4d, 6d));
+	}
+	
+	@Test
+	public void upvalueFunction() throws Throwable {
+		var func = (LuaFunction) vm.execute("""
+				local function f(a, b)
+					return a + b
+				end
+				local function g(a, b)
+					return f(a, b) + 3
+				end
+				return g
+				""");
+		assertEquals(13d, func.call(4d, 6d));
+	}
 }
