@@ -7,12 +7,22 @@ import fi.benjami.code4jvm.Type;
 
 public class LuaTable {
 	
+	public static LuaTable newTable(int initialSize) {
+		var table = new LuaTable();
+		table.initializeMap(initialSize);
+		return table;
+	}
+	
 	public static final Type TYPE = Type.of(LuaTable.class);
 
-	private final Map<Object, Object> map;
+	private Map<Object, Object> map;
 	
-	public LuaTable(int size) {
-		this.map = new HashMap<>(size);
+	protected LuaTable() {}
+	
+	protected void initializeMap(int size) {
+		if (map == null) {			
+			map = new HashMap<>(size);
+		}
 	}
 	
 	public Object get(Object key) {

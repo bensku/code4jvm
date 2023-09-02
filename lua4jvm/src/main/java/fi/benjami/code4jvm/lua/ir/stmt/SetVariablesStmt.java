@@ -14,6 +14,7 @@ import fi.benjami.code4jvm.lua.ir.LuaLocalVar;
 import fi.benjami.code4jvm.lua.ir.LuaType;
 import fi.benjami.code4jvm.lua.ir.LuaVariable;
 import fi.benjami.code4jvm.lua.ir.TableField;
+import fi.benjami.code4jvm.lua.ir.expr.LuaConstant;
 import fi.benjami.code4jvm.lua.runtime.LuaTable;
 import fi.benjami.code4jvm.statement.ArrayAccess;
 import fi.benjami.code4jvm.statement.Jump;
@@ -160,9 +161,19 @@ public record SetVariablesStmt(
 				var jvmVar = ctx.resolveLocalVar(localVar);
 				block.add(jvmVar.set(value.cast(jvmVar.type())));
 			} else if (variable instanceof TableField tableField) {
-				var table = tableField.table().emit(ctx, block).cast(LuaTable.TYPE);
-				var field = tableField.field().emit(ctx, block).cast(Type.OBJECT);
-				block.add(table.callVirtual(Type.VOID, "set", field, value.cast(Type.OBJECT)));
+				var tableType = tableField.table().outputType(ctx);
+				if (tableType instanceof LuaType.Shape shape
+						&& tableField.field() instanceof LuaConstant key
+						&& shape.knownEntries().containsKey(key.value())) {
+					// Fast path: constant key in a table with known shape
+					var table = tableField.table().emit(ctx, block);
+					block.add(table.putField("_" + key.value(), value));
+				} else {
+					// Just call the setter
+					var table = tableField.table().emit(ctx, block).cast(LuaTable.TYPE);
+					var field = tableField.field().emit(ctx, block).cast(Type.OBJECT);
+					block.add(table.callVirtual(Type.VOID, "set", field, value.cast(Type.OBJECT)));
+				}
 			} else {				
 				throw new AssertionError();
 			}

@@ -11,6 +11,8 @@ import fi.benjami.code4jvm.Variable;
 import fi.benjami.code4jvm.lua.ir.LuaLocalVar;
 import fi.benjami.code4jvm.lua.ir.LuaType;
 import fi.benjami.code4jvm.lua.ir.LuaVariable;
+import fi.benjami.code4jvm.lua.ir.TableField;
+import fi.benjami.code4jvm.lua.ir.expr.LuaConstant;
 
 public class LuaContext {
 	
@@ -40,6 +42,27 @@ public class LuaContext {
 			} else if (!oldType.equals(type)) {
 				typeTable.put(localVar, LuaType.UNKNOWN); // Mixed types
 			} // else: same type again, do nothing
+		} else if (variable instanceof TableField tableField) {
+			var tableType = tableField.table().outputType(this);
+			if (tableType instanceof LuaType.Shape shape) {
+				if (tableField.field() instanceof LuaConstant constant && constant.value() instanceof String str) {
+					// Key is known, add it to shape with given type
+					shape.amend(str, type);
+				} else {
+					// Key is not known until runtime, but we DO know the type!
+					shape.amendUnknownKey(type);
+				}
+			}
+		}
+		// TODO support non-local variable optimization
+	}
+	
+	public void amendType(LuaVariable variable, LuaType type) {
+		assert type instanceof LuaType.Shape;
+		if (variable instanceof LuaLocalVar localVar) {
+			assert typeTable.containsKey(variable) : variable;
+			assert typeTable.get(variable) instanceof LuaType.Shape;
+			typeTable.put(localVar, type);
 		}
 		// TODO support non-local variable optimization
 	}
@@ -54,6 +77,7 @@ public class LuaContext {
 			return typeTable.get(variable);
 		} else {
 			// TODO non-local variable optimization
+			// NOTE: don't just enable it for shapes, tables are mutable!
 			return LuaType.UNKNOWN;
 		}
 	}

@@ -25,7 +25,7 @@ public class LuaVm {
 	}
 	
 	private static LuaTable initGlobals() {
-		var globals = new LuaTable(0);
+		var globals = LuaTable.newTable(0);
 		
 		globals.set("_G", globals);
 		globals.set("_VERSION", "lua4jvm DEV (Lua 5.4)");
@@ -35,7 +35,7 @@ public class LuaVm {
 		globals.set("type", LuaStdLib.TYPE);
 		globals.set("tonumber", LuaStdLib.TO_NUMBER);
 		
-		var ourLib = new LuaTable(0);
+		var ourLib = LuaTable.newTable(0);
 		ourLib.set("read", LuaStdLib.READ);
 		ourLib.set("write", LuaStdLib.WRITE);
 		globals.set("code4jvm", ourLib);

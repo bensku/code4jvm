@@ -184,8 +184,8 @@ public class VariableTest {
 								false),
 						new SetVariablesStmt(
 								List.of(
-										new TableField(new VariableExpr(c), new LuaConstant(1, LuaType.NUMBER)),
-										new TableField(new VariableExpr(c), new LuaConstant(2, LuaType.NUMBER))
+										new TableField(new VariableExpr(c), new LuaConstant(1d, LuaType.NUMBER)),
+										new TableField(new VariableExpr(c), new LuaConstant(2d, LuaType.NUMBER))
 										),
 								List.of(new VariableExpr(a), new VariableExpr(b)),
 								false),
@@ -193,8 +193,8 @@ public class VariableTest {
 				)));
 		var func = new LuaFunction(type, new Object[0]);
 		var res = (LuaTable) func.call("foo", "bar");
-		assertEquals("foo", res.get(1));
-		assertEquals("bar", res.get(2));
+		assertEquals("foo", res.get(1d));
+		assertEquals("bar", res.get(2d));
 	}
 	
 	@Test
@@ -208,7 +208,7 @@ public class VariableTest {
 						))
 				)));
 		var func = new LuaFunction(type, new Object[0]);
-		var table = new LuaTable(0);
+		var table = LuaTable.newTable(0);
 		table.set("foo", "bar");
 		assertEquals("bar", func.call(table, "foo"));
 	}

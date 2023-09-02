@@ -24,9 +24,17 @@ public record VariableExpr(
 		if (source instanceof LuaLocalVar localVar) {
 			return ctx.resolveLocalVar(localVar);
 		} else if (source instanceof TableField tableField) {
-			var table = tableField.table().emit(ctx, block).cast(LuaTable.TYPE);
-			var field = tableField.field().emit(ctx, block);
-			return block.add(table.callVirtual(Type.OBJECT, "get", field.cast(Type.OBJECT)));
+			var tableType = tableField.table().outputType(ctx);
+			if (tableType instanceof LuaType.Shape shape
+					&& tableField.field() instanceof LuaConstant field
+					&& shape.knownEntries().containsKey(field.value())) {
+				var table = tableField.table().emit(ctx, block);
+				return block.add(table.getField(Type.OBJECT, "_" + field.value()));
+			} else {				
+				var table = tableField.table().emit(ctx, block).cast(LuaTable.TYPE);
+				var field = tableField.field().emit(ctx, block);
+				return block.add(table.callVirtual(Type.OBJECT, "get", field.cast(Type.OBJECT)));
+			}
 		}
 		throw new AssertionError();
 	}

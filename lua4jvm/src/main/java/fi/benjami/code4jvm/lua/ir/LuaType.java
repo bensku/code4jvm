@@ -6,11 +6,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.Value;
 import fi.benjami.code4jvm.lua.compiler.CompiledFunction;
 import fi.benjami.code4jvm.lua.compiler.LuaContext;
+import fi.benjami.code4jvm.lua.compiler.ShapeGenerator;
 import fi.benjami.code4jvm.lua.ir.stmt.ReturnStmt;
 import fi.benjami.code4jvm.lua.runtime.LuaFunction;
 import fi.benjami.code4jvm.lua.runtime.LuaTable;
@@ -137,8 +139,7 @@ public interface LuaType {
 
 		@Override
 		public Type backingType() {
-			// TODO make sure this doesn't break function call specialization
-			return Type.of(Object.class);
+			return Type.OBJECT;
 		}		
 		
 		@Override
@@ -170,6 +171,67 @@ public interface LuaType {
 		
 	}
 	
+	class Shape implements LuaType {
+
+		private final Map<String, LuaType> knownEntries;
+		private final Set<LuaType> knownTypes;
+		private boolean initializeMap;
+		
+		private Class<?> backingClass;
+				
+		private Shape(Map<String, LuaType> knownEntries, Set<LuaType> knownTypes, boolean initializeMap) {
+			this.knownEntries = knownEntries;
+			this.knownTypes = knownTypes;
+		}
+		
+		public Map<String, LuaType> knownEntries() {
+			return knownEntries;
+		}
+		
+		public Set<LuaType> knownTypes() {
+			return knownTypes;
+		}
+		
+		public boolean shouldInitializeMap() {
+			return initializeMap;
+		}
+		
+		public void amend(String key, LuaType type) {
+			assert backingClass == null; // Mutating already compiled shape is a BAD IDEA
+			var prevType = knownEntries.get(key);
+			if (prevType != null && !type.equals(prevType)) {
+				knownEntries.put(key, LuaType.UNKNOWN);
+			} else {
+				knownEntries.put(key, type);
+			}
+			knownTypes.add(type);
+		}
+		
+		public void amendUnknownKey(LuaType type) {
+			assert backingClass == null; // Mutating already compiled shape is a BAD IDEA
+			knownTypes.add(type);
+			initializeMap = true;
+		}
+		
+		public Class<?> backingClass() {
+			if (backingClass == null) {
+				backingClass = ShapeGenerator.newShape(this);
+			}
+			return backingClass;
+		}
+		
+		@Override
+		public String name() {
+			return "table";
+		}
+
+		@Override
+		public Type backingType() {
+			return Type.of(backingClass());
+		}
+		
+	}
+	
 	// Lua standard types
 	static final LuaType NIL = new Simple("nil", Type.OBJECT);
 	static final LuaType BOOLEAN = new Simple("boolean", Type.BOOLEAN);
@@ -177,7 +239,6 @@ public interface LuaType {
 	static final LuaType STRING = new Simple("string", Type.STRING);
 	static final LuaType TABLE = new Simple("table", LuaTable.TYPE);
 	// TODO userdata, thread
-	// TODO table specialization
 	
 	// code4jvm-specific types
 	static final LuaType UNKNOWN = new Simple("unknown", Type.OBJECT);
@@ -214,6 +275,10 @@ public interface LuaType {
 		return new Function(upvalues, args, body);
 	}
 	
+	public static Shape shape(Map<String, LuaType> knownEntries, Set<LuaType> knownTypes, boolean initializeMap) {
+		return new Shape(knownEntries, knownTypes, initializeMap);
+	}
+	
 	public static List<LuaType> readList(String str) {
 		var types = new ArrayList<LuaType>();
 		for (var i = 0; i < str.length(); i++) {
@@ -231,7 +296,19 @@ public interface LuaType {
 		return types;
 	}
 	
+	/**
+	 * Name of type for Lua code.
+	 * @return Lua type name.
+	 */
 	String name();
 	
+	/**
+	 * The JVM type that represents this type or is superclass of it.
+	 * Note that JVM types cannot (not easily, anyway) encode enough
+	 * information to operate on more complex types such as functions or
+	 * table shapes. As such, there is no way to turn JVM type back into
+	 * Lua type.
+	 * @return Backing JVM type.
+	 */
 	Type backingType();
 }
