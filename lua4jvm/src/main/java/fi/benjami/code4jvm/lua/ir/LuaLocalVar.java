@@ -7,4 +7,5 @@ public record LuaLocalVar(
 ) implements LuaVariable {
 	
 	public static final Type TYPE = Type.of(LuaLocalVar.class);
+
 }

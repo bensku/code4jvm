@@ -16,8 +16,22 @@ import fi.benjami.code4jvm.lua.ir.expr.LuaConstant;
 
 public class LuaContext {
 	
+	/**
+	 * Local variable type table. When variables are written to, their types
+	 * are recorded here.
+	 */
 	private final Map<LuaLocalVar, LuaType> typeTable;
+	
+	/**
+	 * Local variables mapped to code4jvm's variables.
+	 */
 	private final Map<LuaLocalVar, Variable> variables;
+	
+	/**
+	 * Data given to JVM when the function is loaded as a hidden class.
+	 * This is used for creating constants of arbitrary kind, which can then
+	 * be used at e.g. invokedynamic call sites.
+	 */
 	private final List<Object> classData;
 	
 	/**
@@ -50,21 +64,10 @@ public class LuaContext {
 					shape.amend(str, type);
 				} else {
 					// Key is not known until runtime, but we DO know the type!
-					shape.amendUnknownKey(type);
+					shape.amendUnknown(); // TODO use the type?
 				}
 			}
 		}
-		// TODO support non-local variable optimization
-	}
-	
-	public void amendType(LuaVariable variable, LuaType type) {
-		assert type instanceof LuaType.Shape;
-		if (variable instanceof LuaLocalVar localVar) {
-			assert typeTable.containsKey(variable) : variable;
-			assert typeTable.get(variable) instanceof LuaType.Shape;
-			typeTable.put(localVar, type);
-		}
-		// TODO support non-local variable optimization
 	}
 	
 	public void addFunctionArg(LuaLocalVar arg, Variable variable) {
@@ -72,12 +75,16 @@ public class LuaContext {
 	}
 	
 	public LuaType variableType(LuaVariable variable) {
-		if (variable instanceof LuaLocalVar) {			
+		if (variable instanceof LuaLocalVar) {
 			assert typeTable.containsKey(variable) : variable;
 			return typeTable.get(variable);
+		} else if (variable instanceof TableField tableField
+				&& tableField.table().outputType(this) instanceof LuaType.Shape shape
+				&& tableField.field() instanceof LuaConstant key
+				&& key.value() instanceof String str) {
+			// Known table shape and key -> we might know the type!
+			return shape.types().getType(str);
 		} else {
-			// TODO non-local variable optimization
-			// NOTE: don't just enable it for shapes, tables are mutable!
 			return LuaType.UNKNOWN;
 		}
 	}

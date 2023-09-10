@@ -11,8 +11,10 @@ import java.util.Set;
 import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.Value;
 import fi.benjami.code4jvm.lua.compiler.CompiledFunction;
+import fi.benjami.code4jvm.lua.compiler.CompiledShape;
 import fi.benjami.code4jvm.lua.compiler.LuaContext;
 import fi.benjami.code4jvm.lua.compiler.ShapeGenerator;
+import fi.benjami.code4jvm.lua.compiler.ShapeTypes;
 import fi.benjami.code4jvm.lua.ir.stmt.ReturnStmt;
 import fi.benjami.code4jvm.lua.runtime.LuaFunction;
 import fi.benjami.code4jvm.lua.runtime.LuaTable;
@@ -173,51 +175,30 @@ public interface LuaType {
 	
 	class Shape implements LuaType {
 
-		private final Map<String, LuaType> knownEntries;
-		private final Set<LuaType> knownTypes;
-		private boolean initializeMap;
-		
-		private Class<?> backingClass;
+		private final ShapeTypes types;
+		private final CompiledShape compiledForm;
 				
-		private Shape(Map<String, LuaType> knownEntries, Set<LuaType> knownTypes, boolean initializeMap) {
-			this.knownEntries = knownEntries;
-			this.knownTypes = knownTypes;
+		private Shape() {
+			this.types = new ShapeTypes();
+			this.compiledForm = new CompiledShape();
 		}
 		
-		public Map<String, LuaType> knownEntries() {
-			return knownEntries;
+		public ShapeTypes types() {
+			return types;
 		}
 		
-		public Set<LuaType> knownTypes() {
-			return knownTypes;
-		}
-		
-		public boolean shouldInitializeMap() {
-			return initializeMap;
+		public CompiledShape compiledForm() {
+			return compiledForm;
 		}
 		
 		public void amend(String key, LuaType type) {
-			assert backingClass == null; // Mutating already compiled shape is a BAD IDEA
-			var prevType = knownEntries.get(key);
-			if (prevType != null && !type.equals(prevType)) {
-				knownEntries.put(key, LuaType.UNKNOWN);
-			} else {
-				knownEntries.put(key, type);
-			}
-			knownTypes.add(type);
+			types.recordType(key, type);
+			compiledForm.addKnownKey(key);
 		}
 		
-		public void amendUnknownKey(LuaType type) {
-			assert backingClass == null; // Mutating already compiled shape is a BAD IDEA
-			knownTypes.add(type);
-			initializeMap = true;
-		}
-		
-		public Class<?> backingClass() {
-			if (backingClass == null) {
-				backingClass = ShapeGenerator.newShape(this);
-			}
-			return backingClass;
+		public void amendUnknown() {
+			types.unknownWrite();
+			compiledForm.addUnknownKey();
 		}
 		
 		@Override
@@ -227,7 +208,27 @@ public interface LuaType {
 
 		@Override
 		public Type backingType() {
-			return Type.of(backingClass());
+			return Type.of(compiledForm().backingClass());
+		}
+
+		@Override
+		public int hashCode() {
+			return Objects.hash(compiledForm, types);
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj) {
+				return true;
+			}
+			if (obj == null) {
+				return false;
+			}
+			if (getClass() != obj.getClass()) {
+				return false;
+			}
+			Shape other = (Shape) obj;
+			return Objects.equals(compiledForm, other.compiledForm) && Objects.equals(types, other.types);
 		}
 		
 	}
@@ -275,8 +276,8 @@ public interface LuaType {
 		return new Function(upvalues, args, body);
 	}
 	
-	public static Shape shape(Map<String, LuaType> knownEntries, Set<LuaType> knownTypes, boolean initializeMap) {
-		return new Shape(knownEntries, knownTypes, initializeMap);
+	public static Shape shape() {
+		return new Shape();
 	}
 	
 	public static List<LuaType> readList(String str) {

@@ -58,6 +58,13 @@ public record FunctionCallExpr(
 			ctx.cached(this, new CachedCall(argTypes, returnType));
 			return returnType;
 		} else {
+			// Types of tables/shapes are gone if they are passed to unknown function
+			// (the function could write to them or even modify the metatable!)
+			for (var argType : argTypes) {
+				if (argType instanceof LuaType.Shape shape) {
+					shape.types().escapedAnalysis();
+				}
+			}
 			ctx.cached(this, new CachedCall(argTypes, LuaType.UNKNOWN));
 			return LuaType.UNKNOWN;
 		}

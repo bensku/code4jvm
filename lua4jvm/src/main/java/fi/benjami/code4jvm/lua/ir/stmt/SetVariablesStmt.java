@@ -164,7 +164,7 @@ public record SetVariablesStmt(
 				var tableType = tableField.table().outputType(ctx);
 				if (tableType instanceof LuaType.Shape shape
 						&& tableField.field() instanceof LuaConstant key
-						&& shape.knownEntries().containsKey(key.value())) {
+						&& shape.compiledForm().includedKeys().contains(key.value())) {
 					// Fast path: constant key in a table with known shape
 					var table = tableField.table().emit(ctx, block);
 					block.add(table.putField("_" + key.value(), value));

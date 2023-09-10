@@ -1,7 +1,5 @@
 package fi.benjami.code4jvm.lua.ir.expr;
 
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 
 import fi.benjami.code4jvm.Type;
@@ -25,7 +23,7 @@ public record TableInitExpr(
 		var table = block.add(shapeType.newInstance());
 		for (var entry : entries) {
 			if (entry.key() instanceof LuaConstant field
-					&& type.knownEntries().containsKey(field.value())) {
+					&& type.compiledForm().includedKeys().contains(field.value())) {
 				// Fast path: constant key, directly set the field
 				var key = field.value();
 				var value = entry.value.emit(ctx, block).cast(Type.OBJECT);
@@ -46,21 +44,18 @@ public record TableInitExpr(
 		if (ctx.getCache(this) instanceof LuaType cached) {
 			return cached;
 		}
-		
-		var entryMap = new HashMap<String, LuaType>();
-		var knownTypes = new HashSet<LuaType>();
-		var initializeMap = false;
+		var shape = LuaType.shape();
 		for (var entry : entries) {
 			if (entry.key instanceof LuaConstant constant && constant.value() instanceof String str) {
 				// Known key, add it to shape
-				entryMap.put(str, entry.value.outputType(ctx));
+				shape.amend(str, entry.value.outputType(ctx));
 			} else {
-				initializeMap = true; // We know writing to the map will be needed
+				shape.amendUnknown();
 			}
 			// Record type even if key is not constant
-			knownTypes.add(entry.value.outputType(ctx));
+			// TODO we don't currently need this information
 		}
 		// NOTE: caching the shape is crucial so that we can use amendments made to it in emit phase!
-		return ctx.cached(this, LuaType.shape(entryMap, knownTypes, initializeMap));
+		return ctx.cached(this, shape);
 	}
 }

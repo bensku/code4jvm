@@ -6,7 +6,6 @@ import fi.benjami.code4jvm.Condition;
 import fi.benjami.code4jvm.Constant;
 import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.flag.Access;
-import fi.benjami.code4jvm.lua.ir.LuaType;
 import fi.benjami.code4jvm.lua.runtime.LuaTable;
 import fi.benjami.code4jvm.statement.Return;
 import fi.benjami.code4jvm.structure.IfBlock;
@@ -16,7 +15,7 @@ public class ShapeGenerator {
 	
 	private static final MethodHandles.Lookup LOOKUP = MethodHandles.lookup();
 	
-	public static Class<?> newShape(LuaType.Shape type) {
+	public static Class<?> compile(CompiledShape type) {
 		var code = generateCode(type);
 		
 		// FIXME this probably leaks memory
@@ -35,8 +34,8 @@ public class ShapeGenerator {
 //		}
 	}
 	
-	private static byte[] generateCode(LuaType.Shape shape) {
-		var entries = shape.knownEntries();
+	private static byte[] generateCode(CompiledShape shape) {
+		var keys = shape.includedKeys();
 		
 		var def = ClassDef.create("fi.benjami.code4jvm.lua.compiler.Shape" + System.identityHashCode(shape), Access.PUBLIC);
 		def.superClass(LuaTable.TYPE);
@@ -64,18 +63,18 @@ public class ShapeGenerator {
 		
 		// Store everything as j.l.Object; box numbers as needed
 		// This is not very efficient, but Lua tables are mutable unlike functions!
-		for (var entry : entries.entrySet()) {
-			var fieldName = "_" + entry.getKey();
+		for (var key : keys) {
+			var fieldName = "_" + key;
 			def.addInstanceField(Access.PUBLIC, Type.OBJECT, fieldName);
 			
 			// Append to generic accessor lookup table
 			// TODO what if we have MANY entries?
-			Constant key = Constant.of(entry.getKey());
-			getterClauses.branch(Condition.equal(key.cast(Type.OBJECT), getterName), block -> {
+			Constant keyConst = Constant.of(key);
+			getterClauses.branch(Condition.equal(keyConst.cast(Type.OBJECT), getterName), block -> {
 				var fieldValue = block.add(getter.self().getField(Type.OBJECT, fieldName));
 				block.add(Return.value(fieldValue));
 			});
-			setterClauses.branch(Condition.equal(key.cast(Type.OBJECT), getterName), block -> {
+			setterClauses.branch(Condition.equal(keyConst.cast(Type.OBJECT), getterName), block -> {
 				block.add(setter.self().putField(fieldName, setterValue));
 			});
 		}
@@ -83,7 +82,7 @@ public class ShapeGenerator {
 		// Fallback to map
 		getter.add(getterClauses);
 		if (!shape.shouldInitializeMap()) {			
-			// If map is not guaranteed to be initialized, check and initialize if needed
+			// If map is not initialized by constructor, initialize it on demand
 			getter.add(getter.self().callVirtual(Type.VOID, "initializeMap", Constant.of(8)));
 		}
 		var mapValue = getter.add(getter.self().callPrivate(LuaTable.TYPE, Type.OBJECT, "get", getterName));
@@ -91,7 +90,7 @@ public class ShapeGenerator {
 		
 		setterClauses.fallback(block -> {
 			if (!shape.shouldInitializeMap()) {
-				// If map is not guaranteed to be initialized, check and initialize if needed
+				// If map is not initialized by constructor, initialize it on demand
 				block.add(setter.self().callVirtual(Type.VOID, "initializeMap", Constant.of(8)));
 			}
 			block.add(setter.self().callPrivate(LuaTable.TYPE, Type.VOID, "set", setterName, setterValue));

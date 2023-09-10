@@ -102,7 +102,6 @@ public class FunctionCompiler {
 		var def = ClassDef.create("fi.benjami.code4jvm.lua.compiler.CompiledFunction", Access.PUBLIC);
 		
 		// Add fields for upvalues
-		// Whoever loads the compiled class must set these (using e.g. reflection)
 		for (var i = 0; i < upvalueTypes.length; i++) {
 			var template = type.upvalues().get(i);
 			// If (and only if) types of upvalue templates are known, they must also match runtime types

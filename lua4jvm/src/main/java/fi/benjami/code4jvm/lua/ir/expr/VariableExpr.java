@@ -27,7 +27,7 @@ public record VariableExpr(
 			var tableType = tableField.table().outputType(ctx);
 			if (tableType instanceof LuaType.Shape shape
 					&& tableField.field() instanceof LuaConstant field
-					&& shape.knownEntries().containsKey(field.value())) {
+					&& shape.compiledForm().includedKeys().contains(field.value())) {
 				var table = tableField.table().emit(ctx, block);
 				return block.add(table.getField(Type.OBJECT, "_" + field.value()));
 			} else {				
