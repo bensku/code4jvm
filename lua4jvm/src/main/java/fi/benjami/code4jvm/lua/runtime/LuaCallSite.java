@@ -61,10 +61,25 @@ public class LuaCallSite {
 	 */
 	public Object currentCallable;
 	
+	/**
+	 * If this is a table access site, is direct table access enabled?
+	 */
+	public boolean directTableAccess;
+	
+	/**
+	 * Checks if this site should consider runtime types of the arguments.
+	 * @return Whether or not to enable runtime type checks.
+	 */
 	public boolean shouldUseRuntimeTypes() {
-		return hasUnknownTypes && typeChangeCount < 3; // TODO configurable
+		// TODO better heuristics; runtime type checks make calls slower, but improve target code generation
+		return hasUnknownTypes && typeChangeCount < 3;
 	}
 	
+	/**
+	 * Checks whether or not this site should consider identity of the target,
+	 * or merely prototype of it. This is only applicable to Lua functions.
+	 * @return True for identity checks, false otherwise.
+	 */
 	public boolean shouldCheckTarget() {
 		return linkageCount < 5; // TODO configurable
 	}

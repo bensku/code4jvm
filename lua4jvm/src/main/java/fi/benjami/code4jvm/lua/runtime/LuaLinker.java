@@ -30,7 +30,7 @@ public class LuaLinker {
 			PROTOTYPE_HAS_CHANGED = LOOKUP.findStatic(LuaLinker.class, "checkPrototypeHasChanged",
 					MethodType.methodType(boolean.class, Object.class, Object.class));
 			UPDATE_SITE = LOOKUP.findStatic(LuaLinker.class, "updateSite",
-					MethodType.methodType(MethodHandle.class, LuaCallSite.class, LuaType[].class, Object.class));
+					MethodType.methodType(MethodHandle.class, LuaCallSite.class, LuaType[].class, Object.class, Object[].class));
 		} catch (NoSuchMethodException | IllegalAccessException e) {
 			throw new AssertionError(e);
 		}
@@ -63,12 +63,14 @@ public class LuaLinker {
 	}
 	
 	@SuppressWarnings("unused") // MethodHandle
-	private static MethodHandle updateSite(LuaCallSite meta, LuaType[] types, Object callable) {
+	private static MethodHandle updateSite(LuaCallSite meta, LuaType[] types,
+			Object callable, Object... args) {
 		var site = meta.site;
 		meta.linkageCount++;
 		
 		// Compile the method
 		MethodHandle target;
+		MethodHandle guard;
 		if (callable instanceof LuaFunction function) {
 			if (meta.shouldUseRuntimeTypes()) {
 				// If call site has types that were unknown when it was compiled,
@@ -77,9 +79,7 @@ public class LuaLinker {
 				// the types keep changing
 				// Types are "checked" by casting and relinking if CCE was thrown, so
 				// the runtime overhead should be small when they don't change
-				// TODO check if any of the types are unknown
-				// TODO enter this path WITHOUT going through updateSite to speed up first-time calls?
-				target = RuntimeTypeAnalyzer.bridgeCompiler(meta, function);
+				target = RuntimeTypeAnalyzer.specialize(meta, function, args);
 				meta.typeChangeCount++;
 			} else {
 				// If all types were known compile-time or the runtime types have changed multiple times
@@ -92,10 +92,15 @@ public class LuaLinker {
 				target = FunctionCompiler.callTarget(types, function, meta.shouldCheckTarget());
 			}
 			meta.currentPrototype = function.type();
+			guard = meta.shouldCheckTarget() ? TARGET_HAS_CHANGED.bindTo(meta.currentCallable) : PROTOTYPE_HAS_CHANGED.bindTo(meta.currentPrototype);
 		} else if (callable instanceof MethodHandle handle) {
 			// Calling from Lua to Java
 			// TODO something better than this
 			target = MethodHandles.dropArguments(handle, 0, Object.class);
+			guard = TARGET_HAS_CHANGED.bindTo(meta.currentCallable);
+		} else if (callable instanceof DynamicTarget dt) {
+			target = dt.resolve().apply(meta, args);
+			guard = dt.checkChanges().bindTo(meta);
 		} else {
 			// TODO metatables
 			throw new UnsupportedOperationException(callable.getClass().getName() + " '" + callable + "' is not callable");			
@@ -104,22 +109,17 @@ public class LuaLinker {
 		
 		// Set call site to target a new guarded handle, in case callable changes again
 		meta.currentCallable = callable;
-		site.setTarget(guardedHandle(meta, target));		
+		site.setTarget(guardedHandle(meta, target, guard));		
 		
 		// But this time, proceed directly to target
 		return target;
 	}
 	
-	static MethodHandle guardedHandle(LuaCallSite meta, MethodHandle target) {
-		MethodHandle test;
-		if (meta.shouldCheckTarget()) {
-			test = TARGET_HAS_CHANGED.bindTo(meta.currentCallable);
-		} else {
-			test = PROTOTYPE_HAS_CHANGED.bindTo(meta.currentPrototype);
-		}
-		
-		var fallback = MethodHandles.foldArguments(MethodHandles.exactInvoker(target.type()), meta.relink);
-		return MethodHandles.guardWithTest(test, target, fallback);
+	static MethodHandle guardedHandle(LuaCallSite meta, MethodHandle target, MethodHandle guard) {
+		var fallback = MethodHandles.foldArguments(MethodHandles.spreadInvoker(target.type(), 1), meta.relink)
+				.asVarargsCollector(Object[].class)
+				.asType(target.type());
+		return MethodHandles.guardWithTest(guard, target, fallback);
 	}
 	
 	public static final FixedCallTarget BOOTSTRAP_DYNAMIC = TYPE.staticMethod(Type.of(CallSite.class), "dynamic",
@@ -130,10 +130,11 @@ public class LuaLinker {
 		var site = new MutableCallSite(type);
 		var meta = new LuaCallSite(site, types);
 		if (LuaDebugOptions.linkerTrace != null) {
-			assert LuaDebugOptions.linkerTrace.metadata == null;
 			LuaDebugOptions.linkerTrace.metadata = meta;
 		}
-		var handle = MethodHandles.foldArguments(MethodHandles.exactInvoker(type), meta.relink);
+		var handle = MethodHandles.foldArguments(MethodHandles.spreadInvoker(type, 1), meta.relink)
+				.asVarargsCollector(Object[].class) // TODO try to use asCollector() instead
+				.asType(type);
 		site.setTarget(handle);
 		return site;
 	}

@@ -16,6 +16,7 @@ public class LuaTable {
 	public static final Type TYPE = Type.of(LuaTable.class);
 
 	private Map<Object, Object> map;
+	private Object metatable;
 	
 	protected LuaTable() {}
 	
@@ -25,12 +26,30 @@ public class LuaTable {
 		}
 	}
 	
-	public Object get(Object key) {
+	public Object getRaw(Object key) {
 		return map.get(key);
 	}
 	
-	public void set(Object key, Object value) {
+	public void setRaw(Object key, Object value) {
 		map.put(key, value);
+	}
+	
+	// TODO metatable __index and __newindex support
+	
+	public Object get(Object key) {
+		return getRaw(key);
+	}
+	
+	public void set(Object key, Object value) {
+		setRaw(key, value);
+	}
+	
+	public Object getMetatable() {
+		return metatable;
+	}
+	
+	public void setMetatable(Object metatable) {
+		this.metatable = metatable;
 	}
 	
 	public int size() {

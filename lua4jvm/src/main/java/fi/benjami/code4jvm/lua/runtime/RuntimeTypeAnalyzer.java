@@ -3,6 +3,7 @@ package fi.benjami.code4jvm.lua.runtime;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
+import java.util.Arrays;
 
 import fi.benjami.code4jvm.lua.compiler.FunctionCompiler;
 import fi.benjami.code4jvm.lua.ir.LuaType;
@@ -49,13 +50,13 @@ class RuntimeTypeAnalyzer {
 				.asVarargsCollector(Object[].class);
 	}
 	
+	// TODO clean up, LuaLinker now calls this directly!
 	@SuppressWarnings("unused") // MethodHandle
-	private static MethodHandle specialize(LuaCallSite meta, LuaFunction function, Object... args) {
+	public static MethodHandle specialize(LuaCallSite meta, LuaFunction function, Object... args) {
 		// Compute types of arguments, using runtime information
-		// (first argument is the callable, which we know is Lua function)
-		var argTypes = new LuaType[args.length - 1];
-		for (var i = 1; i < args.length; i++) {
-			argTypes[i - 1] = LuaType.of(args[i]);
+		var argTypes = new LuaType[args.length];
+		for (var i = 0; i < args.length; i++) {
+			argTypes[i] = LuaType.of(args[i]);
 		}
 		
 		// Compile the function specialization
@@ -66,17 +67,19 @@ class RuntimeTypeAnalyzer {
 		var castToTarget = MethodHandles.catchException(
 				MethodHandles.explicitCastArguments(target, meta.site.type()),
 				ClassCastException.class,
-				MethodHandles.dropArguments(MethodHandles.foldArguments(MethodHandles.exactInvoker(meta.site.type()), meta.relink),
+				MethodHandles.dropArguments(MethodHandles.foldArguments(MethodHandles.spreadInvoker(meta.site.type(), 1), meta.relink)
+							.asVarargsCollector(Object[].class)
+							.asType(meta.site.type()),
 						0, ClassCastException.class)
 				);
 		// TODO detect when Java code called by Lua code throws CCE?
 		// Ideally, do it in exception handler since that is the cold path
 		
 		// If the function object changes, relink the site as usual
-		var guard = LuaLinker.guardedHandle(meta, castToTarget);
-		
-		// Skip call to this method (specialize(...)) in subsequent calls
-		meta.site.setTarget(guard);
+//		var guard = LuaLinker.guardedHandle(meta, castToTarget);
+//		
+//		// Skip call to this method (specialize(...)) in subsequent calls
+//		meta.site.setTarget(guard);
 		
 		// Proceed directly into specialization (skipping guard)
 		return castToTarget;
