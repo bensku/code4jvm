@@ -62,11 +62,6 @@ public class LuaCallSite {
 	public Object currentCallable;
 	
 	/**
-	 * If this is a table access site, is direct table access enabled?
-	 */
-	public boolean directTableAccess;
-	
-	/**
 	 * Checks if this site should consider runtime types of the arguments.
 	 * @return Whether or not to enable runtime type checks.
 	 */

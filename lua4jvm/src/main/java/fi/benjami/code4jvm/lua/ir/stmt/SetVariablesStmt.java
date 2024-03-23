@@ -161,19 +161,11 @@ public record SetVariablesStmt(
 				var jvmVar = ctx.resolveLocalVar(localVar);
 				block.add(jvmVar.set(value.cast(jvmVar.type())));
 			} else if (variable instanceof TableField tableField) {
-				var tableType = tableField.table().outputType(ctx);
-				if (tableType instanceof LuaType.Shape shape
-						&& tableField.field() instanceof LuaConstant key
-						&& shape.compiledForm().includedKeys().contains(key.value())) {
-					// Fast path: constant key in a table with known shape
-					var table = tableField.table().emit(ctx, block);
-					block.add(table.putField("_" + key.value(), value));
-				} else {
-					// Just call the setter
-					var table = tableField.table().emit(ctx, block).cast(LuaTable.TYPE);
-					var field = tableField.field().emit(ctx, block).cast(Type.OBJECT);
-					block.add(table.callVirtual(Type.VOID, "set", field, value.cast(Type.OBJECT)));
-				}
+				// Just call the setter
+				// TODO invokedynamic to TableAccess.CONSTANT_SET once it has some optimizations
+				var table = tableField.table().emit(ctx, block).cast(LuaTable.TYPE);
+				var field = tableField.field().emit(ctx, block).cast(Type.OBJECT);
+				block.add(table.callVirtual(Type.VOID, "set", field, value.cast(Type.OBJECT)));
 			} else {				
 				throw new AssertionError();
 			}

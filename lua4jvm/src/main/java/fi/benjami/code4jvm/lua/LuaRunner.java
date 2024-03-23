@@ -13,7 +13,7 @@ public class LuaRunner {
 		var vm = new LuaVm();
 		
 		// Make rest of arguments available to script
-		var argTable = LuaTable.newTable(args.length - 1);
+		var argTable = new LuaTable();
 		for (var i = 1; i < args.length; i++) {
 			argTable.set((double) i, args[i]);
 		}

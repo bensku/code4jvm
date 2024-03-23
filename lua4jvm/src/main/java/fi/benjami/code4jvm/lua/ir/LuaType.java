@@ -188,7 +188,7 @@ public interface LuaType {
 		}
 		
 		public CompiledShape compiledForm() {
-			return compiledForm;
+			throw new AssertionError(); // FIXME get rid of this code path (later)
 		}
 		
 		public void amend(String key, LuaType type) {
@@ -208,7 +208,8 @@ public interface LuaType {
 
 		@Override
 		public Type backingType() {
-			return Type.of(compiledForm().backingClass());
+			return LuaTable.TYPE;
+//			return Type.of(compiledForm().backingClass());
 		}
 
 		@Override

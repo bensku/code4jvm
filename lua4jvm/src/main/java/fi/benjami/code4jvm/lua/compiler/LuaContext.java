@@ -149,9 +149,13 @@ public class LuaContext {
 	}
 	
 	public Constant addClassData(Object value) {
+		return addClassData(value, Type.of(value.getClass()));
+	}
+	
+	public Constant addClassData(Object value, Type type) {
 		var index = classData.size();
 		classData.add(value);
-		return Constant.classDataAt(Type.of(value.getClass()), index);
+		return Constant.classDataAt(type, index);
 	}
 	
 	public Object allClassData() {

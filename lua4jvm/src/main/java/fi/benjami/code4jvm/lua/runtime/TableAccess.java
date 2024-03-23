@@ -4,54 +4,121 @@ import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 
+import fi.benjami.code4jvm.lua.ir.LuaType;
+
+/**
+ * Linker support for table access.
+ *
+ */
 public class TableAccess {
 
-	public static final DynamicTarget GET_TARGET, SET_TARGET;
+	private static final MethodHandle CHECK_TABLE_SHAPE, CHECK_TABLE_AND_META_SHAPES;
+	private static final MethodHandle GET_ARRAY, SET_ARRAY, GET_AT, SET_AT, GET_RAW, SET_RAW, GET, SET;
+	
+	public static final DynamicTarget CONSTANT_GET, CONSTANT_SET;
 	
 	static {
 		var lookup = MethodHandles.lookup();
-		MethodHandle getRaw;
 		try {
-			getRaw = MethodHandles.dropArguments(lookup.findVirtual(LuaTable.class, "getRaw",
-					MethodType.methodType(Object.class, Object.class)), 0, Object.class);
-			var setRaw = MethodHandles.dropArguments(lookup.findVirtual(LuaTable.class, "setRaw",
-					MethodType.methodType(void.class, Object.class, Object.class)), 0, Object.class);
-			var get = MethodHandles.dropArguments(lookup.findVirtual(LuaTable.class, "get",
-					MethodType.methodType(Object.class, Object.class)), 0, Object.class);
-			var set = MethodHandles.dropArguments(lookup.findVirtual(LuaTable.class, "set",
-					MethodType.methodType(void.class, Object.class, Object.class)), 0, Object.class);
-			var checkChanges = lookup.findStatic(TableAccess.class, "checkChanges",
-					MethodType.methodType(boolean.class, LuaCallSite.class, Object.class, Object.class));
+			// Guards
+			CHECK_TABLE_SHAPE = lookup.findStatic(TableAccess.class, "checkTableShape",
+					MethodType.methodType(boolean.class, Object.class, Object.class, Object.class));
+			CHECK_TABLE_AND_META_SHAPES = lookup.findStatic(TableAccess.class, "checkTableAndMetaShapes",
+					MethodType.methodType(boolean.class, Object.class, Object.class, Object.class, Object.class));
 			
-			// TODO this is probably SLOWER than just calling LuaTable#get!
-			// (but this allows for interesting optimizations!)
-			// TODO SET_TARGET is unused, fix that
-			GET_TARGET = new DynamicTarget((site, args) -> {
-				if (args[0] instanceof LuaTable table && table.getMetatable() == null) {
-					site.directTableAccess = true;
-					return getRaw;
-				}
-				site.directTableAccess = false;
-				return get;
-			}, checkChanges);
-			SET_TARGET = new DynamicTarget((site, args) -> {
-				if (args[0] instanceof LuaTable table && table.getMetatable() == null) {
-					site.directTableAccess = true;
-					return setRaw;
-				}
-				site.directTableAccess = false;
-				return set;
-			}, checkChanges);
+			// LuaTable accessors
+			GET_ARRAY = MethodHandles.dropArguments(lookup.findVirtual(LuaTable.class, "getArray",
+					MethodType.methodType(Object.class, int.class)), 0, Object.class);
+			SET_ARRAY = MethodHandles.dropArguments(lookup.findVirtual(LuaTable.class, "setArray",
+					MethodType.methodType(void.class, int.class, Object.class)), 0, Object.class);
+			GET_AT = lookup.findVirtual(LuaTable.class, "getAt",
+					MethodType.methodType(Object.class, int.class));
+			SET_AT = lookup.findVirtual(LuaTable.class, "setAt",
+					MethodType.methodType(void.class, int.class, Object.class, Object.class));
+			GET_RAW = MethodHandles.dropArguments(lookup.findVirtual(LuaTable.class, "getRaw",
+					MethodType.methodType(Object.class, Object.class)), 0, Object.class);
+			SET_RAW = MethodHandles.dropArguments(lookup.findVirtual(LuaTable.class, "setRaw",
+					MethodType.methodType(void.class, Object.class, Object.class)), 0, Object.class);
+			GET = MethodHandles.dropArguments(lookup.findVirtual(LuaTable.class, "get",
+					MethodType.methodType(Object.class, Object.class)), 0, Object.class);
+			SET = MethodHandles.dropArguments(lookup.findVirtual(LuaTable.class, "set",
+					MethodType.methodType(void.class, Object.class, Object.class)), 0, Object.class);
 		} catch (NoSuchMethodException | IllegalAccessException e) {
 			throw new AssertionError(e);
 		}
+		
+		CONSTANT_GET = TableAccess::resolveConstantGet;
+		CONSTANT_SET = TableAccess::resolveConstantSet;
+	}
+	
+	private static LuaCallTarget resolveConstantGet(LuaCallSite meta, Object[] args) {
+		if (!meta.shouldCheckTarget()) {
+			// Slow path: table seems to be changing too often
+			// TODO try to still optimize stable, shared metatable; this is used for Lua "OOP"
+			return new LuaCallTarget(GET, null);
+		}
+		
+		var key = args[1];
+		if (args[0] instanceof LuaTable table) {
+			var metatable = table.getMetatable();
+			var arrayIndex = table.getArrayIndex(key);
+			if (arrayIndex != -1 && (table.getArray(arrayIndex) != null || metatable == null)) {
+				// Fast path: read value from array
+				return new LuaCallTarget(GET_ARRAY, CHECK_TABLE_SHAPE.bindTo(table));
+			}
+			
+			var slot = table.getSlot(key);
+			if (metatable == null || slot != -1) {
+				// Fast path: no metatable or key is present in table -> use slot-based access
+				var target = MethodHandles.dropArguments(MethodHandles.insertArguments(GET_AT, 0, table, slot),
+						0, Object.class, Object.class, Object.class);
+				return new LuaCallTarget(target, CHECK_TABLE_SHAPE.bindTo(table.shape));
+			} else {
+				// We need to check the metatable
+				if (metatable.metatable == null) {
+					// Fast path: metatable that does not itself have a metatable
+					var index = metatable.get("__index");
+					if (index instanceof LuaTable fallbackTbl) {
+						// Slow path: TODO implement the fast path to __index table
+						// (preferably with support for a chain of __index with metatables)
+						return new LuaCallTarget(GET, CHECK_TABLE_SHAPE.bindTo(table.shape));
+					} else {
+						// Link a call into the __index method
+						var types = new LuaType[] {LuaType.UNKNOWN, LuaType.UNKNOWN};
+						var target = LuaLinker.linkCall(new LuaCallSite(null, types), types, index, table, key);
+						var guard = MethodHandles.insertArguments(CHECK_TABLE_AND_META_SHAPES, 0, table.shape, metatable.shape);
+						return new LuaCallTarget(target.target(), guard);
+					}
+				} else {
+					// Slow path: metatables on top of more metatables
+					// TODO technically, this might not need a guard - but a guard allows re-optimizing later
+					return new LuaCallTarget(GET, CHECK_TABLE_SHAPE.bindTo(table.shape));
+				}
+			}
+		} else {
+			throw new UnsupportedOperationException("userdata");
+		}
+	}
+	
+	private static LuaCallTarget resolveConstantSet(LuaCallSite meta, Object[] args) {
+		// TODO implement some optimizations for write path before this is used
+		// Right now this would just slow down the write path
+		return new LuaCallTarget(SET, null);
 	}
 	
 	@SuppressWarnings("unused") // MethodHandle
-	private static boolean checkChanges(LuaCallSite site, Object callable, Object tbl) {
-		// TODO check if callable == GET/SET_TARGET ?
-		// If we were using direct table access, but can't now (or the other way around) -> relink!
-		var simpleTable = tbl instanceof LuaTable table && table.getMetatable() == null;
-		return simpleTable == site.directTableAccess;
+	private static boolean checkTableShape(Object expectedShape, Object callable, Object tbl) {
+		if (tbl instanceof LuaTable table) {
+			return expectedShape == table.shape;
+		}
+		return false;
+	}
+	
+	@SuppressWarnings("unused") // MethodHandle
+	private static boolean checkTableAndMetaShapes(Object expectedShape, Object expectedMetaShape, Object callable, Object tbl) {
+		if (tbl instanceof LuaTable table) {
+			return expectedShape == table.shape && expectedMetaShape == table.metatable.shape;
+		}
+		return false;
 	}
 }

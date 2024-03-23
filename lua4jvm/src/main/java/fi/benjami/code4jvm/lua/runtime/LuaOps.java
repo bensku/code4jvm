@@ -7,6 +7,8 @@ import fi.benjami.code4jvm.call.CallTarget;
 
 public class LuaOps {
 	
+	// TODO get rid of all of this; instead, use invokedynamic!
+	
 	public static final CallTarget ADD = target("add", 2);
 
 	public static Object add(Object lhs, Object rhs) {

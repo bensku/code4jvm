@@ -25,24 +25,21 @@ public record VariableExpr(
 	public Value emit(LuaContext ctx, Block block) {
 		if (source instanceof LuaLocalVar localVar) {
 			return ctx.resolveLocalVar(localVar);
-		} else if (source instanceof TableField tableField) {
-			var tableType = tableField.table().outputType(ctx);
-			if (tableType instanceof LuaType.Shape shape
-					&& tableField.field() instanceof LuaConstant field
-					&& shape.compiledForm().includedKeys().contains(field.value())) {
-				var table = tableField.table().emit(ctx, block);
-				return block.add(table.getField(Type.OBJECT, "_" + field.value()));
-			} else {
-				// Use invokedynamic w/ LuaLinker to speed up metatable access
+		} else if (source instanceof TableField tableField) {			
+			var table = tableField.table().emit(ctx, block);
+			var field = tableField.field().emit(ctx, block);
+			if (tableField.field() instanceof LuaConstant constant) {				
+				// Use invokedynamic w/ LuaLinker to try to speed up reads
 				var bootstrap = LuaLinker.BOOTSTRAP_DYNAMIC.withCapturedArgs(ctx.addClassData(new LuaType[] 
 						{LuaType.UNKNOWN, LuaType.UNKNOWN, LuaType.UNKNOWN}));
 				// FIXME code4jvm bug: calling a dynamic target tries to infer types from values, even though it has explicit argTypes available!
-				var getter = ctx.addClassData(TableAccess.GET_TARGET).asType(Type.OBJECT);
-				var table = tableField.table().emit(ctx, block).asType(Type.OBJECT); // TODO but this one is lua4jvm quirk :)
-				var field = tableField.field().emit(ctx, block);
+				var getter = ctx.addClassData(TableAccess.CONSTANT_GET, Type.OBJECT);
 				var target = CallTarget.dynamic(bootstrap, Type.OBJECT, "_",
 						Type.OBJECT, Type.OBJECT, Type.OBJECT);
-				return block.add(target.call(getter, table, field));
+				return block.add(target.call(getter, table.asType(Type.OBJECT), field));
+			} else {
+				// Just get directly; since we can't cache slot, the guards would just slow down reads
+				return block.add(table.callVirtual(Type.OBJECT, "get", field.cast(Type.OBJECT)));
 			}
 		}
 		throw new AssertionError();

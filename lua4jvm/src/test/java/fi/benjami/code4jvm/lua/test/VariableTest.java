@@ -208,7 +208,7 @@ public class VariableTest {
 						))
 				)));
 		var func = new LuaFunction(type, new Object[0]);
-		var table = LuaTable.newTable(0);
+		var table = new LuaTable();
 		table.set("foo", "bar");
 		assertEquals("bar", func.call(table, "foo"));
 	}

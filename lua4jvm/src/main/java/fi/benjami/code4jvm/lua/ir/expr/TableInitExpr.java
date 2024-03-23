@@ -22,18 +22,11 @@ public record TableInitExpr(
 		var shapeType = type.backingType();
 		var table = block.add(shapeType.newInstance());
 		for (var entry : entries) {
-			if (entry.key() instanceof LuaConstant field
-					&& type.compiledForm().includedKeys().contains(field.value())) {
-				// Fast path: constant key, directly set the field
-				var key = field.value();
-				var value = entry.value.emit(ctx, block).cast(Type.OBJECT);
-				block.add(table.putField("_" + key, value));
-			} else {
-				// Key is not constant, call set method
-				var key = entry.key.emit(ctx, block).cast(Type.OBJECT);
-				var value = entry.value.emit(ctx, block).cast(Type.OBJECT); // TODO emit after or before key?
-				block.add(table.callVirtual(Type.VOID, "set", key, value));
-			}
+			// Call setRaw(), because this can't yet have a metatable!
+			// TODO give all tables from this initializer same shape (invokedynamic magic)
+			var key = entry.key.emit(ctx, block).cast(Type.OBJECT);
+			var value = entry.value.emit(ctx, block).cast(Type.OBJECT); // TODO emit after or before key?
+			block.add(table.callVirtual(Type.VOID, "setRaw", key, value));
 			
 		}
 		return table;
@@ -41,6 +34,7 @@ public record TableInitExpr(
 
 	@Override
 	public LuaType outputType(LuaContext ctx) {
+		// TODO reconsider if any of this is needed - shapes as they were planned didn't work out
 		if (ctx.getCache(this) instanceof LuaType cached) {
 			return cached;
 		}
