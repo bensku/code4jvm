@@ -253,12 +253,16 @@ public interface LuaType {
 		return of(value.type());
 	}
 	
+	public static LuaType of(Class<?> c) {
+		return of(Type.of(c));
+	}
+	
 	public static LuaType of(Object obj) {
 		if (obj == null) {
 			return LuaType.NIL;
 		} else if (obj instanceof LuaFunction function) {
 			return function.type();
-		} else {			
+		} else {
 			return LuaTypeSupport.CLASS_TO_TYPE.getOrDefault(obj.getClass(), LuaType.UNKNOWN);
 		}
 	}
@@ -313,4 +317,8 @@ public interface LuaType {
 	 * @return Backing JVM type.
 	 */
 	Type backingType();
+	
+	default boolean isAssignableFrom(LuaType other) {
+		return this == LuaType.UNKNOWN || equals(other);
+	}
 }

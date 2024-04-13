@@ -11,6 +11,8 @@ import fi.benjami.code4jvm.lua.ir.LuaType;
  *
  */
 public class TableAccess {
+	
+	private static final int MAX_LINKAGE_COUNT = 3;
 
 	private static final MethodHandle CHECK_TABLE_SHAPE, CHECK_TABLE_AND_META_SHAPES;
 	private static final MethodHandle GET_ARRAY, SET_ARRAY, GET_AT, SET_AT, GET_RAW, SET_RAW, GET, SET;
@@ -52,7 +54,7 @@ public class TableAccess {
 	}
 	
 	private static LuaCallTarget resolveConstantGet(LuaCallSite meta, Object[] args) {
-		if (!meta.shouldCheckTarget()) {
+		if (meta.linkageCount > MAX_LINKAGE_COUNT) {
 			// Slow path: table seems to be changing too often
 			// TODO try to still optimize stable, shared metatable; this is used for Lua "OOP"
 			return new LuaCallTarget(GET, null);
@@ -68,8 +70,9 @@ public class TableAccess {
 			}
 			
 			var slot = table.getSlot(key);
-			if (metatable == null || slot != -1) {
-				// Fast path: no metatable or key is present in table -> use slot-based access
+			if (slot != -1) {
+				// Fast path: key is present in table -> use slot-based access
+				// (absent keys don't have a slot, but might receive one without table shape changing)
 				var target = MethodHandles.dropArguments(MethodHandles.insertArguments(GET_AT, 0, table, slot),
 						0, Object.class, Object.class, Object.class);
 				return new LuaCallTarget(target, CHECK_TABLE_SHAPE.bindTo(table.shape));

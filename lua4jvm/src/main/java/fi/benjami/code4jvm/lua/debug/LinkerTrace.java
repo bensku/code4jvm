@@ -7,4 +7,6 @@ public class LinkerTrace {
 	public LuaCallSite metadata;
 	
 	public Object callable;
+	
+	public Object currentPrototype;
 }

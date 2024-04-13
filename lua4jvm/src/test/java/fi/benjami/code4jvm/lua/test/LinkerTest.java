@@ -1,8 +1,6 @@
 package fi.benjami.code4jvm.lua.test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodType;
@@ -30,7 +28,7 @@ public class LinkerTest {
 	}
 	
 	private MethodHandle getOnlySpecialization() {
-		var specializations = ((LuaType.Function) trace.metadata.currentPrototype).specializations();
+		var specializations = ((LuaType.Function) trace.currentPrototype).specializations();
 		assertEquals(1, specializations.size());
 		for (var func : specializations.values()) {
 			return func.function();
@@ -49,8 +47,6 @@ public class LinkerTest {
 		assertEquals(3d, result);
 		assertEquals(1, trace.metadata.linkageCount);
 		assertEquals(0, trace.metadata.typeChangeCount);
-		assertTrue(trace.metadata.shouldCheckTarget());
-		assertFalse(trace.metadata.shouldUseRuntimeTypes());
 		assertEquals(MethodType.methodType(double.class, Object.class, double.class, double.class),
 				getOnlySpecialization().bindTo(null).type());
 	}
@@ -68,8 +64,6 @@ public class LinkerTest {
 		assertEquals(3d, result);
 		assertEquals(1, trace.metadata.linkageCount);
 		assertEquals(1, trace.metadata.typeChangeCount);
-		assertTrue(trace.metadata.shouldCheckTarget());
-		assertTrue(trace.metadata.shouldUseRuntimeTypes());
 		assertEquals(MethodType.methodType(double.class, Object.class, double.class, double.class),
 				getOnlySpecialization().bindTo(null).type());
 	}
@@ -91,19 +85,15 @@ public class LinkerTest {
 		func.call();
 		assertEquals(1, trace.metadata.linkageCount);
 		assertEquals(1, trace.metadata.typeChangeCount);
-		assertTrue(trace.metadata.shouldCheckTarget());
-		assertTrue(trace.metadata.shouldUseRuntimeTypes());
 		assertEquals(MethodType.methodType(double.class, Object.class, double.class, double.class),
 				getOnlySpecialization().bindTo(null).type());
 		
 		// First type change doesn't change anything
-		vm.globals().set("foo", "foo");
-		vm.globals().set("bar", "bar");
+		vm.globals().set("foo", "fooval");
+		vm.globals().set("bar", "barval");
 		func.call();
 		assertEquals(2, trace.metadata.linkageCount);
 		assertEquals(2, trace.metadata.typeChangeCount);
-		assertTrue(trace.metadata.shouldCheckTarget());
-		assertTrue(trace.metadata.shouldUseRuntimeTypes());
 		
 		// Change types and call function a few more times
 		for (var i = 0; i < 10; i++) {
@@ -111,8 +101,8 @@ public class LinkerTest {
 			vm.globals().set("bar", 2d);
 			func.call();
 			
-			vm.globals().set("foo", "foo");
-			vm.globals().set("bar", "bar");
+			vm.globals().set("foo", "fooval");
+			vm.globals().set("bar", "barval");
 			func.call();
 		}
 		

@@ -5,12 +5,16 @@ import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.invoke.MutableCallSite;
+import java.util.Arrays;
+import java.util.stream.Stream;
 
 import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.call.FixedCallTarget;
 import fi.benjami.code4jvm.lua.compiler.FunctionCompiler;
 import fi.benjami.code4jvm.lua.debug.LuaDebugOptions;
+import fi.benjami.code4jvm.lua.ffi.JavaFunction;
 import fi.benjami.code4jvm.lua.ir.LuaType;
+import fi.benjami.code4jvm.lua.stdlib.LuaException;
 
 /**
  * Dynamic linker for function calls and table access from Lua.
@@ -21,10 +25,27 @@ import fi.benjami.code4jvm.lua.ir.LuaType;
  */
 public class LuaLinker {
 	
+	private static final int RUNTIME_TYPES_MAX_CHANGES = 3, LUA_FUNC_PROTOTYPE_MAX_CHANGES = 5;
+	
 	private static final MethodHandles.Lookup LOOKUP = MethodHandles.lookup();
 	public static final Type TYPE = Type.of(LuaLinker.class);
 	
-	static final MethodHandle TARGET_HAS_CHANGED, PROTOTYPE_HAS_CHANGED, UPDATE_SITE;
+	static final MethodHandle TARGET_HAS_CHANGED, PROTOTYPE_HAS_CHANGED, UPDATE_SITE,
+		NEW_WRAPPER_EX, WRAPPER_EX_CAUSE;
+	
+	private static final class WrapperException extends RuntimeException {
+		private static final long serialVersionUID = 1L;
+
+		@SuppressWarnings("unused") // MethodHandle
+		public WrapperException(RuntimeException e) {
+			super(e);
+		}
+		
+		@Override
+		public Throwable fillInStackTrace() {
+			return this;
+		}
+	}
 	
 	static {
 		try {
@@ -34,6 +55,8 @@ public class LuaLinker {
 					MethodType.methodType(boolean.class, Object.class, Object.class));
 			UPDATE_SITE = LOOKUP.findStatic(LuaLinker.class, "updateSite",
 					MethodType.methodType(MethodHandle.class, LuaCallSite.class, LuaType[].class, Object.class, Object[].class));
+			NEW_WRAPPER_EX = LOOKUP.findConstructor(WrapperException.class, MethodType.methodType(void.class, RuntimeException.class));
+			WRAPPER_EX_CAUSE = LOOKUP.findVirtual(WrapperException.class, "getCause", MethodType.methodType(Throwable.class));
 		} catch (NoSuchMethodException | IllegalAccessException e) {
 			throw new AssertionError(e);
 		}
@@ -54,38 +77,68 @@ public class LuaLinker {
 		if (LuaDebugOptions.linkerTrace != null) {
 			LuaDebugOptions.linkerTrace.metadata = meta;
 			LuaDebugOptions.linkerTrace.callable = callable;
+			if (callable instanceof LuaFunction function) {				
+				LuaDebugOptions.linkerTrace.currentPrototype = function.type();
+			}
 		}
-		
+
 		MethodHandle target;
 		MethodHandle guard;
 		if (callable instanceof LuaFunction function) {
-			if (meta.shouldUseRuntimeTypes() && meta.site != null) {
-				// If call site has types that were unknown when it was compiled,
-				// we'll try to compile a specialization based on runtime types
-				// This is only done a few times, so we're not constantly relinking if
-				// the types keep changing
-				// Types are "checked" by casting and relinking if CCE was thrown, so
-				// the runtime overhead should be small when they don't change
-				// TODO can we get this working even if meta.site == null?
-				target = RuntimeTypeAnalyzer.specialize(meta, function, args);
-				meta.typeChangeCount++;
+			// Prefer guard on function instance, unless that changes too often
+			// (because this allows us to consider captured upvalue types)
+			var checkTarget = meta.linkageCount < LUA_FUNC_PROTOTYPE_MAX_CHANGES;
+			// If the call site has unknown types, try to specialize based on
+			// runtime types of the arguments - unless the types change too often
+			var runtimeTypes = meta.hasUnknownTypes && meta.typeChangeCount < RUNTIME_TYPES_MAX_CHANGES;
+			var specializedTypes = runtimeTypes ?
+					Arrays.stream(args).map(LuaType::of).toArray(LuaType[]::new) : types;
+
+			target = FunctionCompiler.callTarget(specializedTypes, function, checkTarget);
+			guard = checkTarget ? TARGET_HAS_CHANGED.bindTo(function)
+					: PROTOTYPE_HAS_CHANGED.bindTo(function.type());
+			meta.usesRuntimeTypes = runtimeTypes;
+		} else if (callable instanceof JavaFunction function) {
+			// Java method exposed to Lua via FFI
+			var specializedTypes = types;
+			JavaFunction.Target funcTarget;
+			if (meta.hasUnknownTypes) {
+				// We have arguments with unknown types at compile time
+				if (meta.typeChangeCount < RUNTIME_TYPES_MAX_CHANGES) {
+					// Use them! Runtime types are never LESS applicable than compile-time types
+					// so we don't need to check anything else
+					specializedTypes = Arrays.stream(args).map(LuaType::of).toArray(LuaType[]::new);
+					funcTarget = function.matchToArgs(specializedTypes);
+					meta.usesRuntimeTypes = true;
+				} else {
+					// Too many type changes; we'd prefer to use compile-time types
+					funcTarget = function.matchToArgs(types);
+					if (funcTarget == null) {
+						// But it is entirely possible that we can't!
+						// Performance be damned, a call that has correct types at runtime must not fail
+						specializedTypes = Arrays.stream(args).map(LuaType::of).toArray(LuaType[]::new);
+						funcTarget = function.matchToArgs(specializedTypes);
+						meta.usesRuntimeTypes = true;
+					} else {
+						meta.usesRuntimeTypes = false;
+					}
+				}
 			} else {
-				// If all types were known compile-time or the runtime types have changed multiple times
-				// Just compile a specialization based on compile-time types
-				// By default, we compare the current Lua function to previous one
-				// and switch to comparing prototypes if it changes multiple times
-				// When function prototypes are used, the compiler MUST NOT use upvalue types
-				// because they could lead to miscompilations
-				// TODO relax this if the prototype uses no upvalues? (note: _ENV is upvalue!)
-				target = FunctionCompiler.callTarget(types, function, meta.shouldCheckTarget());
+				// All argument types are known compile-time
+				funcTarget = function.matchToArgs(types);
+				meta.usesRuntimeTypes = false;
 			}
-			meta.currentPrototype = function.type();
-			guard = meta.shouldCheckTarget() ? TARGET_HAS_CHANGED.bindTo(meta.currentCallable) : PROTOTYPE_HAS_CHANGED.bindTo(meta.currentPrototype);
-		} else if (callable instanceof MethodHandle handle) {
-			// Calling from Lua to Java
-			// TODO something better than this
-			target = MethodHandles.dropArguments(handle, 0, Object.class);
-			guard = TARGET_HAS_CHANGED.bindTo(meta.currentCallable);
+			
+			if (funcTarget == null) {
+				// Failed to match any of the targets available
+				// TODO better error reporting, using the runtime types
+				throw new LuaException(function.name() + ": invalid arguments");
+			}
+
+			// Drop unused trailing arguments and self argument; target is not expecting them
+			target = dropUnusedArguments(funcTarget.method(), specializedTypes);
+			target = MethodHandles.dropArguments(target, 0, Object.class);
+			guard = TARGET_HAS_CHANGED.bindTo(function);
 		} else if (callable instanceof DynamicTarget dt) {
 			return dt.resolve(meta, args);
 		} else {
@@ -128,13 +181,20 @@ public class LuaLinker {
 		var site = meta.site;
 		meta.linkageCount++;
 		
-		// Compile the method
+		// Link to the target method (which might need to be compiled)
 		var linkTarget = linkCall(meta, types, callable, args);
-		var target = linkTarget.target().asType(site.type());
+		var target = linkTarget.target();
 		
-		// Set call site to target a new guarded handle, in case callable changes again
-		meta.currentCallable = callable;
-		if (linkTarget.guard() != null) {			
+		if (meta.usesRuntimeTypes) {
+			// Guard against type changes using exceptions and MethodHandle dark magic
+			target = catchTypeChange(meta, target, types);
+			meta.typeChangeCount++; // FIXME this might not be type change!
+		} else {
+			// Just cast; linkCall() would have thrown if this was not safe
+			target = target.asType(site.type());
+		}
+		
+		if (linkTarget.guard() != null) {
 			site.setTarget(guardedHandle(meta, target, linkTarget.guard()));		
 		} else {
 			site.setTarget(target);
@@ -144,11 +204,72 @@ public class LuaLinker {
 		return target;
 	}
 	
+	private static MethodHandle dropUnusedArguments(MethodHandle target, LuaType[] argTypes) {
+		var type = target.type();
+		if (type.parameterCount() == argTypes.length) {
+			return target;
+		}
+		
+		// Force linker to cast unused parameters to objects (this is easiest)
+		var dropped = new Class[argTypes.length - type.parameterCount()];
+		Arrays.fill(dropped, Object.class);
+		return MethodHandles.dropArguments(target, type.parameterCount(), dropped);
+	}
+	
 	static MethodHandle guardedHandle(LuaCallSite meta, MethodHandle target, MethodHandle guard) {
 		var fallback = MethodHandles.foldArguments(MethodHandles.spreadInvoker(target.type(), 1), meta.relink)
 				.asVarargsCollector(Object[].class)
 				.asType(target.type());
 		return MethodHandles.guardWithTest(guard, target, fallback);
+	}
+	
+	private static MethodHandle catchTypeChange(LuaCallSite meta, MethodHandle target, LuaType[] types) {
+		// We detect invalid type changes by catching CCE or NPE
+		// However, the underlying method may also throw them
+		// In this case, we'll use a temporary wrapper to swallow unrelated exceptions
+		// TODO bypass this whenever possible, this is probably not great for performance
+		/*
+		 * try {
+		 *     args = cast(args)
+		 *     try {
+		 *         result = target(args)
+		 *     } catch (Exception e) {
+		 *         throw new WrapperException(e)
+		 *     }
+		 * } catch (ClassCastException | NullPointerException e) {
+		 *     relink();
+		 * } catch (Exception e) {
+		 *     throw e.getCause();
+		 * }
+		 */
+
+		var wrapAndRethrow = MethodHandles.foldArguments(
+				MethodHandles.dropArguments(MethodHandles.throwException(target.type().returnType(), WrapperException.class), 1, RuntimeException.class), 
+				NEW_WRAPPER_EX
+		);
+		var unwrapAndThrow = MethodHandles.foldArguments(
+				MethodHandles.dropArguments(MethodHandles.throwException(meta.site.type().returnType(), Throwable.class), 1, WrapperException.class),
+				WRAPPER_EX_CAUSE
+		);
+		// IMPORTANT: use the site, NOT target type here!
+		// Otherwise, the fallback path is not actually capable of accepting the type change...
+		// This results in rather cryptic errors
+		// (don't ask how I know)
+		var fallback = MethodHandles.foldArguments(MethodHandles.spreadInvoker(meta.site.type(), 1), meta.relink)
+				.asVarargsCollector(Object[].class)
+				.asType(meta.site.type());
+		
+		// Catch all runtime exceptions (first common superclass of CCE and NPE) from target
+		var callTarget = MethodHandles.catchException(target, RuntimeException.class, wrapAndRethrow);
+		// Try to cast target to expected type
+		var castArgs = callTarget.asType(meta.site.type());
+		// Relink on CCE or NPE from type cast (target-thrown exceptions are wrapped)
+		var guardArgs = MethodHandles.catchException(
+				MethodHandles.catchException(castArgs, NullPointerException.class, MethodHandles.dropArguments(fallback, 0, NullPointerException.class)),
+				ClassCastException.class, MethodHandles.dropArguments(fallback, 0, ClassCastException.class));
+		// Re-throw exception caught from target, if any
+		var unwrap = MethodHandles.catchException(guardArgs, WrapperException.class, unwrapAndThrow);
+		return unwrap;
 	}
 	
 	public static final FixedCallTarget BOOTSTRAP_DYNAMIC = TYPE.staticMethod(Type.of(CallSite.class), "dynamic",

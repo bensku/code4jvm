@@ -26,7 +26,7 @@ public class LuaCallSite {
 	 * Whether or not this site has unknown argument types. We track this
 	 * because runtime type checks are pointless if all types are known.
 	 */
-	private final boolean hasUnknownTypes;
+	public final boolean hasUnknownTypes;
 	
 	public LuaCallSite(MutableCallSite site, LuaType[] types) {
 		this.site = site;
@@ -48,35 +48,13 @@ public class LuaCallSite {
 	
 	/**
 	 * How many times the argument types of this call site have changed.
+	 * This is one of the causes for for re-linkage.
 	 */
 	public int typeChangeCount;
 	
 	/**
-	 * Prototype of the current call target.
+	 * Whether or not this call site currently uses runtime types.
 	 */
-	public Object currentPrototype;
-	
-	/**
-	 * The current callable.
-	 */
-	public Object currentCallable;
-	
-	/**
-	 * Checks if this site should consider runtime types of the arguments.
-	 * @return Whether or not to enable runtime type checks.
-	 */
-	public boolean shouldUseRuntimeTypes() {
-		// TODO better heuristics; runtime type checks make calls slower, but improve target code generation
-		return hasUnknownTypes && typeChangeCount < 3;
-	}
-	
-	/**
-	 * Checks whether or not this site should consider identity of the target,
-	 * or merely prototype of it. This is only applicable to Lua functions.
-	 * @return True for identity checks, false otherwise.
-	 */
-	public boolean shouldCheckTarget() {
-		return linkageCount < 5; // TODO configurable
-	}
+	public boolean usesRuntimeTypes;
 	
 }
