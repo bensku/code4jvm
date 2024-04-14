@@ -41,16 +41,11 @@ public class LuaCallSite {
 	}
 
 	/**
-	 * How many times this call site has been re-linked. Linkage is done when
-	 * the target or prototype of target have changed.
+	 * How many times this call site has been linked. This is done when it is
+	 * first entered, and again if guards fail. The latter tends to occur when
+	 * the target, its prototype or the types at the call site change.
 	 */
 	public int linkageCount;
-	
-	/**
-	 * How many times the argument types of this call site have changed.
-	 * This is one of the causes for for re-linkage.
-	 */
-	public int typeChangeCount;
 	
 	/**
 	 * Whether or not this call site currently uses runtime types.

@@ -6,7 +6,6 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.invoke.MutableCallSite;
 import java.util.Arrays;
-import java.util.stream.Stream;
 
 import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.call.FixedCallTarget;
@@ -25,7 +24,7 @@ import fi.benjami.code4jvm.lua.stdlib.LuaException;
  */
 public class LuaLinker {
 	
-	private static final int RUNTIME_TYPES_MAX_CHANGES = 3, LUA_FUNC_PROTOTYPE_MAX_CHANGES = 5;
+	private static final int RUNTIME_TYPES_MAX_CHANGES = 3, LUA_FUNC_INSTANCE_MAX_CHANGES = 5;
 	
 	private static final MethodHandles.Lookup LOOKUP = MethodHandles.lookup();
 	public static final Type TYPE = Type.of(LuaLinker.class);
@@ -87,10 +86,10 @@ public class LuaLinker {
 		if (callable instanceof LuaFunction function) {
 			// Prefer guard on function instance, unless that changes too often
 			// (because this allows us to consider captured upvalue types)
-			var checkTarget = meta.linkageCount < LUA_FUNC_PROTOTYPE_MAX_CHANGES;
+			var checkTarget = meta.linkageCount < LUA_FUNC_INSTANCE_MAX_CHANGES;
 			// If the call site has unknown types, try to specialize based on
 			// runtime types of the arguments - unless the types change too often
-			var runtimeTypes = meta.hasUnknownTypes && meta.typeChangeCount < RUNTIME_TYPES_MAX_CHANGES;
+			var runtimeTypes = meta.hasUnknownTypes && meta.linkageCount < RUNTIME_TYPES_MAX_CHANGES;
 			var specializedTypes = runtimeTypes ?
 					Arrays.stream(args).map(LuaType::of).toArray(LuaType[]::new) : types;
 
@@ -104,7 +103,7 @@ public class LuaLinker {
 			JavaFunction.Target funcTarget;
 			if (meta.hasUnknownTypes) {
 				// We have arguments with unknown types at compile time
-				if (meta.typeChangeCount < RUNTIME_TYPES_MAX_CHANGES) {
+				if (meta.linkageCount < RUNTIME_TYPES_MAX_CHANGES) {
 					// Use them! Runtime types are never LESS applicable than compile-time types
 					// so we don't need to check anything else
 					specializedTypes = Arrays.stream(args).map(LuaType::of).toArray(LuaType[]::new);
@@ -188,20 +187,21 @@ public class LuaLinker {
 		if (meta.usesRuntimeTypes) {
 			// Guard against type changes using exceptions and MethodHandle dark magic
 			target = catchTypeChange(meta, target, types);
-			meta.typeChangeCount++; // FIXME this might not be type change!
 		} else {
 			// Just cast; linkCall() would have thrown if this was not safe
 			target = target.asType(site.type());
 		}
 		
-		if (linkTarget.guard() != null) {
-			site.setTarget(guardedHandle(meta, target, linkTarget.guard()));		
-		} else {
-			site.setTarget(target);
+		// If there are guards, compose them on top of each other
+		var guardedTarget = target;
+		var guards = linkTarget.guards();
+		for (var guard : guards) {
+			guardedTarget = guardedHandle(meta, guardedTarget, guard);
 		}
 		
-		// But this time, proceed directly to target
-		return target;
+		// Set site to use the target with guards...
+		site.setTarget(guardedTarget);
+		return target; // But skip them this time, we've already done necessary checks
 	}
 	
 	private static MethodHandle dropUnusedArguments(MethodHandle target, LuaType[] argTypes) {

@@ -174,4 +174,62 @@ public class TableTest {
 		assertEquals("bar", outTable.get("foo"));
 	}
 	
+	@Test
+	public void specializeIndex() throws Throwable {
+		// Type changes shouldn't break anything
+		var table = new LuaTable();
+		var func = (LuaFunction) vm.execute("""
+				return function (tbl, field)
+					return tbl[field]
+				end
+				""");
+		var meta = (LuaTable) vm.execute("""
+				return {
+					__index = function (tbl, key) 
+						return key
+					end
+				}
+				""");
+		table.setMetatable(meta);
+		
+		assertEquals(1.0d, func.call(table, 1.0d));
+		assertEquals("foo", func.call(table, "foo"));
+		assertEquals(3.0d, func.call(table, 3.0d));
+	}
+	
+	@Test
+	public void mutableMetatable() throws Throwable {
+		var table = new LuaTable();
+		var func = (LuaFunction) vm.execute("""
+				return function (tbl)
+					return tbl.foo
+				end
+				""");
+		var index1 = vm.execute("""
+				return function (tbl, key)
+					return "meta1"
+				end
+				""");
+		var index2 = vm.execute("""
+				return function (tbl, key)
+					return "meta2"
+				end
+				""");
+		var meta = new LuaTable();
+		table.setMetatable(meta);
+		
+		assertNull(func.call(table));
+		
+		meta.set("__index", index1);
+		assertEquals("meta1", func.call(table));
+		
+		meta.set("__index", index2);
+		assertEquals("meta2", func.call(table));
+
+		meta.set("__index", index1);
+		assertEquals("meta1", func.call(table));
+		
+		meta.set("__index", null);
+		assertNull(func.call(table));
+	}
 }

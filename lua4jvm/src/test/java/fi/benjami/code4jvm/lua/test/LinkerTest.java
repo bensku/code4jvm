@@ -46,7 +46,6 @@ public class LinkerTest {
 				""");
 		assertEquals(3d, result);
 		assertEquals(1, trace.metadata.linkageCount);
-		assertEquals(0, trace.metadata.typeChangeCount);
 		assertEquals(MethodType.methodType(double.class, Object.class, double.class, double.class),
 				getOnlySpecialization().bindTo(null).type());
 	}
@@ -63,7 +62,6 @@ public class LinkerTest {
 				""");
 		assertEquals(3d, result);
 		assertEquals(1, trace.metadata.linkageCount);
-		assertEquals(1, trace.metadata.typeChangeCount);
 		assertEquals(MethodType.methodType(double.class, Object.class, double.class, double.class),
 				getOnlySpecialization().bindTo(null).type());
 	}
@@ -84,7 +82,6 @@ public class LinkerTest {
 		vm.globals().set("bar", 2d);
 		func.call();
 		assertEquals(1, trace.metadata.linkageCount);
-		assertEquals(1, trace.metadata.typeChangeCount);
 		assertEquals(MethodType.methodType(double.class, Object.class, double.class, double.class),
 				getOnlySpecialization().bindTo(null).type());
 		
@@ -93,7 +90,6 @@ public class LinkerTest {
 		vm.globals().set("bar", "barval");
 		func.call();
 		assertEquals(2, trace.metadata.linkageCount);
-		assertEquals(2, trace.metadata.typeChangeCount);
 		
 		// Change types and call function a few more times
 		for (var i = 0; i < 10; i++) {
@@ -108,8 +104,7 @@ public class LinkerTest {
 		
 		// Linker should stop using runtime types if they change too many times
 		// After that, a generic implementation is used and there will be no more linkages
-		assertEquals(4, trace.metadata.linkageCount);
-		assertEquals(3, trace.metadata.typeChangeCount); // Last linkage does not use runtime types
+		assertEquals(3, trace.metadata.linkageCount);
 	}
 	
 	@AfterEach

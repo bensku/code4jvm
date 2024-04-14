@@ -57,7 +57,7 @@ public class TableAccess {
 		if (meta.linkageCount > MAX_LINKAGE_COUNT) {
 			// Slow path: table seems to be changing too often
 			// TODO try to still optimize stable, shared metatable; this is used for Lua "OOP"
-			return new LuaCallTarget(GET, null);
+			return new LuaCallTarget(GET);
 		}
 		
 		var key = args[1];
@@ -85,12 +85,18 @@ public class TableAccess {
 						// Slow path: TODO implement the fast path to __index table
 						// (preferably with support for a chain of __index with metatables)
 						return new LuaCallTarget(GET, CHECK_TABLE_SHAPE.bindTo(table.shape));
-					} else {
+					} else if (index != null) {
 						// Link a call into the __index method
 						var types = new LuaType[] {LuaType.UNKNOWN, LuaType.UNKNOWN};
-						var target = LuaLinker.linkCall(new LuaCallSite(null, types), types, index, table, key);
+						var target = LuaLinker.linkCall(new LuaCallSite(meta.site, types), types, index, table, key);
 						var guard = MethodHandles.insertArguments(CHECK_TABLE_AND_META_SHAPES, 0, table.shape, metatable.shape);
-						return new LuaCallTarget(target.target(), guard);
+						return target.withGuards(guard);
+					} else {
+						// Slow path: not in table, missing __index
+						// this won't become optimized even if key is inserted, because shape doesn't change!
+						// TODO always return null, but use a guard that detects 1) if key was inserted and 2) both shape changes
+						var guard = MethodHandles.insertArguments(CHECK_TABLE_AND_META_SHAPES, 0, table.shape, metatable.shape);
+						return new LuaCallTarget(GET, guard);
 					}
 				} else {
 					// Slow path: metatables on top of more metatables
@@ -106,7 +112,7 @@ public class TableAccess {
 	private static LuaCallTarget resolveConstantSet(LuaCallSite meta, Object[] args) {
 		// TODO implement some optimizations for write path before this is used
 		// Right now this would just slow down the write path
-		return new LuaCallTarget(SET, null);
+		return new LuaCallTarget(SET);
 	}
 	
 	@SuppressWarnings("unused") // MethodHandle

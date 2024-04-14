@@ -15,9 +15,19 @@ public record LuaCallTarget(
 		MethodHandle target,
 		
 		/**
-		 * Guard that should be checked before calling the method. If this
-		 * fails (returns false), the call site will be relinked.
-		 * Nullable; if absent, the call site cannot be relinked.
+		 * Guards that should be evaluated before calling the target.
+		 * If they fail (by returning false), the call site is relinked.
+		 * 
+		 * <p>Multiple guards can be stacked on top of each other. The
+		 * last guard in this array becomes the outermost one.
 		 */
-		MethodHandle guard
-) {}
+		MethodHandle... guards
+) {
+	
+	public LuaCallTarget withGuards(MethodHandle... appendGuards) {
+		var allGuards = new MethodHandle[guards.length + appendGuards.length];
+		System.arraycopy(guards, 0, allGuards, 0, guards.length);
+		System.arraycopy(appendGuards, 0, allGuards, guards.length, appendGuards.length);
+		return new LuaCallTarget(target, allGuards);
+	}
+}
