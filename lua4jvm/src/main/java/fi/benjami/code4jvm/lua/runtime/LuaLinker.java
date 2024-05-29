@@ -30,7 +30,7 @@ public class LuaLinker {
 	public static final Type TYPE = Type.of(LuaLinker.class);
 	
 	static final MethodHandle TARGET_HAS_CHANGED, PROTOTYPE_HAS_CHANGED, TYPE_HAS_CHANGED,
-			ARRAY_FIRST, UPDATE_SITE, NEW_WRAPPER_EX, WRAPPER_EX_CAUSE;
+			ARRAY_FIRST, SHAPE_ARRAYS, UPDATE_SITE, NEW_WRAPPER_EX, WRAPPER_EX_CAUSE;
 	
 	private static final class WrapperException extends RuntimeException {
 		private static final long serialVersionUID = 1L;
@@ -56,6 +56,8 @@ public class LuaLinker {
 					MethodType.methodType(boolean.class, Class.class, Object.class));
 			ARRAY_FIRST = LOOKUP.findStatic(LuaLinker.class, "getArrayFirst",
 					MethodType.methodType(Object.class, Object[].class));
+			SHAPE_ARRAYS = LOOKUP.findStatic(LuaLinker.class, "shapeArrays",
+					MethodType.methodType(Object[].class, int.class, Object[].class));
 			UPDATE_SITE = LOOKUP.findStatic(LuaLinker.class, "updateSite",
 					MethodType.methodType(MethodHandle.class, LuaCallSite.class, Object.class, Object[].class));
 			NEW_WRAPPER_EX = LOOKUP.findConstructor(WrapperException.class, MethodType.methodType(void.class, RuntimeException.class));
@@ -94,9 +96,17 @@ public class LuaLinker {
 			var checkTarget = meta.linkageCount < LUA_FUNC_INSTANCE_MAX_CHANGES;
 			// If the call site has unknown types, try to specialize based on
 			// runtime types of the arguments - unless the types change too often
-			var runtimeTypes = meta.hasUnknownTypes && meta.linkageCount < RUNTIME_TYPES_MAX_CHANGES;
+			var runtimeTypes = meta.hasUnknownTypes && meta.linkageCount < RUNTIME_TYPES_MAX_CHANGES
+					&& !meta.options.spreadArguments();
+			// FIXME runtime type guards currently wreak havoc on varargs collection
 			var specializedTypes = runtimeTypes ?
 					Arrays.stream(args).map(LuaType::of).toArray(LuaType[]::new) : compiledTypes;
+			if (meta.options.spreadArguments() && specializedTypes.length < function.type().acceptedArgs().size()) {
+				// If we have fewer arguments than what the function can take
+				// fill rest with unknown types, as the last might be spread over them
+				specializedTypes = Arrays.copyOf(specializedTypes, function.type().acceptedArgs().size());
+				Arrays.fill(specializedTypes, compiledTypes.length, specializedTypes.length, LuaType.UNKNOWN);
+			}
 
 			// Truncate multival return if site doesn't want to spread
 			target = FunctionCompiler.callTarget(specializedTypes, function, checkTarget,
@@ -174,15 +184,26 @@ public class LuaLinker {
 		
 		if (meta.options.spreadArguments()) {
 			// Last argument of this function call could be a multival
-			// For it, spreadResults was true and we MAY now have an array
-			// If so, we'll need to spread it after other arguments
-			// Well - maybe; spreading is probably expensive, so let's check and use a special guard!
-			if (args[args.length - 1] instanceof Object[]) {
-				target = target.withVarargs(true);
+			if (args[args.length - 1] instanceof Object[] || compiledTypes.length == 1) {
+				int requiredArgs = target.type().parameterCount() - 1; // self arg is never in varargs
+				// Yeah, we have a multival that has a multival as its last element
+				// We need a wrapper that merges them into one flat array
+				var varargsIndex = args.length - 1;
+				if (!target.isVarargsCollector()) {
+					// One problem. The target does not accept Object[]!
+					// But we can make it do that...
+					target = MethodHandles.spreadInvoker(target.type(), 1)
+							.bindTo(target);
+					varargsIndex = 1;
+				}
+				var shapeFilter = MethodHandles.insertArguments(SHAPE_ARRAYS, 0, requiredArgs);
+				target = MethodHandles.filterArguments(target, varargsIndex, shapeFilter)
+						.asVarargsCollector(Object[].class);
 			}
-			// Remember the decision to spread or not; relink if the types change
+			// Use a guard for whatever the decision was
 			var spreadGuard = MethodHandles.dropArguments(
-					TYPE_HAS_CHANGED.bindTo(args[args.length - 1].getClass()),
+					TYPE_HAS_CHANGED.bindTo(args[args.length - 1].getClass())
+						.asType(MethodType.methodType(boolean.class, target.type().lastParameterType())),
 					0,
 					Arrays.copyOfRange(meta.site.type().parameterArray(), 0, meta.site.type().parameterCount() - 1)
 			);
@@ -226,6 +247,19 @@ public class LuaLinker {
 	@SuppressWarnings("unused") // MethodHandle
 	private static Object getArrayFirst(Object[] value) {
 		return value.length != 0 ? value[0] : null;
+	}
+	
+	@SuppressWarnings("unused") // MethodHandle
+	private static Object[] shapeArrays(int expectedLen, Object[] outer) {
+		if (outer[outer.length - 1] instanceof Object[] inner) {
+			// Merge inner into outer
+			var merged = new Object[Math.max(expectedLen, outer.length - 1 + inner.length)];
+			System.arraycopy(outer, 0, merged, 0, outer.length - 1);
+			System.arraycopy(inner, 0, merged, outer.length - 1, inner.length);
+			return merged;
+		} else {
+			return outer.length >= expectedLen ? outer : Arrays.copyOf(outer, expectedLen);
+		}
 	}
 	
 	@SuppressWarnings("unused") // MethodHandle
@@ -335,7 +369,10 @@ public class LuaLinker {
 			CallSiteOptions options) {
 		var site = new MutableCallSite(type);
 		var meta = new LuaCallSite(site, options);
-		var handle = MethodHandles.foldArguments(MethodHandles.spreadInvoker(type, 1), meta.relink)
+		// Use exact invoker if we're certain we're passing an array to varargs target
+		var invoker = type.parameterCount() == 2 && type.lastParameterType().isArray() ?
+				MethodHandles.exactInvoker(type) : MethodHandles.spreadInvoker(type, 1);
+		var handle = MethodHandles.foldArguments(invoker, meta.relink)
 				.asVarargsCollector(Object[].class) // TODO try to use asCollector() instead
 				.asType(type);
 		site.setTarget(handle);

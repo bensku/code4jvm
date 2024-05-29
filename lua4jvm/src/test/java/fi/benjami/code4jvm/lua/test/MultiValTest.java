@@ -88,6 +88,52 @@ public class MultiValTest {
 				""");
 		assertArrayEquals(new Object[] {"foo", 3d, "bar", "baz"},
 				(Object[]) func2.call());
+		// Why two equivalent calls? Only one call skips linker guards, which could still crash
+		assertArrayEquals(new Object[] {"foo", 3d, "bar", "baz"},
+				(Object[]) func2.call());
+		
+		// ... unless, of course, it accepts them
+		var func3 = (LuaFunction) vm.execute("""
+				local function test(...)
+					return "bar", ...
+				end
+				
+				return function (...)
+					return test("foo", ...)
+				end
+				""");
+		assertArrayEquals(new Object[] {"bar", "foo", 3d, 4d, "baz"},
+				(Object[]) func3.call(3d, 4d, "baz"));
+		assertArrayEquals(new Object[] {"bar", "foo", 3d, 4d, "baz"},
+				(Object[]) func3.call(3d, 4d, "baz"));
+		
+		var func4 = (LuaFunction) vm.execute("""
+				local function test(a, b, c, d)
+					return "bar", a, b, c, d
+				end
+				
+				return function (...)
+					return test("foo", ...)
+				end
+				""");
+		assertArrayEquals(new Object[] {"bar", "foo", 3d, 4d, "baz"},
+				(Object[]) func4.call(3d, 4d, "baz"));
+		assertArrayEquals(new Object[] {"bar", "foo", 3d, 4d, "baz"},
+				(Object[]) func4.call(3d, 4d, "baz"));
+		
+		var func5 = (LuaFunction) vm.execute("""
+				local function test(a, b, c, d)
+					return "bar", a, b, c, d
+				end
+				
+				return function (...)
+					return test(...)
+				end
+				""");
+		assertArrayEquals(new Object[] {"bar", 3d, 4d, "baz", null},
+				(Object[]) func5.call(3d, 4d, "baz"));
+		assertArrayEquals(new Object[] {"bar", 3d, 4d, "baz", null},
+				(Object[]) func5.call(3d, 4d, "baz"));
 	}
 	
 	@Test

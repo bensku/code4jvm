@@ -122,8 +122,13 @@ public interface LuaType {
 
 			// Add types of function arguments
 			// Missing arguments are allowed and treated as nil
-			for (var i = 0; i < acceptedArgs.size(); i++) {
-				if (argTypes.length > i) {				
+			var normalArgs = acceptedArgs.size();
+			if (isVarargs()) {
+				normalArgs--;
+				ctx.recordType(LuaLocalVar.VARARGS, LuaType.UNKNOWN); // No type analysis for these yet
+			}
+			for (var i = 0; i < normalArgs; i++) {
+				if (argTypes.length > i) {
 					ctx.recordType(acceptedArgs.get(i), argTypes[i]);
 				} else {
 					ctx.recordType(acceptedArgs.get(i), LuaType.NIL);
