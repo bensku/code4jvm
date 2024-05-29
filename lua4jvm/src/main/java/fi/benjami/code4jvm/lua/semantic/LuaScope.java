@@ -35,6 +35,8 @@ public class LuaScope {
 	 */
 	private final LoopStmt.LoopRef currentLoop;
 	
+	private boolean hasVarargs;
+	
 	public LuaScope(LuaScope parent, boolean functionRoot, LoopStmt.LoopRef currentLoop) {
 		this.parent = parent;
 		this.functionRoot = functionRoot;
@@ -103,6 +105,15 @@ public class LuaScope {
 	
 	public LoopStmt.LoopRef currentLoop() {
 		return currentLoop;
+	}
+	
+	public void addVarargs() {
+		assert !hasVarargs;
+		hasVarargs = true;
+	}
+	
+	public boolean hasVarargs() {
+		return hasVarargs;
 	}
 	
 }

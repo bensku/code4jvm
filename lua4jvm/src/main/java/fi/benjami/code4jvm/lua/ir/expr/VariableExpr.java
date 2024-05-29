@@ -10,6 +10,7 @@ import fi.benjami.code4jvm.lua.ir.LuaLocalVar;
 import fi.benjami.code4jvm.lua.ir.LuaType;
 import fi.benjami.code4jvm.lua.ir.LuaVariable;
 import fi.benjami.code4jvm.lua.ir.TableField;
+import fi.benjami.code4jvm.lua.runtime.CallSiteOptions;
 import fi.benjami.code4jvm.lua.runtime.LuaLinker;
 import fi.benjami.code4jvm.lua.runtime.TableAccess;
 
@@ -30,8 +31,8 @@ public record VariableExpr(
 			var field = tableField.field().emit(ctx, block);
 			if (tableField.field() instanceof LuaConstant constant) {				
 				// Use invokedynamic w/ LuaLinker to try to speed up reads
-				var bootstrap = LuaLinker.BOOTSTRAP_DYNAMIC.withCapturedArgs(ctx.addClassData(new LuaType[] 
-						{LuaType.UNKNOWN, LuaType.UNKNOWN, LuaType.UNKNOWN}));
+				var options = new CallSiteOptions(new LuaType[] {LuaType.UNKNOWN, LuaType.UNKNOWN, LuaType.UNKNOWN}, false, false);
+				var bootstrap = LuaLinker.BOOTSTRAP_DYNAMIC.withCapturedArgs(ctx.addClassData(options));
 				// FIXME code4jvm bug: calling a dynamic target tries to infer types from values, even though it has explicit argTypes available!
 				var getter = ctx.addClassData(TableAccess.CONSTANT_GET, Type.OBJECT);
 				var target = CallTarget.dynamic(bootstrap, Type.OBJECT, "_",

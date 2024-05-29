@@ -29,8 +29,8 @@ public class LuaLinker {
 	private static final MethodHandles.Lookup LOOKUP = MethodHandles.lookup();
 	public static final Type TYPE = Type.of(LuaLinker.class);
 	
-	static final MethodHandle TARGET_HAS_CHANGED, PROTOTYPE_HAS_CHANGED, UPDATE_SITE,
-		NEW_WRAPPER_EX, WRAPPER_EX_CAUSE;
+	static final MethodHandle TARGET_HAS_CHANGED, PROTOTYPE_HAS_CHANGED, TYPE_HAS_CHANGED,
+			ARRAY_FIRST, UPDATE_SITE, NEW_WRAPPER_EX, WRAPPER_EX_CAUSE;
 	
 	private static final class WrapperException extends RuntimeException {
 		private static final long serialVersionUID = 1L;
@@ -52,8 +52,12 @@ public class LuaLinker {
 					MethodType.methodType(boolean.class, Object.class, Object.class));
 			PROTOTYPE_HAS_CHANGED = LOOKUP.findStatic(LuaLinker.class, "checkPrototypeHasChanged",
 					MethodType.methodType(boolean.class, Object.class, Object.class));
+			TYPE_HAS_CHANGED = LOOKUP.findStatic(LuaLinker.class, "checkTypeHasChanged",
+					MethodType.methodType(boolean.class, Class.class, Object.class));
+			ARRAY_FIRST = LOOKUP.findStatic(LuaLinker.class, "getArrayFirst",
+					MethodType.methodType(Object.class, Object[].class));
 			UPDATE_SITE = LOOKUP.findStatic(LuaLinker.class, "updateSite",
-					MethodType.methodType(MethodHandle.class, LuaCallSite.class, LuaType[].class, Object.class, Object[].class));
+					MethodType.methodType(MethodHandle.class, LuaCallSite.class, Object.class, Object[].class));
 			NEW_WRAPPER_EX = LOOKUP.findConstructor(WrapperException.class, MethodType.methodType(void.class, RuntimeException.class));
 			WRAPPER_EX_CAUSE = LOOKUP.findVirtual(WrapperException.class, "getCause", MethodType.methodType(Throwable.class));
 		} catch (NoSuchMethodException | IllegalAccessException e) {
@@ -71,7 +75,7 @@ public class LuaLinker {
 	 * @return A call target that contains target and (optionally) guard
 	 * method handles.
 	 */
-	public static LuaCallTarget linkCall(LuaCallSite meta, LuaType[] types, Object callable, Object... args) {
+	public static LuaCallTarget linkCall(LuaCallSite meta, Object callable, Object... args) {
 		// Debugging and integration testing hook
 		if (LuaDebugOptions.linkerTrace != null) {
 			LuaDebugOptions.linkerTrace.metadata = meta;
@@ -81,6 +85,7 @@ public class LuaLinker {
 			}
 		}
 
+		var compiledTypes = meta.options.types();
 		MethodHandle target;
 		MethodHandle guard;
 		if (callable instanceof LuaFunction function) {
@@ -91,15 +96,22 @@ public class LuaLinker {
 			// runtime types of the arguments - unless the types change too often
 			var runtimeTypes = meta.hasUnknownTypes && meta.linkageCount < RUNTIME_TYPES_MAX_CHANGES;
 			var specializedTypes = runtimeTypes ?
-					Arrays.stream(args).map(LuaType::of).toArray(LuaType[]::new) : types;
+					Arrays.stream(args).map(LuaType::of).toArray(LuaType[]::new) : compiledTypes;
 
-			target = FunctionCompiler.callTarget(specializedTypes, function, checkTarget);
+			// Truncate multival return if site doesn't want to spread
+			target = FunctionCompiler.callTarget(specializedTypes, function, checkTarget,
+					!meta.options.spreadResults());
 			guard = checkTarget ? TARGET_HAS_CHANGED.bindTo(function)
 					: PROTOTYPE_HAS_CHANGED.bindTo(function.type());
 			meta.usesRuntimeTypes = runtimeTypes;
+			
+			if (!function.type().isVarargs()) {
+				// Drop unnecessary arguments that target won't accept
+				target = dropUnusedArguments(target, specializedTypes, 1);
+			}
 		} else if (callable instanceof JavaFunction function) {
 			// Java method exposed to Lua via FFI
-			var specializedTypes = types;
+			var specializedTypes = compiledTypes;
 			JavaFunction.Target funcTarget;
 			if (meta.hasUnknownTypes) {
 				// We have arguments with unknown types at compile time
@@ -111,7 +123,7 @@ public class LuaLinker {
 					meta.usesRuntimeTypes = true;
 				} else {
 					// Too many type changes; we'd prefer to use compile-time types
-					funcTarget = function.matchToArgs(types);
+					funcTarget = function.matchToArgs(compiledTypes);
 					if (funcTarget == null) {
 						// But it is entirely possible that we can't!
 						// Performance be damned, a call that has correct types at runtime must not fail
@@ -124,7 +136,7 @@ public class LuaLinker {
 				}
 			} else {
 				// All argument types are known compile-time
-				funcTarget = function.matchToArgs(types);
+				funcTarget = function.matchToArgs(compiledTypes);
 				meta.usesRuntimeTypes = false;
 			}
 			
@@ -134,15 +146,47 @@ public class LuaLinker {
 				throw new LuaException(function.name() + ": invalid arguments");
 			}
 
-			// Drop unused trailing arguments and self argument; target is not expecting them
-			target = dropUnusedArguments(funcTarget.method(), specializedTypes);
+			target = funcTarget.method();
+			if (!funcTarget.varargs()) {
+				// Drop unused trailing arguments and self argument; target is not expecting them
+				target = dropUnusedArguments(target, specializedTypes, 0);
+			}
+			
+			// Call site wants to truncate a multival
+			// We can't dynamically recompile the target, so do this on caller side
+			if (funcTarget.multipleReturns() && !meta.options.spreadResults()) {
+				target = MethodHandles.filterReturnValue(target, ARRAY_FIRST);
+			}
+			
 			target = MethodHandles.dropArguments(target, 0, Object.class);
+			if (funcTarget.varargs()) {
+				// Tell JVM about varargs (this must be done after dropping arguments!)
+				target = target.asVarargsCollector(Object[].class);
+			}
 			guard = TARGET_HAS_CHANGED.bindTo(function);
 		} else if (callable instanceof DynamicTarget dt) {
+			// TODO multival support; luckily not needed for table support
 			return dt.resolve(meta, args);
 		} else {
 			// TODO metatables
 			throw new UnsupportedOperationException(callable.getClass().getName() + " '" + callable + "' is not callable");			
+		}
+		
+		if (meta.options.spreadArguments()) {
+			// Last argument of this function call could be a multival
+			// For it, spreadResults was true and we MAY now have an array
+			// If so, we'll need to spread it after other arguments
+			// Well - maybe; spreading is probably expensive, so let's check and use a special guard!
+			if (args[args.length - 1] instanceof Object[]) {
+				target = target.withVarargs(true);
+			}
+			// Remember the decision to spread or not; relink if the types change
+			var spreadGuard = MethodHandles.dropArguments(
+					TYPE_HAS_CHANGED.bindTo(args[args.length - 1].getClass()),
+					0,
+					Arrays.copyOfRange(meta.site.type().parameterArray(), 0, meta.site.type().parameterCount() - 1)
+			);
+			return new LuaCallTarget(target, guard, spreadGuard);
 		}
 		
 		return new LuaCallTarget(target, guard);
@@ -175,18 +219,27 @@ public class LuaLinker {
 	}
 	
 	@SuppressWarnings("unused") // MethodHandle
-	private static MethodHandle updateSite(LuaCallSite meta, LuaType[] types,
-			Object callable, Object... args) {
+	private static boolean checkTypeHasChanged(Class<?> expected, Object val) {
+		return expected == val.getClass();
+	}
+	
+	@SuppressWarnings("unused") // MethodHandle
+	private static Object getArrayFirst(Object[] value) {
+		return value.length != 0 ? value[0] : null;
+	}
+	
+	@SuppressWarnings("unused") // MethodHandle
+	private static MethodHandle updateSite(LuaCallSite meta, Object callable, Object... args) {
 		var site = meta.site;
 		meta.linkageCount++;
 		
 		// Link to the target method (which might need to be compiled)
-		var linkTarget = linkCall(meta, types, callable, args);
+		var linkTarget = linkCall(meta, callable, args);
 		var target = linkTarget.target();
 		
 		if (meta.usesRuntimeTypes) {
 			// Guard against type changes using exceptions and MethodHandle dark magic
-			target = catchTypeChange(meta, target, types);
+			target = catchTypeChange(meta, target);
 		} else {
 			// Just cast; linkCall() would have thrown if this was not safe
 			target = target.asType(site.type());
@@ -204,15 +257,18 @@ public class LuaLinker {
 		return target; // But skip them this time, we've already done necessary checks
 	}
 	
-	private static MethodHandle dropUnusedArguments(MethodHandle target, LuaType[] argTypes) {
+	private static MethodHandle dropUnusedArguments(MethodHandle target, LuaType[] argTypes, int leadingCount) {
 		var type = target.type();
-		if (type.parameterCount() == argTypes.length) {
+		if (type.parameterCount() >= argTypes.length) {
 			return target;
 		}
 		
-		// Force linker to cast unused parameters to objects (this is easiest)
-		var dropped = new Class[argTypes.length - type.parameterCount()];
-		Arrays.fill(dropped, Object.class);
+		var dropped = Arrays.stream(argTypes)
+			.skip(type.parameterCount() - leadingCount)
+			.map(LuaType::backingType)
+			.map(Type::loadedClass)
+			.toArray(Class[]::new);
+		
 		return MethodHandles.dropArguments(target, type.parameterCount(), dropped);
 	}
 	
@@ -223,7 +279,7 @@ public class LuaLinker {
 		return MethodHandles.guardWithTest(guard, target, fallback);
 	}
 	
-	private static MethodHandle catchTypeChange(LuaCallSite meta, MethodHandle target, LuaType[] types) {
+	private static MethodHandle catchTypeChange(LuaCallSite meta, MethodHandle target) {
 		// We detect invalid type changes by catching CCE or NPE
 		// However, the underlying method may also throw them
 		// In this case, we'll use a temporary wrapper to swallow unrelated exceptions
@@ -273,12 +329,12 @@ public class LuaLinker {
 	}
 	
 	public static final FixedCallTarget BOOTSTRAP_DYNAMIC = TYPE.staticMethod(Type.of(CallSite.class), "dynamic",
-			Type.of(MethodHandles.Lookup.class), Type.STRING, Type.of(MethodType.class), Type.of(LuaType[].class));
+			Type.of(MethodHandles.Lookup.class), Type.STRING, Type.of(MethodType.class), Type.of(CallSiteOptions.class));
 
 	public static CallSite dynamic(MethodHandles.Lookup lookup, String name, MethodType type,
-			LuaType[] types) {
+			CallSiteOptions options) {
 		var site = new MutableCallSite(type);
-		var meta = new LuaCallSite(site, types);
+		var meta = new LuaCallSite(site, options);
 		var handle = MethodHandles.foldArguments(MethodHandles.spreadInvoker(type, 1), meta.relink)
 				.asVarargsCollector(Object[].class) // TODO try to use asCollector() instead
 				.asType(type);
@@ -287,12 +343,12 @@ public class LuaLinker {
 	}
 	
 	public static final FixedCallTarget BOOTSTRAP_CONSTANT = TYPE.staticMethod(Type.of(CallSite.class), "constant",
-			Type.of(MethodHandles.Lookup.class), Type.STRING, Type.of(MethodType.class), Type.of(LuaType[].class));
+			Type.of(MethodHandles.Lookup.class), Type.STRING, Type.of(MethodType.class), Type.of(CallSiteOptions.class));
 	
 	public static CallSite constant(MethodHandles.Lookup lookup, String name, MethodType type,
-			LuaType[] types) {
+			CallSiteOptions options) {
 		// TODO currently unused, but constant call sites could be used for functions that do not access upvalues
-		return dynamic(lookup, name, type, types);
+		return dynamic(lookup, name, type, options);
 	}
 	
 }

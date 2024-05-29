@@ -3,8 +3,9 @@ package fi.benjami.code4jvm.lua.compiler;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.stream.Stream;
+import java.util.List;
 
 import fi.benjami.code4jvm.Constant;
 import fi.benjami.code4jvm.Type;
@@ -12,6 +13,7 @@ import fi.benjami.code4jvm.Variable;
 import fi.benjami.code4jvm.flag.Access;
 import fi.benjami.code4jvm.flag.FieldFlag;
 import fi.benjami.code4jvm.flag.MethodFlag;
+import fi.benjami.code4jvm.lua.ir.LuaLocalVar;
 import fi.benjami.code4jvm.lua.ir.LuaType;
 import fi.benjami.code4jvm.lua.ir.UpvalueTemplate;
 import fi.benjami.code4jvm.lua.runtime.LuaFunction;
@@ -28,6 +30,12 @@ import fi.benjami.code4jvm.typedef.ClassDef;
  */
 public class FunctionCompiler {
 	
+	public record CacheKey(
+			List<LuaType> argTypes,
+			List<LuaType> upvalueTypes,
+			boolean truncateReturn
+	) {}
+	
 	private static final MethodHandles.Lookup LOOKUP = MethodHandles.lookup();
 	
 	/**
@@ -36,27 +44,22 @@ public class FunctionCompiler {
 	 * @param callable The Lua function object.
 	 * @param useUpvalueTypes Whether or not the upvalue types should be
 	 * considered known.
+	 * @param truncateReturn If a multival would be returned, make the
+	 * function return first value of it instead. This avoids unnecessary
+	 * creation of Java arrays.
 	 * @return Method handle that may be called.
 	 */
-	public static MethodHandle callTarget(LuaType[] argTypes, LuaFunction function, boolean useUpvalueTypes) {
-		LuaType[] upvalueTypes;
-		LuaType[] cacheKey;
-		if (useUpvalueTypes) {
-			upvalueTypes = function.upvalueTypes();;
-			cacheKey = new LuaType[argTypes.length + upvalueTypes.length];
-			System.arraycopy(upvalueTypes, 0, cacheKey, 0, upvalueTypes.length);
-			System.arraycopy(argTypes, 0, cacheKey, upvalueTypes.length, argTypes.length);
-		} else {
-			// If upvalue types are not allowed, do not use them in codegen
-			upvalueTypes = function.type().upvalues().stream()
-					.map(UpvalueTemplate::type)
-					.toArray(LuaType[]::new);
-			cacheKey = argTypes.clone();
-		}
+	public static MethodHandle callTarget(LuaType[] argTypes, LuaFunction function, boolean useUpvalueTypes,
+			boolean truncateReturn) {
+		var upvalueTypes = useUpvalueTypes ? function.upvalueTypes() : function.type().upvalues().stream()
+				.map(UpvalueTemplate::type)
+				.toArray(LuaType[]::new);
+		// TODO only use the argtypes in cache key that actually matter to this function
+		var cacheKey = new CacheKey(List.of(argTypes), useUpvalueTypes ? List.of(upvalueTypes) : null, truncateReturn);
 		
 		// Compile and load the function code, or use something that is already cached
-		var compiledFunc = function.type().specializations().computeIfAbsent(LuaType.tuple(cacheKey), t -> {
-			var ctx = function.type().newContext(argTypes);
+		var compiledFunc = function.type().specializations().computeIfAbsent(cacheKey, t -> {
+			var ctx = function.type().newContext(truncateReturn, argTypes);
 			var code = generateCode(ctx, function.type(), argTypes, upvalueTypes);
 			try {
 				var lookup = LOOKUP.defineHiddenClassWithClassData(code, ctx.allClassData(), true);
@@ -70,10 +73,21 @@ public class FunctionCompiler {
 				var constructor = lookup.findConstructor(lookup.lookupClass(),
 						MethodType.methodType(void.class, jvmUpvalueTypes));
 				
-				var jvmArgTypes = Stream.concat(Stream.of(Object.class), Arrays.stream(argTypes)
+				var normalArgCount = function.type().acceptedArgs().size();
+				if (function.type().isVarargs()) {
+					normalArgCount--; // Last argument slot occupied by varargs multival
+				}
+				var jvmArgTypes = new ArrayList<Class<?>>();
+				jvmArgTypes.add(Object.class); // Function instance
+				jvmArgTypes.addAll(Arrays.stream(argTypes)
+						.limit(normalArgCount)
 						.map(LuaType::backingType)
-						.map(Type::loadedClass))
-						.toArray(Class[]::new);
+						.map(Type::loadedClass)
+						.toList());
+				if (function.type().isVarargs()) {
+					jvmArgTypes.add(Object[].class); // Varargs array
+				}
+				
 				var jvmReturnType = ctx.returnType().equals(LuaType.NIL)
 						? Type.VOID : ctx.returnType().backingType();
 				var method = LOOKUP.findVirtual(lookup.lookupClass(), "call",
@@ -89,7 +103,12 @@ public class FunctionCompiler {
 		// Bind the instance to returned method handle
 		try {
 			var instance = compiledFunc.constructor().invokeWithArguments(function.upvalues());
-			return compiledFunc.function().bindTo(instance);
+			var target = compiledFunc.function().bindTo(instance);
+			if (function.type().isVarargs()) {
+				// Make sure we can actually accept varargs
+				target = target.asVarargsCollector(Object[].class);
+			}
+			return target;
 		} catch (Throwable e) {
 			throw new AssertionError(e);
 		}
@@ -130,26 +149,27 @@ public class FunctionCompiler {
 		method.arg(Type.OBJECT);
 		
 		// Add function arguments to the method
-		// TODO varargs
 		var acceptedArgs = type.acceptedArgs();
-		for (var i = 0; i < Math.min(argTypes.length, acceptedArgs.size()); i++) {
+		var normalArgCount = type.isVarargs() ? acceptedArgs.size() - 1 : acceptedArgs.size();
+		for (var i = 0; i < Math.min(argTypes.length, normalArgCount); i++) {
 			var luaVar = acceptedArgs.get(i);
 			var arg = method.mutableArg(argTypes[i].backingType(), luaVar.name());
 			ctx.addFunctionArg(luaVar, arg);
 		}
-		if (argTypes.length < acceptedArgs.size()) {
+		if (argTypes.length < normalArgCount) {
 			// Too few arguments, make the rest nil
 			for (var i = argTypes.length; i < acceptedArgs.size(); i++) {
 				var missingArg = Variable.create(Type.OBJECT);
 				method.add(missingArg.set(Constant.nullValue(Type.OBJECT)));
 				ctx.addFunctionArg(acceptedArgs.get(i), missingArg);
 			}
-		} else {
-			// Too many arguments; accept and never use them
-			for (var i = acceptedArgs.size(); i < argTypes.length; i++) {
-				method.arg(argTypes[i].backingType(), "_");
-			}
 		}
+		if (type.isVarargs()) {
+			// Accept any number of trailing arguments contained in Object[]
+			var arg = method.mutableArg(Type.OBJECT.array(1), "...");
+			ctx.addFunctionArg(LuaLocalVar.VARARGS, arg);
+		}
+		// Call site will ignore extraneous arguments
 		
 		// Read upvalues from fields to local variables
 		for (var i = 0; i < upvalueTypes.length; i++) {

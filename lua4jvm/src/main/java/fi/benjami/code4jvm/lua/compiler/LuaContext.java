@@ -39,13 +39,18 @@ public class LuaContext {
 	 */
 	private final Map<Object, Object> cache;
 	
+	private final boolean truncateReturn;
+	
 	private LuaType[] returnTypes;
 	
-	public LuaContext() {
+	private boolean allowSpread;
+	
+	public LuaContext(boolean truncateReturn) {
 		this.typeTable = new IdentityHashMap<>();
 		this.variables = new IdentityHashMap<>();
 		this.classData = new ArrayList<>();
 		this.cache = new IdentityHashMap<>();
+		this.truncateReturn = truncateReturn;
 	}
 	
 	public void recordType(LuaVariable variable, LuaType type) {
@@ -140,7 +145,7 @@ public class LuaContext {
 		assert returnTypes != null;
 		if (returnTypes.length == 0) {
 			return LuaType.NIL;
-		} else if (returnTypes.length == 1) {
+		} else if (returnTypes.length == 1 || truncateReturn) {
 			return returnTypes[0];
 		} else {
 			// JVM has no multiple returns, emulate them with tuples
@@ -169,6 +174,18 @@ public class LuaContext {
 	
 	public Object getCache(Object key) {
 		return cache.get(key);
+	}
+	
+	public boolean truncateReturn() {
+		return truncateReturn;
+	}
+	
+	public void setAllowSpread(boolean value) {
+		this.allowSpread = value;
+	}
+	
+	public boolean allowSpread() {
+		return allowSpread;
 	}
 
 }

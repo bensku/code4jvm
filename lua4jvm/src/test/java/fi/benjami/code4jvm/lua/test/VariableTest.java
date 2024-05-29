@@ -118,8 +118,8 @@ public class VariableTest {
 					new LuaBlock(List.of(
 							new SetVariablesStmt(
 									List.of(a, b, c),
-									List.of(new FunctionCallExpr(new LuaConstant(calledFunc, calledType), List.of())),
-									true),
+									List.of(new FunctionCallExpr(new LuaConstant(calledFunc, calledType), List.of()))
+							),
 							new ReturnStmt(List.of(new VariableExpr(a), new VariableExpr(b), new VariableExpr(c)))
 							))
 					);

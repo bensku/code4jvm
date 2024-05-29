@@ -134,9 +134,7 @@ public class IrCompiler extends LuaBaseVisitor<IrNode> {
 		var sources = ctx.values.exp().stream()
 				.map(this::visit)
 				.toList();
-		// FIXME SetVariablesStmt should figure out spread rules itself
-		// (also, preceding variables can be set separately)
-		return new SetVariablesStmt(targets, sources, false);
+		return new SetVariablesStmt(targets, sources);
 	}
 	
 	@Override
@@ -250,9 +248,7 @@ public class IrCompiler extends LuaBaseVisitor<IrNode> {
 		var sources = ctx.values.exp().stream()
 				.map(this::visit)
 				.toList();
-		// FIXME SetVariablesStmt should figure out spread rules itself
-		// (also, preceding variables can be set separately)
-		return new SetVariablesStmt(targets, sources, false);
+		return new SetVariablesStmt(targets, sources);
 	}
 
 	@Override
@@ -398,7 +394,12 @@ public class IrCompiler extends LuaBaseVisitor<IrNode> {
 
 	@Override
 	public IrNode visitVarargs(VarargsContext ctx) {
-		throw new UnsupportedOperationException();
+		if (!currentScope().hasVarargs()) {
+			// TODO semantic error: function has no varargs
+			throw new AssertionError();
+		}
+		
+		return new VariableExpr(LuaLocalVar.VARARGS);
 	}
 
 	@Override
@@ -490,13 +491,20 @@ public class IrCompiler extends LuaBaseVisitor<IrNode> {
 		var scope = currentScope();
 		List<LuaLocalVar> args;
 		if (ctx.argList != null) {
-			args = ctx.argList.names.Name().stream()
-				.map(TerminalNode::getText)
-				.map(scope::declare)
-				.collect(Collectors.toCollection(ArrayList::new));
-			if (ctx.argList.rest != null) {
-				throw new UnsupportedOperationException(); // varargs
+			var names = ctx.argList.names;
+			if (names != null) {				
+				args = ctx.argList.names.Name().stream()
+						.map(TerminalNode::getText)
+						.map(scope::declare)
+						.collect(Collectors.toCollection(ArrayList::new));
+			} else {
+				args = new ArrayList<>(); // Only varargs?
 			}
+			if (ctx.argList.rest != null) {
+				currentScope().addVarargs(); // Allow usage of varargs in this function
+				args.add(LuaLocalVar.VARARGS);
+			}
+			assert args.size() > 0;
 		} else {
 			args = new ArrayList<>();
 		}

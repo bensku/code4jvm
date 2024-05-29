@@ -12,6 +12,7 @@ import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.Value;
 import fi.benjami.code4jvm.lua.compiler.CompiledFunction;
 import fi.benjami.code4jvm.lua.compiler.CompiledShape;
+import fi.benjami.code4jvm.lua.compiler.FunctionCompiler;
 import fi.benjami.code4jvm.lua.compiler.LuaContext;
 import fi.benjami.code4jvm.lua.compiler.ShapeGenerator;
 import fi.benjami.code4jvm.lua.compiler.ShapeTypes;
@@ -87,7 +88,7 @@ public interface LuaType {
 		private final List<LuaLocalVar> acceptedArgs;
 		private final LuaBlock body;
 		
-		private final Map<LuaType.Tuple, CompiledFunction> specializations;
+		private final Map<FunctionCompiler.CacheKey, CompiledFunction> specializations;
 		
 		private Function(List<UpvalueTemplate> upvalues, List<LuaLocalVar> args, LuaBlock body) {
 			this.upvalues = upvalues;
@@ -108,13 +109,13 @@ public interface LuaType {
 			return acceptedArgs;
 		}
 		
-		public Map<LuaType.Tuple, CompiledFunction> specializations() {
+		public Map<FunctionCompiler.CacheKey, CompiledFunction> specializations() {
 			return specializations;
 		}
 		
-		public LuaContext newContext(LuaType... argTypes) {
+		public LuaContext newContext(boolean truncateReturn, LuaType... argTypes) {
 			// Init scope with upvalue types
-			var ctx = new LuaContext();
+			var ctx = new LuaContext(truncateReturn);
 			for (var upvalue : upvalues) {
 				ctx.recordType(upvalue.variable(), upvalue.type());
 			}
@@ -132,6 +133,10 @@ public interface LuaType {
 			// Compute types of local variables and the return type
 			body.outputType(ctx);
 			return ctx;
+		}
+		
+		public boolean isVarargs() {
+			return !acceptedArgs.isEmpty() && acceptedArgs.get(acceptedArgs.size() - 1) == LuaLocalVar.VARARGS;
 		}
 
 		@Override

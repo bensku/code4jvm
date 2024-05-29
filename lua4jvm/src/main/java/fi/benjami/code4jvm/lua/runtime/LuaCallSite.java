@@ -1,7 +1,6 @@
 package fi.benjami.code4jvm.lua.runtime;
 
 import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MutableCallSite;
 
 import fi.benjami.code4jvm.lua.ir.LuaType;
@@ -28,16 +27,22 @@ public class LuaCallSite {
 	 */
 	public final boolean hasUnknownTypes;
 	
-	public LuaCallSite(MutableCallSite site, LuaType[] types) {
+	/**
+	 * Compile-time options for the call site.
+	 */
+	public final CallSiteOptions options;
+	
+	public LuaCallSite(MutableCallSite site, CallSiteOptions options) {
 		this.site = site;
-		this.relink = MethodHandles.insertArguments(LuaLinker.UPDATE_SITE, 0, this, types);
+		this.relink = LuaLinker.UPDATE_SITE.bindTo(this);
 		var unknownType = false;
-		for (var type : types) {
+		for (var type : options.types()) {
 			if (type.equals(LuaType.UNKNOWN)) {
 				unknownType = true;
 			}
 		}
 		this.hasUnknownTypes = unknownType;
+		this.options = options;
 	}
 
 	/**

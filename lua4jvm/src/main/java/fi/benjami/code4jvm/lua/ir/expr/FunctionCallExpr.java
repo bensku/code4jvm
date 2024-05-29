@@ -10,7 +10,9 @@ import fi.benjami.code4jvm.call.CallTarget;
 import fi.benjami.code4jvm.lua.compiler.LuaContext;
 import fi.benjami.code4jvm.lua.ir.IrNode;
 import fi.benjami.code4jvm.lua.ir.LuaType;
+import fi.benjami.code4jvm.lua.runtime.CallSiteOptions;
 import fi.benjami.code4jvm.lua.runtime.LuaLinker;
+import fi.benjami.code4jvm.lua.runtime.MultiVals;
 
 public record FunctionCallExpr(
 		IrNode function,
@@ -28,13 +30,21 @@ public record FunctionCallExpr(
 		
 		// TODO constant bootstrap is broken due to upvalues
 		var bootstrap = LuaLinker.BOOTSTRAP_DYNAMIC;
-		bootstrap = bootstrap.withCapturedArgs(ctx.addClassData(argTypes));
+		var lastMultiVal = !args.isEmpty() && MultiVals.canReturnMultiVal(args.get(args.size() - 1));
+		var options = new CallSiteOptions(argTypes, ctx.allowSpread(), lastMultiVal);
+		bootstrap = bootstrap.withCapturedArgs(ctx.addClassData(options));
 		
 		// Evaluate arguments to values (function is first argument)
 		var argValues = new Value[args.size() + 1];
 		argValues[0] = function.emit(ctx, block).asType(Type.OBJECT);
-		for (var i = 0; i < args.size(); i++) {
+		for (var i = 0; i < args.size() - 1; i++) {
 			argValues[i + 1] = args.get(i).emit(ctx, block);
+		}
+		if (!args.isEmpty()) {
+			// The last argument may spread (if it is the kind that can return a multival)
+			ctx.setAllowSpread(true);
+			argValues[argValues.length - 1] = args.get(args.size() - 1).emit(ctx, block);
+			ctx.setAllowSpread(false);
 		}
 		
 		// Call the function using invokedynamic
@@ -51,10 +61,11 @@ public record FunctionCallExpr(
 		var argTypes = args.stream()
 				.map(node -> node.outputType(ctx))
 				.toArray(LuaType[]::new);
+		// TODO multival type analysis
 		if (type instanceof LuaType.Function function) {
 			// Analyze types of arguments in this call
 			// Run type analysis for the entire function to figure out the return type
-			var returnType = function.newContext(argTypes).returnType();
+			var returnType = function.newContext(!ctx.allowSpread(), argTypes).returnType();
 			ctx.cached(this, new CachedCall(argTypes, returnType));
 			return returnType;
 		} else {

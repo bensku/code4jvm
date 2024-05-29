@@ -35,8 +35,21 @@ public record LuaFunction(
 		var types = Arrays.stream(args)
 				.map(LuaType::of)
 				.toArray(LuaType[]::new);
-		var handle = FunctionCompiler.callTarget(types, this, true);
-		return handle.bindTo(this).invokeWithArguments(args);
+		var handle = FunctionCompiler.callTarget(types, this, true, false);
+		// DO NOT bind anything to the handle, this will break varargs!
+		var acceptedArgCount = type.isVarargs() ? args.length : type.acceptedArgs().size();
+		var realArgs = new Object[acceptedArgCount + 1];
+		realArgs[0] = this;
+		System.arraycopy(args, 0, realArgs, 1, acceptedArgCount);
+		var result = handle.invokeWithArguments(realArgs);
+		
+		// Convert function calls that return multival of one to just the value
+		// E.g. nested function calls may lead to multivals being returned, but usually don't
+		// However, for Java callees we lack information the specialize call targets
+		if (result instanceof Object[] array && array.length == 1) {
+			return array[0]; // So just pick the first element
+		}
+		return result;
 	}
 	
 }

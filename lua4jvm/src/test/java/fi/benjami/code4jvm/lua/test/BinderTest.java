@@ -1,12 +1,15 @@
 package fi.benjami.code4jvm.lua.test;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.lang.invoke.MethodHandles;
+import java.util.Arrays;
 
 import org.junit.jupiter.api.Test;
 
@@ -17,6 +20,8 @@ import fi.benjami.code4jvm.lua.ffi.LuaExport;
 import fi.benjami.code4jvm.lua.stdlib.LuaException;
 
 public class BinderTest {
+	
+	private final LuaBinder BINDER = new LuaBinder(MethodHandles.lookup());
 
 	private static class LuaApi {
 		
@@ -72,8 +77,7 @@ public class BinderTest {
 	
 	@Test
 	public void bindFunctions() throws Throwable {
-		var binder = new LuaBinder(MethodHandles.lookup());
-		var funcs = binder.bindFunctionsFrom(LuaApi.class);
+		var funcs = BINDER.bindFunctionsFrom(LuaApi.class);
 		
 		// Install functions to globals
 		var vm = new LuaVm();
@@ -138,6 +142,44 @@ public class BinderTest {
 		assertThrows(IOException.class, () -> vm.execute("""
 				str = "foo"
 				throwing3(str)
+				"""));
+	}
+	
+	private static class LuaVarargs {
+		@LuaExport("checkArgs")
+		public static boolean checkArgs(Object... args) {
+			return Arrays.equals(args, new Object[] {"foo", "bar", 3d, "baz"});
+		}
+		
+		@LuaExport("returnArgs")
+		public static Object[] returnArgs(Object... args) {
+			return args;
+		}
+		
+		@LuaExport("returnArgs2")
+		public static Object[] returnArgs2(double dummy, Object... args) {
+			return args;
+		}
+	}
+	
+	@Test
+	public void varargs() throws Throwable {
+		var funcs = BINDER.bindFunctionsFrom(LuaVarargs.class);
+		
+		// Install functions to globals
+		var vm = new LuaVm();
+		for (var func : funcs) {
+			vm.globals().set(func.name(), func);
+		}
+		
+		assertTrue((boolean) vm.execute("""
+				return checkArgs("foo", "bar", 3, "baz")
+				"""));
+		assertArrayEquals(new Object[] {"foo", "bar", 3d, "baz"}, (Object[]) vm.execute("""
+				return returnArgs("foo", "bar", 3, "baz")
+				"""));
+		assertArrayEquals(new Object[] {"foo", "bar", 3d, "baz"}, (Object[]) vm.execute("""
+				return returnArgs2(123, "foo", "bar", 3, "baz")
 				"""));
 	}
 }
