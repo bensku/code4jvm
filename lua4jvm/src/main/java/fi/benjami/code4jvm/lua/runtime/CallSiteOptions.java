@@ -25,5 +25,14 @@ public record CallSiteOptions(
 		 */
 		boolean spreadArguments
 ) {
+	
+	/**
+	 * Creates call site options for a non-function call.
+	 * @param types Types at call site. Use UNKNOWNs if not known or needed.
+	 * @return Call site options.
+	 */
+	public static CallSiteOptions nonFunction(LuaType... types) {
+		return new CallSiteOptions(types, false, false);
+	}
 
 }

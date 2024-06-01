@@ -22,6 +22,7 @@ import fi.benjami.code4jvm.lua.ir.stmt.ReturnStmt;
 import fi.benjami.code4jvm.lua.ir.stmt.SetVariablesStmt;
 import fi.benjami.code4jvm.lua.runtime.LuaFunction;
 import fi.benjami.code4jvm.lua.runtime.LuaTable;
+import fi.benjami.code4jvm.lua.stdlib.LuaException;
 
 public class VariableTest {
 
@@ -44,7 +45,7 @@ public class VariableTest {
 				)));
 		var func = new LuaFunction(type, new Object[0]);
 		assertEquals(3d, func.call(1d, 2d));
-		assertThrows(UnsupportedOperationException.class, () -> func.call(null, 4d));
+		assertThrows(LuaException.class, () -> func.call(null, 4d));
 	}
 	
 	@Test

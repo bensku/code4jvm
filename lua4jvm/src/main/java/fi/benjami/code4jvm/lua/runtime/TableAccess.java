@@ -14,7 +14,7 @@ public class TableAccess {
 	
 	private static final int MAX_LINKAGE_COUNT = 3;
 
-	private static final MethodHandle CHECK_TABLE_SHAPE, CHECK_TABLE_AND_META_SHAPES;
+	static final MethodHandle CHECK_TABLE_SHAPE, CHECK_TABLE_AND_META_SHAPES;
 	private static final MethodHandle GET_ARRAY, SET_ARRAY, GET_AT, SET_AT, GET_RAW, SET_RAW, GET, SET;
 	
 	public static final DynamicTarget CONSTANT_GET, CONSTANT_SET;

@@ -18,6 +18,7 @@ import fi.benjami.code4jvm.lua.ir.expr.FunctionDeclExpr;
 import fi.benjami.code4jvm.lua.ir.expr.VariableExpr;
 import fi.benjami.code4jvm.lua.ir.stmt.ReturnStmt;
 import fi.benjami.code4jvm.lua.runtime.LuaFunction;
+import fi.benjami.code4jvm.lua.stdlib.LuaException;
 
 public class FunctionTest {
 
@@ -45,7 +46,7 @@ public class FunctionTest {
 				)));
 		var func = new LuaFunction(type, new Object[0]);
 		assertEquals(3d, func.call(1d, 2d));
-		assertThrows(UnsupportedOperationException.class, () -> func.call(null, 4d));
+		assertThrows(LuaException.class, () -> func.call(null, 4d));
 	}
 	
 	@Test
@@ -129,6 +130,6 @@ public class FunctionTest {
 		var func = new LuaFunction(type, new Object[] {10d});
 		var nested = (LuaFunction) func.call(5d);
 		assertEquals(27.5d, nested.call(3.5d));
-		assertThrows(UnsupportedOperationException.class, () -> nested.call(new Object()));
+		assertThrows(LuaException.class, () -> nested.call(new Object()));
 	}
 }

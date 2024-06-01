@@ -7,9 +7,13 @@ import java.lang.invoke.MethodType;
 import java.lang.invoke.MutableCallSite;
 import java.util.Arrays;
 
+import fi.benjami.code4jvm.Expression;
 import fi.benjami.code4jvm.Type;
+import fi.benjami.code4jvm.Value;
+import fi.benjami.code4jvm.call.CallTarget;
 import fi.benjami.code4jvm.call.FixedCallTarget;
 import fi.benjami.code4jvm.lua.compiler.FunctionCompiler;
+import fi.benjami.code4jvm.lua.compiler.LuaContext;
 import fi.benjami.code4jvm.lua.debug.LuaDebugOptions;
 import fi.benjami.code4jvm.lua.ffi.JavaFunction;
 import fi.benjami.code4jvm.lua.ir.LuaType;
@@ -70,7 +74,6 @@ public class LuaLinker {
 	/**
 	 * Links a call from Lua.
 	 * @param meta Call site metadata.
-	 * @param types Compile-time types at the call site.
 	 * @param callable The callable object. This could be a function or e.g. a
 	 * {@link TableAccess table accessor}.
 	 * @param args Runtime arguments for the call.
@@ -214,6 +217,25 @@ public class LuaLinker {
 	}
 	
 	/**
+	 * Sets up an {@code invokedynamic} call that can be emitted as bytecode.
+	 * @param ctx Lua context which this call belongs to.
+	 * @param options Call site options.
+	 * @param callable The callable object, e.g. a {@link LuaFunction function}
+	 * or a {@link DynamicTarget dynamic target}.
+	 * @param args Arguments for the call site (as compile-time values).
+	 * @return An expression that emits the call.
+	 */
+	public static Expression setupCall(LuaContext ctx, CallSiteOptions options, Object callable, Value... args) {
+		var bootstrap = LuaLinker.BOOTSTRAP_DYNAMIC.withCapturedArgs(ctx.addClassData(options));
+		var target = CallTarget.dynamic(bootstrap, Type.OBJECT, "_",
+				Arrays.stream(options.types()).map(LuaType::backingType).toArray(Type[]::new));
+		var allArgs = new Value[args.length + 1];
+		allArgs[0] = ctx.addClassData(callable, Type.OBJECT);
+		System.arraycopy(args, 0, allArgs, 1, args.length);
+		return target.call(allArgs);
+	}
+	
+	/**
 	 * Checks if the call target object has changed. This allows for
 	 * specializations to use upvalue type information, but may cause excessive
 	 * re-linking with e.g. inline functions passed as callbacks.
@@ -283,6 +305,9 @@ public class LuaLinker {
 		var guardedTarget = target;
 		var guards = linkTarget.guards();
 		for (var guard : guards) {
+			// Narrow (cast) the guard's argument types so that it matches target
+			var guardArgs = Arrays.copyOf(target.type().parameterArray(), guard.type().parameterCount());
+			guard = guard.asType(MethodType.methodType(boolean.class, guardArgs));
 			guardedTarget = guardedHandle(meta, guardedTarget, guard);
 		}
 		

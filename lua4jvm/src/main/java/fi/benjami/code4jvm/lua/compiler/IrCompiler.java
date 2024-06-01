@@ -12,6 +12,7 @@ import org.antlr.v4.runtime.tree.TerminalNode;
 import fi.benjami.code4jvm.lua.ir.IrNode;
 import fi.benjami.code4jvm.lua.ir.LuaBlock;
 import fi.benjami.code4jvm.lua.ir.LuaLocalVar;
+import fi.benjami.code4jvm.lua.ir.LuaType;
 import fi.benjami.code4jvm.lua.ir.LuaVariable;
 import fi.benjami.code4jvm.lua.ir.TableField;
 import fi.benjami.code4jvm.lua.ir.expr.ArithmeticExpr;
@@ -334,7 +335,15 @@ public class IrCompiler extends LuaBaseVisitor<IrNode> {
 	@Override
 	public IrNode visitUnaryOp(UnaryOpContext ctx) {
 		return switch (ctx.unop().getText()) {
-		case "-" -> null;
+		case "-" -> {
+			// FIXME proper unary operation support (though this might still make sense as optimization)
+			var value = visit(ctx.exp());
+			if (value instanceof LuaConstant constant && constant.type().equals(LuaType.NUMBER)) {
+				yield new LuaConstant(-(double) constant.value());
+			} else {
+				throw new UnsupportedOperationException();
+			}
+		}
 		case "not" -> throw new UnsupportedOperationException();
 		case "#" -> throw new UnsupportedOperationException();
 		case "~" -> throw new UnsupportedOperationException();
