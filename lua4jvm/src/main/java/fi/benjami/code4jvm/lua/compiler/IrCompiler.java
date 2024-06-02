@@ -19,8 +19,10 @@ import fi.benjami.code4jvm.lua.ir.expr.ArithmeticExpr;
 import fi.benjami.code4jvm.lua.ir.expr.CompareExpr;
 import fi.benjami.code4jvm.lua.ir.expr.FunctionCallExpr;
 import fi.benjami.code4jvm.lua.ir.expr.FunctionDeclExpr;
+import fi.benjami.code4jvm.lua.ir.expr.LengthExpr;
 import fi.benjami.code4jvm.lua.ir.expr.LogicalExpr;
 import fi.benjami.code4jvm.lua.ir.expr.LuaConstant;
+import fi.benjami.code4jvm.lua.ir.expr.NegateExpr;
 import fi.benjami.code4jvm.lua.ir.expr.StringConcatExpr;
 import fi.benjami.code4jvm.lua.ir.expr.TableInitExpr;
 import fi.benjami.code4jvm.lua.ir.expr.VariableExpr;
@@ -334,17 +336,9 @@ public class IrCompiler extends LuaBaseVisitor<IrNode> {
 	@Override
 	public IrNode visitUnaryOp(UnaryOpContext ctx) {
 		return switch (ctx.unop().getText()) {
-		case "-" -> {
-			// FIXME proper unary operation support (though this might still make sense as optimization)
-			var value = visit(ctx.exp());
-			if (value instanceof LuaConstant constant && constant.type().equals(LuaType.NUMBER)) {
-				yield new LuaConstant(-(double) constant.value());
-			} else {
-				throw new UnsupportedOperationException();
-			}
-		}
+		case "-" -> new NegateExpr(visit(ctx.exp()));
 		case "not" -> throw new UnsupportedOperationException();
-		case "#" -> throw new UnsupportedOperationException();
+		case "#" -> new LengthExpr(visit(ctx.exp()));
 		case "~" -> throw new UnsupportedOperationException();
 		default -> throw new AssertionError();
 		};

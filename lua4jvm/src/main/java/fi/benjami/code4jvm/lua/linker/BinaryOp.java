@@ -59,6 +59,7 @@ public class BinaryOp {
 	public static DynamicTarget newTarget(Class<?> expectedType, MethodHandle fastPath, String metamethod,
 			BiFunction<Object, Object, LuaException> errorHandler) {
 		assert !expectedType.isPrimitive(); // LHS and RHS will be in their boxed forms
+		assert !expectedType.equals(LuaType.class); // This is currently unnecessary for Lua
 		return (meta, args) -> {
 			assert args.length == 2;
 			var lhs = args[0];

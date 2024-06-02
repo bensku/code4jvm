@@ -63,4 +63,12 @@ public class Arithmetic {
 			}, "remainder"));
 		};
 	}
+	
+	public static Expression negate(Value value) {
+		return block -> {
+			return block.add(Bytecode.run(value.type(), new Value[] {value}, ctx -> {
+				ctx.asm().visitInsn(value.type().getOpcode(INEG, ctx));
+			}, "negate"));
+		};
+	}
 }
