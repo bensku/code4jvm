@@ -1,6 +1,6 @@
 package fi.benjami.code4jvm.lua.debug;
 
-import fi.benjami.code4jvm.lua.runtime.LuaCallSite;
+import fi.benjami.code4jvm.lua.linker.LuaCallSite;
 
 public class LinkerTrace {
 

@@ -113,7 +113,7 @@ public class TableTest {
 					end
 				}
 				""");
-		table.setMetatable(meta);
+		table.metatable(meta);
 		assertEquals("bar", func.call(table));
 		assertEquals(2, trace.metadata.linkageCount);
 		
@@ -158,7 +158,7 @@ public class TableTest {
 					end
 				}
 				""");
-		table.setMetatable(meta);
+		table.metatable(meta);
 		
 		// Existing key ignores __newindex
 		func.call(table, "test2");
@@ -190,7 +190,7 @@ public class TableTest {
 					end
 				}
 				""");
-		table.setMetatable(meta);
+		table.metatable(meta);
 		
 		assertEquals(1.0d, func.call(table, 1.0d));
 		assertEquals("foo", func.call(table, "foo"));
@@ -216,7 +216,7 @@ public class TableTest {
 				end
 				""");
 		var meta = new LuaTable();
-		table.setMetatable(meta);
+		table.metatable(meta);
 		
 		assertNull(func.call(table));
 		

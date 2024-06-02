@@ -1,4 +1,4 @@
-package fi.benjami.code4jvm.lua.runtime;
+package fi.benjami.code4jvm.lua.linker;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -6,6 +6,8 @@ import java.lang.invoke.MethodType;
 import java.util.function.BiFunction;
 
 import fi.benjami.code4jvm.lua.ir.LuaType;
+import fi.benjami.code4jvm.lua.runtime.LuaTable;
+import fi.benjami.code4jvm.lua.runtime.TableAccess;
 import fi.benjami.code4jvm.lua.stdlib.LuaException;
 
 /**
@@ -26,7 +28,7 @@ public class BinaryOp {
 		if (!(lhs instanceof LuaTable table)) {
 			return true; // Can't possibly have a metamethod
 		}
-		return table.getMetatable() != null && table.getMetatable().get(metamethod) != null;
+		return table.metatable() != null && table.metatable().get(metamethod) != null;
 	}
 	
 	private static final MethodHandle CHECK_TYPES, CHECK_LHS_METAMETHOD;
@@ -66,13 +68,13 @@ public class BinaryOp {
 				var guard = CHECK_TYPES.bindTo(expectedType);
 				return new LuaCallTarget(fastPath, guard);
 			} else if (lhs instanceof LuaTable table
-					&& table.getMetatable() != null
-					&& table.getMetatable().get(metamethod) != null) {
+					&& table.metatable() != null
+					&& table.metatable().get(metamethod) != null) {
 				// Slower path, call LHS metamethod
 				return useMetamethod(meta, table, metamethod, lhs, rhs);
 			} else if (rhs instanceof LuaTable table
-					&& table.getMetatable() != null
-					&& table.getMetatable().get(metamethod) != null) {
+					&& table.metatable() != null
+					&& table.metatable().get(metamethod) != null) {
 				// Call RHS metamethod like above, but also relink if LHS ever gets a metamethod
 				var target = useMetamethod(meta, table, metamethod, lhs, rhs);
 				var guard = CHECK_LHS_METAMETHOD.bindTo(metamethod);
@@ -86,9 +88,9 @@ public class BinaryOp {
 	private static LuaCallTarget useMetamethod(LuaCallSite meta, LuaTable table, String metamethod, Object lhs, Object rhs) {
 		var types = new LuaType[] {LuaType.UNKNOWN, LuaType.UNKNOWN};
 		var target = LuaLinker.linkCall(new LuaCallSite(meta.site, new CallSiteOptions(types, false, false)),
-				table.getMetatable().get(metamethod), lhs, rhs);
+				table.metatable().get(metamethod), lhs, rhs);
 		var guard = MethodHandles.insertArguments(TableAccess.CHECK_TABLE_AND_META_SHAPES, 0,
-				table.shape, table.getMetatable().shape);
+				table.shape(), table.metatable().shape());
 		return target.withGuards(guard);
 	}
 	

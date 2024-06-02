@@ -5,16 +5,23 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 
 import fi.benjami.code4jvm.lua.ir.LuaType;
+import fi.benjami.code4jvm.lua.linker.CallSiteOptions;
+import fi.benjami.code4jvm.lua.linker.DynamicTarget;
+import fi.benjami.code4jvm.lua.linker.LuaCallSite;
+import fi.benjami.code4jvm.lua.linker.LuaCallTarget;
+import fi.benjami.code4jvm.lua.linker.LuaLinker;
 
 /**
  * Linker support for table access.
+ * 
+ * @implNote In runtime package for package-private LuaTable access.
  *
  */
 public class TableAccess {
 	
 	private static final int MAX_LINKAGE_COUNT = 3;
 
-	static final MethodHandle CHECK_TABLE_SHAPE, CHECK_TABLE_AND_META_SHAPES;
+	public static final MethodHandle CHECK_TABLE_SHAPE, CHECK_TABLE_AND_META_SHAPES;
 	private static final MethodHandle GET_ARRAY, SET_ARRAY, GET_AT, SET_AT, GET_RAW, SET_RAW, GET, SET;
 	
 	public static final DynamicTarget CONSTANT_GET, CONSTANT_SET;
@@ -62,7 +69,7 @@ public class TableAccess {
 		
 		var key = args[1];
 		if (args[0] instanceof LuaTable table) {
-			var metatable = table.getMetatable();
+			var metatable = table.metatable();
 			var arrayIndex = table.getArrayIndex(key);
 			if (arrayIndex != -1 && (table.getArray(arrayIndex) != null || metatable == null)) {
 				// Fast path: read value from array
@@ -78,7 +85,7 @@ public class TableAccess {
 				return new LuaCallTarget(target, CHECK_TABLE_SHAPE.bindTo(table.shape));
 			} else {
 				// We need to check the metatable
-				if (metatable.metatable == null) {
+				if (metatable.metatable() == null) {
 					// Fast path: metatable that does not itself have a metatable
 					var index = metatable.get("__index");
 					if (index instanceof LuaTable fallbackTbl) {
@@ -88,7 +95,7 @@ public class TableAccess {
 					} else if (index != null) {
 						// Link a call into the __index method
 						var types = new LuaType[] {LuaType.UNKNOWN, LuaType.UNKNOWN};
-						var target = LuaLinker.linkCall(new LuaCallSite(meta.site, new CallSiteOptions(types, false, false)), index, table, key);
+						var target = LuaLinker.linkCall(new LuaCallSite(meta.site, CallSiteOptions.nonFunction(types)), index, table, key);
 						var guard = MethodHandles.insertArguments(CHECK_TABLE_AND_META_SHAPES, 0, table.shape, metatable.shape);
 						return target.withGuards(guard);
 					} else {

@@ -10,8 +10,8 @@ import fi.benjami.code4jvm.lua.ir.LuaLocalVar;
 import fi.benjami.code4jvm.lua.ir.LuaType;
 import fi.benjami.code4jvm.lua.ir.LuaVariable;
 import fi.benjami.code4jvm.lua.ir.TableField;
-import fi.benjami.code4jvm.lua.runtime.CallSiteOptions;
-import fi.benjami.code4jvm.lua.runtime.LuaLinker;
+import fi.benjami.code4jvm.lua.linker.CallSiteOptions;
+import fi.benjami.code4jvm.lua.linker.LuaLinker;
 import fi.benjami.code4jvm.lua.runtime.TableAccess;
 
 /**

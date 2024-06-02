@@ -85,7 +85,6 @@ import fi.benjami.code4jvm.lua.parser.LuaParser.VarReferenceContext;
 import fi.benjami.code4jvm.lua.parser.LuaParser.VarargsContext;
 import fi.benjami.code4jvm.lua.parser.LuaParser.VarlistContext;
 import fi.benjami.code4jvm.lua.parser.LuaParser.WhileLoopContext;
-import fi.benjami.code4jvm.lua.semantic.LuaScope;
 
 public class IrCompiler extends LuaBaseVisitor<IrNode> {
 	

@@ -10,8 +10,8 @@ import fi.benjami.code4jvm.call.CallTarget;
 import fi.benjami.code4jvm.lua.compiler.LuaContext;
 import fi.benjami.code4jvm.lua.ir.IrNode;
 import fi.benjami.code4jvm.lua.ir.LuaType;
-import fi.benjami.code4jvm.lua.runtime.CallSiteOptions;
-import fi.benjami.code4jvm.lua.runtime.LuaLinker;
+import fi.benjami.code4jvm.lua.linker.CallSiteOptions;
+import fi.benjami.code4jvm.lua.linker.LuaLinker;
 import fi.benjami.code4jvm.lua.runtime.MultiVals;
 
 public record FunctionCallExpr(

@@ -16,8 +16,8 @@ import fi.benjami.code4jvm.flag.MethodFlag;
 import fi.benjami.code4jvm.lua.ir.LuaLocalVar;
 import fi.benjami.code4jvm.lua.ir.LuaType;
 import fi.benjami.code4jvm.lua.ir.UpvalueTemplate;
+import fi.benjami.code4jvm.lua.linker.LuaLinker;
 import fi.benjami.code4jvm.lua.runtime.LuaFunction;
-import fi.benjami.code4jvm.lua.runtime.LuaLinker;
 import fi.benjami.code4jvm.statement.Return;
 import fi.benjami.code4jvm.typedef.ClassDef;
 

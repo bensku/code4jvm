@@ -1,4 +1,4 @@
-package fi.benjami.code4jvm.lua.runtime;
+package fi.benjami.code4jvm.lua.linker;
 
 import java.lang.invoke.CallSite;
 import java.lang.invoke.MethodHandle;
@@ -17,6 +17,8 @@ import fi.benjami.code4jvm.lua.compiler.LuaContext;
 import fi.benjami.code4jvm.lua.debug.LuaDebugOptions;
 import fi.benjami.code4jvm.lua.ffi.JavaFunction;
 import fi.benjami.code4jvm.lua.ir.LuaType;
+import fi.benjami.code4jvm.lua.runtime.LuaFunction;
+import fi.benjami.code4jvm.lua.runtime.TableAccess;
 import fi.benjami.code4jvm.lua.stdlib.LuaException;
 
 /**

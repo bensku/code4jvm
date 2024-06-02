@@ -1,4 +1,4 @@
-package fi.benjami.code4jvm.lua.runtime;
+package fi.benjami.code4jvm.lua.linker;
 
 /**
  * Dynamic targets are callable like Lua functions. However, when first

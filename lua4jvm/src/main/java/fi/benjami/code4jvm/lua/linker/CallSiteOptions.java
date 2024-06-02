@@ -1,4 +1,4 @@
-package fi.benjami.code4jvm.lua.runtime;
+package fi.benjami.code4jvm.lua.linker;
 
 import fi.benjami.code4jvm.lua.ir.LuaType;
 

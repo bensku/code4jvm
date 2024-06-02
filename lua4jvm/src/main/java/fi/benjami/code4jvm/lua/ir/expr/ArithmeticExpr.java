@@ -13,10 +13,10 @@ import fi.benjami.code4jvm.call.CallTarget;
 import fi.benjami.code4jvm.lua.compiler.LuaContext;
 import fi.benjami.code4jvm.lua.ir.IrNode;
 import fi.benjami.code4jvm.lua.ir.LuaType;
-import fi.benjami.code4jvm.lua.runtime.BinaryOp;
-import fi.benjami.code4jvm.lua.runtime.CallSiteOptions;
-import fi.benjami.code4jvm.lua.runtime.DynamicTarget;
-import fi.benjami.code4jvm.lua.runtime.LuaLinker;
+import fi.benjami.code4jvm.lua.linker.BinaryOp;
+import fi.benjami.code4jvm.lua.linker.CallSiteOptions;
+import fi.benjami.code4jvm.lua.linker.DynamicTarget;
+import fi.benjami.code4jvm.lua.linker.LuaLinker;
 import fi.benjami.code4jvm.lua.stdlib.LuaException;
 import fi.benjami.code4jvm.statement.Arithmetic;
 

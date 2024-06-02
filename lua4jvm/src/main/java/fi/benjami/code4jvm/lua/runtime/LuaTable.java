@@ -2,6 +2,9 @@ package fi.benjami.code4jvm.lua.runtime;
 
 import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.lua.ir.LuaType;
+import fi.benjami.code4jvm.lua.linker.CallSiteOptions;
+import fi.benjami.code4jvm.lua.linker.LuaCallSite;
+import fi.benjami.code4jvm.lua.linker.LuaLinker;
 
 /**
  * A Java implementation of the Lua <code>table</code> data type.
@@ -270,11 +273,11 @@ public class LuaTable {
 	
 	// Misc
 	
-	public LuaTable getMetatable() {
+	public LuaTable metatable() {
 		return metatable;
 	}
 	
-	public void setMetatable(LuaTable metatable) {
+	public void metatable(LuaTable metatable) {
 		if (this.metatable == metatable) {
 			return; // Metatable didn't actually change
 		}
@@ -294,5 +297,9 @@ public class LuaTable {
 		// Lua doesn't count table[0] as part of array
 		// For simplicity, we still keep it as first slot of the array
 		return arraySize == 0 ? 0 : arraySize - 1;
+	}
+	
+	public Object shape() {
+		return shape;
 	}
 }

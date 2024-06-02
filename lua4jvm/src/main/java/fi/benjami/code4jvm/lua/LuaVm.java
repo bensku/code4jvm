@@ -6,6 +6,7 @@ import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 
 import fi.benjami.code4jvm.lua.compiler.IrCompiler;
+import fi.benjami.code4jvm.lua.compiler.LuaScope;
 import fi.benjami.code4jvm.lua.ir.LuaLocalVar;
 import fi.benjami.code4jvm.lua.ir.LuaModule;
 import fi.benjami.code4jvm.lua.ir.LuaType;
@@ -14,7 +15,6 @@ import fi.benjami.code4jvm.lua.parser.LuaLexer;
 import fi.benjami.code4jvm.lua.parser.LuaParser;
 import fi.benjami.code4jvm.lua.runtime.LuaFunction;
 import fi.benjami.code4jvm.lua.runtime.LuaTable;
-import fi.benjami.code4jvm.lua.semantic.LuaScope;
 
 public class LuaVm {
 	

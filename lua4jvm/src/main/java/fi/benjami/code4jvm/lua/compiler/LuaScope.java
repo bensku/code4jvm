@@ -1,4 +1,4 @@
-package fi.benjami.code4jvm.lua.semantic;
+package fi.benjami.code4jvm.lua.compiler;
 
 import java.util.ArrayList;
 import java.util.HashMap;

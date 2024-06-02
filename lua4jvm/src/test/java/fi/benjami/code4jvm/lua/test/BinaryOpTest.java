@@ -38,7 +38,7 @@ public class BinaryOpTest {
 				"""));
 		
 		var tbl = new LuaTable();
-		tbl.setMetatable(metaTbl);
+		tbl.metatable(metaTbl);
 		
 		var concat = (LuaFunction) vm.execute("""
 				return function (lhs, rhs)
@@ -87,7 +87,7 @@ public class BinaryOpTest {
 		metaTbl.set("__sub", metamethod);
 		
 		var tbl = new LuaTable();
-		tbl.setMetatable(metaTbl);
+		tbl.metatable(metaTbl);
 		
 		vm.globals().set("testTbl", tbl);
 		
