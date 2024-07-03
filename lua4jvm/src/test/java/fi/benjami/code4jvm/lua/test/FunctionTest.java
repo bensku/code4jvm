@@ -7,6 +7,7 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
+import fi.benjami.code4jvm.lua.LuaVm;
 import fi.benjami.code4jvm.lua.ir.LuaBlock;
 import fi.benjami.code4jvm.lua.ir.LuaLocalVar;
 import fi.benjami.code4jvm.lua.ir.LuaType;
@@ -22,13 +23,15 @@ import fi.benjami.code4jvm.lua.stdlib.LuaException;
 
 public class FunctionTest {
 
+	private final LuaVm dummy = new LuaVm();
+	
 	@Test
 	public void emptyFunction() throws Throwable {
 		// Empty function with no upvalues or arguments that returns nothing
 		var type = LuaType.function(List.of(), List.of(), new LuaBlock(List.of(
 				new ReturnStmt(List.of())
 				)));
-		var func = new LuaFunction(type, new Object[0]);
+		var func = new LuaFunction(dummy, type, new Object[0]);
 		func.call();
 	}
 	
@@ -44,7 +47,7 @@ public class FunctionTest {
 						new ArithmeticExpr(new VariableExpr(a), ArithmeticExpr.Kind.ADD, new VariableExpr(b))
 						))
 				)));
-		var func = new LuaFunction(type, new Object[0]);
+		var func = new LuaFunction(dummy, type, new Object[0]);
 		assertEquals(3d, func.call(1d, 2d));
 		assertThrows(LuaException.class, () -> func.call(null, 4d));
 	}
@@ -61,7 +64,7 @@ public class FunctionTest {
 						new ArithmeticExpr(new VariableExpr(a), ArithmeticExpr.Kind.ADD, new VariableExpr(b))
 						))
 				)));
-		var func = new LuaFunction(type, new Object[] {10d});
+		var func = new LuaFunction(dummy, type, new Object[] {10d});
 		assertEquals(12d, func.call(2d));
 	}
 	
@@ -77,7 +80,7 @@ public class FunctionTest {
 						new ArithmeticExpr(new VariableExpr(a1), ArithmeticExpr.Kind.ADD, new VariableExpr(b1))
 						))
 				)));
-		var target = new LuaFunction(targetType, new Object[0]);
+		var target = new LuaFunction(dummy, targetType, new Object[0]);
 		
 		var a2 = new LuaLocalVar("a");
 		var b2 = new LuaLocalVar("b");
@@ -91,7 +94,7 @@ public class FunctionTest {
 										List.of(new VariableExpr(a2), new VariableExpr(b2))
 								)))
 				)));
-		var wrapper = new LuaFunction(wrapperType, new Object[0]);
+		var wrapper = new LuaFunction(dummy, wrapperType, new Object[0]);
 		assertEquals(40d, wrapper.call(15d, 25d));
 	}
 	
@@ -127,7 +130,7 @@ public class FunctionTest {
 										))
 								)))
 				)));
-		var func = new LuaFunction(type, new Object[] {10d});
+		var func = new LuaFunction(dummy, type, new Object[] {10d});
 		var nested = (LuaFunction) func.call(5d);
 		assertEquals(27.5d, nested.call(3.5d));
 		assertThrows(LuaException.class, () -> nested.call(new Object()));

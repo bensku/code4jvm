@@ -101,8 +101,7 @@ public class LuaTable {
 		} else {
 			// Executable __index
 			// TODO try to optimize this using LambdaMetafactory or custom codegen
-			var types = new LuaType[] {LuaType.TABLE, LuaType.UNKNOWN};
-			var target = LuaLinker.linkCall(new LuaCallSite(null, new CallSiteOptions(types, false, false)), index, this, key);
+			var target = LuaLinker.linkCall(new LuaCallSite(null, CallSiteOptions.nonFunction(null, LuaType.TABLE, LuaType.UNKNOWN)), index, this, key);
 			try {
 				return target.target().invoke(index, this, key);
 			} catch (Throwable e) {
@@ -176,8 +175,8 @@ public class LuaTable {
 			} else {
 				// Executable __newindex
 				// TODO try to optimize this using LambdaMetafactory or custom codegen
-				var types = new LuaType[] {LuaType.TABLE, LuaType.UNKNOWN, LuaType.UNKNOWN};
-				var target = LuaLinker.linkCall(new LuaCallSite(null, new CallSiteOptions(types, false, false)), newIndex, this, key, value);
+				var target = LuaLinker.linkCall(new LuaCallSite(null, CallSiteOptions.nonFunction(null, LuaType.TABLE, LuaType.UNKNOWN, LuaType.UNKNOWN)),
+						newIndex, this, key, value);
 				try {
 					target.target().invoke(newIndex, this, key, value);
 				} catch (Throwable e) {

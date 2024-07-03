@@ -18,29 +18,27 @@ import fi.benjami.code4jvm.lua.runtime.LuaTable;
 
 public class LuaVm {
 	
+	private final VmOptions options;
 	private final LuaTable globals;
 	
 	public LuaVm() {
-		this.globals = initGlobals();
+		this(VmOptions.DEFAULT);
 	}
 	
-	private static LuaTable initGlobals() {
-		var globals = new LuaTable();
-		
-		globals.set("_G", globals);
-		globals.set("_VERSION", "lua4jvm DEV (Lua 5.4)");
-		
-		globals.set("print", LuaStdLib.PRINT);
-		globals.set("tostring", LuaStdLib.TO_STRING);
-		globals.set("type", LuaStdLib.TYPE);
-		globals.set("tonumber", LuaStdLib.TO_NUMBER);
-		
-		var ourLib = new LuaTable();
-		ourLib.set("read", LuaStdLib.READ);
-		ourLib.set("write", LuaStdLib.WRITE);
-		globals.set("code4jvm", ourLib);
-		
-		return globals;
+	public LuaVm(VmOptions options) {
+		this.options = options;
+		this.globals = new LuaTable();
+		installLibraries();
+	}
+	
+	public VmOptions options() {
+		return options;
+	}
+	
+	private void installLibraries() {
+		for (var lib : options.libraries()) {
+			lib.install(this);
+		}
 	}
 	
 	public LuaTable globals() {
@@ -66,7 +64,7 @@ public class LuaVm {
 				List.of(),
 				module.root()
 				);
-		return new LuaFunction(type, new Object[] {env});
+		return new LuaFunction(this, type, new Object[] {env});
 	}
 	
 	public Object execute(String chunk) throws Throwable {

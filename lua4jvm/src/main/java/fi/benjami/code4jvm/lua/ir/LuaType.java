@@ -113,33 +113,6 @@ public interface LuaType {
 			return specializations;
 		}
 		
-		public LuaContext newContext(boolean truncateReturn, LuaType... argTypes) {
-			// Init scope with upvalue types
-			var ctx = new LuaContext(truncateReturn);
-			for (var upvalue : upvalues) {
-				ctx.recordType(upvalue.variable(), upvalue.type());
-			}
-
-			// Add types of function arguments
-			// Missing arguments are allowed and treated as nil
-			var normalArgs = acceptedArgs.size();
-			if (isVarargs()) {
-				normalArgs--;
-				ctx.recordType(LuaLocalVar.VARARGS, LuaType.UNKNOWN); // No type analysis for these yet
-			}
-			for (var i = 0; i < normalArgs; i++) {
-				if (argTypes.length > i) {
-					ctx.recordType(acceptedArgs.get(i), argTypes[i]);
-				} else {
-					ctx.recordType(acceptedArgs.get(i), LuaType.NIL);
-				}
-			}
-			
-			// Compute types of local variables and the return type
-			body.outputType(ctx);
-			return ctx;
-		}
-		
 		public boolean isVarargs() {
 			return !acceptedArgs.isEmpty() && acceptedArgs.get(acceptedArgs.size() - 1) == LuaLocalVar.VARARGS;
 		}

@@ -47,7 +47,7 @@ public record FunctionDeclExpr(
 		}
 		
 		var type = (LuaType.Function) ctx.getCache(this);
-		return block.add(LuaFunction.TYPE.newInstance(ctx.addClassData(type), upvalueValues));
+		return block.add(LuaFunction.TYPE.newInstance(ctx.ownerConstant(), ctx.addClassData(type), upvalueValues));
 	}
 
 	@Override

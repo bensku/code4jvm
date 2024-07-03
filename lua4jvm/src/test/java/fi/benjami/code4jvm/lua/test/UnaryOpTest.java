@@ -26,6 +26,11 @@ public class UnaryOpTest {
 	@Test
 	public void negateMetatable() throws Throwable {
 		var metaTbl = new LuaTable();
+		vm.execute("""
+				return function (self)
+					return "nope!"
+				end
+				""");
 		metaTbl.set("__unm", vm.execute("""
 				return function (self)
 					return "nope!"

@@ -31,7 +31,7 @@ public record FunctionCallExpr(
 		// TODO constant bootstrap is broken due to upvalues
 		var bootstrap = LuaLinker.BOOTSTRAP_DYNAMIC;
 		var lastMultiVal = !args.isEmpty() && MultiVals.canReturnMultiVal(args.get(args.size() - 1));
-		var options = new CallSiteOptions(argTypes, ctx.allowSpread(), lastMultiVal);
+		var options = new CallSiteOptions(ctx.owner(), argTypes, ctx.allowSpread(), lastMultiVal);
 		bootstrap = bootstrap.withCapturedArgs(ctx.addClassData(options));
 		
 		// Evaluate arguments to values (function is first argument)
@@ -65,7 +65,7 @@ public record FunctionCallExpr(
 		if (type instanceof LuaType.Function function) {
 			// Analyze types of arguments in this call
 			// Run type analysis for the entire function to figure out the return type
-			var returnType = function.newContext(!ctx.allowSpread(), argTypes).returnType();
+			var returnType = LuaContext.forFunction(ctx.owner(), function, !ctx.allowSpread(), argTypes).returnType();
 			ctx.cached(this, new CachedCall(argTypes, returnType));
 			return returnType;
 		} else {

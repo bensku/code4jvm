@@ -87,8 +87,8 @@ public class BinaryOp {
 	}
 	
 	private static LuaCallTarget useMetamethod(LuaCallSite meta, LuaTable table, String metamethod, Object lhs, Object rhs) {
-		var types = new LuaType[] {LuaType.UNKNOWN, LuaType.UNKNOWN};
-		var target = LuaLinker.linkCall(new LuaCallSite(meta.site, new CallSiteOptions(types, false, false)),
+		var target = LuaLinker.linkCall(new LuaCallSite(meta.site,
+				CallSiteOptions.nonFunction(meta.options.owner(), LuaType.UNKNOWN, LuaType.UNKNOWN)),
 				table.metatable().get(metamethod), lhs, rhs);
 		var guard = MethodHandles.insertArguments(TableAccess.CHECK_TABLE_AND_META_SHAPES, 0,
 				table.shape(), table.metatable().shape());

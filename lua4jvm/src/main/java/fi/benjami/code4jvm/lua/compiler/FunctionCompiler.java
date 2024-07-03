@@ -59,7 +59,7 @@ public class FunctionCompiler {
 		
 		// Compile and load the function code, or use something that is already cached
 		var compiledFunc = function.type().specializations().computeIfAbsent(cacheKey, t -> {
-			var ctx = function.type().newContext(truncateReturn, argTypes);
+			var ctx = LuaContext.forFunction(function.owner(), function.type(), truncateReturn, argTypes);
 			var code = generateCode(ctx, function.type(), argTypes, upvalueTypes);
 			try {
 				var lookup = LOOKUP.defineHiddenClassWithClassData(code, ctx.allClassData(), true);

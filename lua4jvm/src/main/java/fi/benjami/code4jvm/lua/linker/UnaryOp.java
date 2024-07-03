@@ -81,50 +81,10 @@ public class UnaryOp {
 			}
 			throw errorHandler.apply(arg);
 		};
-//		if (expectedType.equals(LuaTable.class)) {
-//			// Special case: fast path accepts tables that don't have the metamethod
-//			return (meta, args) -> {
-//				var arg = args[0];
-//				if (arg instanceof LuaTable table) {
-//					if (table.metatable() == null) {
-//						// Fast path: no metatable
-//						var guard = TableAccess.CHECK_TABLE_SHAPE.bindTo(table.shape());
-//						return new LuaCallTarget(fastPath, guard);
-//					} else if (table.metatable().get(metamethod) != null) {
-//						// Metatable, but no relevant metamethod
-//						var guard = MethodHandles.insertArguments(TableAccess.CHECK_TABLE_AND_META_SHAPES, 0,
-//								table.shape(), table.metatable().shape());
-//						return new LuaCallTarget(fastPath, guard);
-//					} else {
-//						// Metamethod found; call it!
-//						return useMetamethod(meta, table, metamethod, arg);
-//					}
-//				} else {
-//					throw errorHandler.apply(arg);
-//				}
-//			};
-//		} else {
-//			// Expected type is not table; tables are accepted only if they have metamethods
-//			return (meta, args) -> {
-//				var arg = args[0];
-//				if (checkType(expectedType, null, arg)) {
-//					// Expected type; take the fast path until this changes
-//					var guard = CHECK_TYPE.bindTo(expectedType);
-//					return new LuaCallTarget(fastPath, guard);
-//				} else if (arg instanceof LuaTable table
-//						&& table.metatable() != null
-//						&& table.metatable().get(metamethod) != null) {
-//					// Unexpected type, but we can call the metamethod
-//					return useMetamethod(meta, table, metamethod, arg);
-//				} else {
-//					throw errorHandler.apply(arg);
-//				}
-//			};
-//		}
 	}
 	
 	private static LuaCallTarget useMetamethod(LuaCallSite meta, LuaTable table, String metamethod, Object arg) {
-		var target = LuaLinker.linkCall(new LuaCallSite(meta.site, CallSiteOptions.nonFunction(LuaType.UNKNOWN)),
+		var target = LuaLinker.linkCall(new LuaCallSite(meta.site, CallSiteOptions.nonFunction(meta.options.owner(), LuaType.UNKNOWN)),
 				table.metatable().get(metamethod), arg);
 		var guard = MethodHandles.insertArguments(TableAccess.CHECK_TABLE_AND_META_SHAPES, 0,
 				table.shape(), table.metatable().shape());

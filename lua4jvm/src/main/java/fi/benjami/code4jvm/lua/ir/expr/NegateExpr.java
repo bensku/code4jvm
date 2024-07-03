@@ -44,7 +44,7 @@ public record NegateExpr(IrNode expr) implements IrNode {
 		if (outputType(ctx).equals(LuaType.NUMBER)) {
 			return block.add(Arithmetic.negate(value));
 		} else {
-			return block.add(LuaLinker.setupCall(ctx, CallSiteOptions.nonFunction(LuaType.UNKNOWN, LuaType.UNKNOWN), TARGET, value));
+			return block.add(LuaLinker.setupCall(ctx, CallSiteOptions.nonFunction(ctx.owner(), LuaType.UNKNOWN, LuaType.UNKNOWN), TARGET, value));
 		}
 	}
 

@@ -111,7 +111,7 @@ public record ArithmeticExpr(
 			return block.add(kind.directEmitter.apply(lhsValue, rhsValue));
 		} else {
 			// Types are unknown compile-time; use invokedynamic
-			return block.add(LuaLinker.setupCall(ctx, CallSiteOptions.nonFunction(LuaType.UNKNOWN, LuaType.UNKNOWN), kind.callTarget, lhsValue, rhsValue));
+			return block.add(LuaLinker.setupCall(ctx, CallSiteOptions.nonFunction(ctx.owner(), LuaType.UNKNOWN, LuaType.UNKNOWN), kind.callTarget, lhsValue, rhsValue));
 		}
 	}
 	

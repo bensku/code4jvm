@@ -1,12 +1,19 @@
 package fi.benjami.code4jvm.lua.runtime;
 
 import java.util.Arrays;
+import java.util.Objects;
 
 import fi.benjami.code4jvm.Type;
+import fi.benjami.code4jvm.lua.LuaVm;
 import fi.benjami.code4jvm.lua.compiler.FunctionCompiler;
 import fi.benjami.code4jvm.lua.ir.LuaType;
 
 public record LuaFunction(
+		/**
+		 * The Lua VM that owns this function.
+		 */
+		LuaVm owner,
+		
 		/**
 		 * Type (shape) of this function.
 		 */
@@ -25,8 +32,12 @@ public record LuaFunction(
 
 	public static final Type TYPE = Type.of(LuaFunction.class);
 	
-	public LuaFunction(LuaType.Function type, Object[] upvalues) {
-		this(type, upvalues, Arrays.stream(upvalues)
+	public LuaFunction {
+		assert owner != null;
+	}
+	
+	public LuaFunction(LuaVm vm, LuaType.Function type, Object[] upvalues) {
+		this(vm, type, upvalues, Arrays.stream(upvalues)
 				.map(LuaType::of)
 				.toArray(LuaType[]::new));
 	}

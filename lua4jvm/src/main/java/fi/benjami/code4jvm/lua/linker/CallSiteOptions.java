@@ -1,8 +1,14 @@
 package fi.benjami.code4jvm.lua.linker;
 
+import fi.benjami.code4jvm.lua.LuaVm;
 import fi.benjami.code4jvm.lua.ir.LuaType;
 
 public record CallSiteOptions(
+		/**
+		 * Owner of the call site.
+		 */
+		LuaVm owner,
+		
 		/**
 		 * Argument types of the call site. These are the compile-time types,
 		 * which may include UNKNOWNs.
@@ -31,8 +37,8 @@ public record CallSiteOptions(
 	 * @param types Types at call site. Use UNKNOWNs if not known or needed.
 	 * @return Call site options.
 	 */
-	public static CallSiteOptions nonFunction(LuaType... types) {
-		return new CallSiteOptions(types, false, false);
+	public static CallSiteOptions nonFunction(LuaVm vm, LuaType... types) {
+		return new CallSiteOptions(vm, types, false, false);
 	}
 
 }

@@ -95,7 +95,7 @@ public class TableAccess {
 					} else if (index != null) {
 						// Link a call into the __index method
 						var types = new LuaType[] {LuaType.UNKNOWN, LuaType.UNKNOWN};
-						var target = LuaLinker.linkCall(new LuaCallSite(meta.site, CallSiteOptions.nonFunction(types)), index, table, key);
+						var target = LuaLinker.linkCall(new LuaCallSite(meta.site, CallSiteOptions.nonFunction(meta.options.owner(), types)), index, table, key);
 						var guard = MethodHandles.insertArguments(CHECK_TABLE_AND_META_SHAPES, 0, table.shape, metatable.shape);
 						return target.withGuards(guard);
 					} else {

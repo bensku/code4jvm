@@ -160,8 +160,14 @@ public class LuaLinker {
 				// TODO better error reporting, using the runtime types
 				throw new LuaException(function.name() + ": invalid arguments");
 			}
-
 			target = funcTarget.method();
+			
+			// Inject arguments based on call site
+			var injectedArgs = funcTarget.injectedArgs().stream()
+					.map(arg -> arg.get(meta))
+					.toArray();
+			target = MethodHandles.insertArguments(target, 0, injectedArgs);
+
 			if (!funcTarget.varargs()) {
 				// Drop unused trailing arguments and self argument; target is not expecting them
 				target = dropUnusedArguments(target, specializedTypes, 0);

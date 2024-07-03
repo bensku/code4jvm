@@ -33,7 +33,7 @@ public record JavaFunction(
 			 * Arguments that are injected by Lua VM at the call site.
 			 * Injected arguments must come first!
 			 */
-			List<Class<?>> injectedArgs,
+			List<InjectedArg> injectedArgs,
 			
 			/**
 			 * Function arguments. All are required, use multiple targets
@@ -65,7 +65,7 @@ public record JavaFunction(
 			MethodHandle method
 	) {}
 	
-	public record Arg(String name, LuaType type) {}
+	public record Arg(String name, LuaType type, boolean nullable) {}
 	
 	// TODO support functions for generating errors
 	
@@ -104,8 +104,12 @@ public record JavaFunction(
 		
 		// Check types of arguments
 		for (var i = 0; i < requiredArgs; i++) {
-			if (!target.arguments.get(i).type.isAssignableFrom(argTypes[i])) {
-				return MatchResult.ARG_TYPE_MISMATCH;
+			var arg = target.arguments.get(i);
+			if (!arg.type.isAssignableFrom(argTypes[i])) {
+				// Allow nil instead of expected type if nullability is allowed
+				if (!arg.nullable ||!argTypes[i].equals(LuaType.NIL)) {
+					return MatchResult.ARG_TYPE_MISMATCH;
+				}
 			}
 		}
 		

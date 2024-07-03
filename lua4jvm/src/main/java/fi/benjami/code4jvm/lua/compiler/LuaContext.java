@@ -8,6 +8,7 @@ import java.util.Map;
 import fi.benjami.code4jvm.Constant;
 import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.Variable;
+import fi.benjami.code4jvm.lua.LuaVm;
 import fi.benjami.code4jvm.lua.ir.LuaLocalVar;
 import fi.benjami.code4jvm.lua.ir.LuaType;
 import fi.benjami.code4jvm.lua.ir.LuaVariable;
@@ -15,6 +16,34 @@ import fi.benjami.code4jvm.lua.ir.TableField;
 import fi.benjami.code4jvm.lua.ir.expr.LuaConstant;
 
 public class LuaContext {
+	
+	public static LuaContext forFunction(LuaVm vm, LuaType.Function type, boolean truncateReturn, LuaType... argTypes) {
+		// Init scope with upvalue types
+		var ctx = new LuaContext(vm, truncateReturn);
+		for (var upvalue : type.upvalues()) {
+			ctx.recordType(upvalue.variable(), upvalue.type());
+		}
+
+		// Add types of function arguments
+		// Missing arguments are allowed and treated as nil
+		var normalArgs = type.acceptedArgs().size();
+		if (type.isVarargs()) {
+			normalArgs--;
+			ctx.recordType(LuaLocalVar.VARARGS, LuaType.UNKNOWN); // No type analysis for these yet
+		}
+		var acceptedArgs = type.acceptedArgs();
+		for (var i = 0; i < normalArgs; i++) {
+			if (argTypes.length > i) {
+				ctx.recordType(acceptedArgs.get(i), argTypes[i]);
+			} else {
+				ctx.recordType(acceptedArgs.get(i), LuaType.NIL);
+			}
+		}
+		
+		// Compute types of local variables and the return type
+		type.body().outputType(ctx);
+		return ctx;
+	}
 	
 	/**
 	 * Local variable type table. When variables are written to, their types
@@ -45,12 +74,21 @@ public class LuaContext {
 	
 	private boolean allowSpread;
 	
-	public LuaContext(boolean truncateReturn) {
+	/**
+	 * The Lua VM that 'owns' this context.
+	 */
+	private final LuaVm owner;
+	private final Constant ownerConstant;
+	
+	public LuaContext(LuaVm owner, boolean truncateReturn) {
+		assert owner != null;
 		this.typeTable = new IdentityHashMap<>();
 		this.variables = new IdentityHashMap<>();
 		this.classData = new ArrayList<>();
 		this.cache = new IdentityHashMap<>();
 		this.truncateReturn = truncateReturn;
+		this.owner = owner;
+		this.ownerConstant = addClassData(owner);
 	}
 	
 	public void recordType(LuaVariable variable, LuaType type) {
@@ -186,6 +224,14 @@ public class LuaContext {
 	
 	public boolean allowSpread() {
 		return allowSpread;
+	}
+	
+	public LuaVm owner() {
+		return owner;
+	}
+	
+	public Constant ownerConstant() {
+		return ownerConstant;
 	}
 
 }

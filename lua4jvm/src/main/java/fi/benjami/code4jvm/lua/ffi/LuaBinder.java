@@ -10,6 +10,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 
+import fi.benjami.code4jvm.lua.LuaVm;
 import fi.benjami.code4jvm.lua.ir.LuaType;
 
 /**
@@ -72,14 +73,15 @@ public class LuaBinder {
 	}
 
 	private JavaFunction.Target toFunctionTarget(Method method) {
-		var injectedArgs = new ArrayList<Class<?>>();
+		var injectedArgs = new ArrayList<InjectedArg>();
 		var args = new ArrayList<JavaFunction.Arg>();
 		for (var param : method.getParameters()) {
-			if (param.isAnnotationPresent(Inject.class)) {
+			var inject = param.getAnnotation(Inject.class);
+			if (inject != null) {
 				if (!args.isEmpty()) {
 					throw new IllegalArgumentException("injected arguments after normal ones in method " + method.getName());
 				}
-				injectedArgs.add(param.getType());
+				injectedArgs.add(toInjectedArg(param.getType(), inject.value()));
 			} else {
 				args.add(toArg(param));
 			}
@@ -100,7 +102,20 @@ public class LuaBinder {
 		return new JavaFunction.Target(injectedArgs, args, method.isVarArgs(), LuaType.of(returnType), multipleReturns, handle);
 	}
 	
+	private InjectedArg toInjectedArg(Class<?> type, String source) {
+		// TODO support non-default sources
+		if (!source.equals("default")) {
+			throw new UnsupportedOperationException();
+		}
+		// Handle default injected arg source
+		if (type.equals(LuaVm.class)) {
+			return site -> site.options.owner();
+		} else {
+			throw new IllegalArgumentException("unsupported type for @Inject");
+		}
+	}
+	
 	private JavaFunction.Arg toArg(Parameter param) {
-		return new JavaFunction.Arg(param.getName(), LuaType.of(param.getType()));
+		return new JavaFunction.Arg(param.getName(), LuaType.of(param.getType()), param.isAnnotationPresent(Nullable.class));
 	}
 }

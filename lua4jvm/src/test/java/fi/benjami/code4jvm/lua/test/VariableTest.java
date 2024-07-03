@@ -9,6 +9,7 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
+import fi.benjami.code4jvm.lua.LuaVm;
 import fi.benjami.code4jvm.lua.ir.LuaBlock;
 import fi.benjami.code4jvm.lua.ir.LuaLocalVar;
 import fi.benjami.code4jvm.lua.ir.LuaType;
@@ -26,6 +27,8 @@ import fi.benjami.code4jvm.lua.stdlib.LuaException;
 
 public class VariableTest {
 
+	private final LuaVm dummy = new LuaVm();
+	
 	@Test
 	public void simpleVariables() throws Throwable {
 		// A function that computes sum of its arguments
@@ -43,7 +46,7 @@ public class VariableTest {
 								),
 						new ReturnStmt(List.of(new VariableExpr(c)))
 				)));
-		var func = new LuaFunction(type, new Object[0]);
+		var func = new LuaFunction(dummy, type, new Object[0]);
 		assertEquals(3d, func.call(1d, 2d));
 		assertThrows(LuaException.class, () -> func.call(null, 4d));
 	}
@@ -70,7 +73,7 @@ public class VariableTest {
 								),
 						new ReturnStmt(List.of(new VariableExpr(c)))
 				)));
-		var func = new LuaFunction(type, new Object[0]);
+		var func = new LuaFunction(dummy, type, new Object[0]);
 		assertEquals(10d, func.call(5d, 10d));
 		assertNull(func.call(1d, null));
 	}
@@ -92,7 +95,7 @@ public class VariableTest {
 								),
 						new ReturnStmt(List.of(new VariableExpr(c), new VariableExpr(d)))
 				)));
-		var func = new LuaFunction(type, new Object[0]);
+		var func = new LuaFunction(dummy, type, new Object[0]);
 		assertArrayEquals(new Object[] {5d, 10d}, (Object[]) func.call(5d, 10d));
 		assertArrayEquals(new Object[] {5d, null}, (Object[]) func.call(5d, null));
 		assertArrayEquals(new Object[] {null, 2d}, (Object[]) func.call(null, 2d));
@@ -106,7 +109,7 @@ public class VariableTest {
 				new LuaBlock(List.of(
 						new ReturnStmt(List.of(new LuaConstant(5d), new LuaConstant(6d)))
 				)));
-		var calledFunc = new LuaFunction(calledType, new Object[0]);
+		var calledFunc = new LuaFunction(dummy, calledType, new Object[0]);
 		
 		{
 			// Tuple known compile-time
@@ -124,7 +127,7 @@ public class VariableTest {
 							new ReturnStmt(List.of(new VariableExpr(a), new VariableExpr(b), new VariableExpr(c)))
 							))
 					);
-			var func = new LuaFunction(type, new Object[0]);
+			var func = new LuaFunction(dummy, type, new Object[0]);
 			assertArrayEquals(new Object[] {5d, 6d, null}, (Object[]) func.call());
 		}
 		{
@@ -143,7 +146,7 @@ public class VariableTest {
 							new ReturnStmt(List.of(new VariableExpr(a), new VariableExpr(b), new VariableExpr(c)))
 							))
 					);
-			var func = new LuaFunction(type, new Object[0]);
+			var func = new LuaFunction(dummy, type, new Object[0]);
 			assertArrayEquals(new Object[] {5d, 6d, null}, (Object[]) func.call());
 		}
 	}
@@ -164,7 +167,7 @@ public class VariableTest {
 								false),
 						new ReturnStmt(List.of(new VariableExpr(c)))
 				)));
-		var func = new LuaFunction(type, new Object[0]);
+		var func = new LuaFunction(dummy, type, new Object[0]);
 		var res = (LuaTable) func.call("foo", "bar");
 		assertEquals("bar", res.get("foo"));
 	}
@@ -192,7 +195,7 @@ public class VariableTest {
 								false),
 						new ReturnStmt(List.of(new VariableExpr(c)))
 				)));
-		var func = new LuaFunction(type, new Object[0]);
+		var func = new LuaFunction(dummy, type, new Object[0]);
 		var res = (LuaTable) func.call("foo", "bar");
 		assertEquals("foo", res.get(1d));
 		assertEquals("bar", res.get(2d));
@@ -208,7 +211,7 @@ public class VariableTest {
 						new VariableExpr(new TableField(new VariableExpr(a), new VariableExpr(b)))
 						))
 				)));
-		var func = new LuaFunction(type, new Object[0]);
+		var func = new LuaFunction(dummy, type, new Object[0]);
 		var table = new LuaTable();
 		table.set("foo", "bar");
 		assertEquals("bar", func.call(table, "foo"));

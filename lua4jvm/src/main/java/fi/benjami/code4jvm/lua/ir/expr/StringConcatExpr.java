@@ -61,7 +61,7 @@ public record StringConcatExpr(
 			// Types not known at compile time; use invokedynamic
 			var lhs = parts.get(0).emit(ctx, block);
 			var rhs = parts.get(1).emit(ctx, block);
-			return block.add(LuaLinker.setupCall(ctx, CallSiteOptions.nonFunction(LuaType.UNKNOWN, LuaType.UNKNOWN), TARGET, lhs, rhs));
+			return block.add(LuaLinker.setupCall(ctx, CallSiteOptions.nonFunction(ctx.owner(), LuaType.UNKNOWN, LuaType.UNKNOWN), TARGET, lhs, rhs));
 		}
 	}
 

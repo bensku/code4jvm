@@ -44,7 +44,7 @@ public record LengthExpr(IrNode expr) implements IrNode {
 	public Value emit(LuaContext ctx, Block block) {
 		// TODO setup direct calls if static analysis has enough information?
 		var value = expr.emit(ctx, block);
-		return block.add(LuaLinker.setupCall(ctx, CallSiteOptions.nonFunction(LuaType.UNKNOWN, LuaType.UNKNOWN), TARGET, value));
+		return block.add(LuaLinker.setupCall(ctx, CallSiteOptions.nonFunction(ctx.owner(), LuaType.UNKNOWN, LuaType.UNKNOWN), TARGET, value));
 	}
 
 	@Override
