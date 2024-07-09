@@ -6,11 +6,15 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 import org.junit.jupiter.api.Test;
 
 import fi.benjami.code4jvm.lua.LuaVm;
 import fi.benjami.code4jvm.lua.VmOptions;
+import fi.benjami.code4jvm.lua.runtime.LuaFunction;
 import fi.benjami.code4jvm.lua.runtime.LuaTable;
 import fi.benjami.code4jvm.lua.stdlib.LuaException;
 
@@ -50,8 +54,59 @@ public class BasicLibTest {
 	}
 	
 	@Test
+	public void load() throws Throwable {
+		{			
+			var func = (LuaFunction) vm.execute("return load('LOAD_1 = true')");
+			func.call();
+			assertEquals(true, vm.globals().get("LOAD_1"));
+		}
+		{			
+			var func = (LuaFunction) vm.execute("return load('LOAD_2 = true', 'test')");
+			func.call();
+			assertEquals(true, vm.globals().get("LOAD_2"));
+		}
+		{			
+			var func = (LuaFunction) vm.execute("return load('LOAD_3 = true', 'test', 't')");
+			func.call();
+			assertEquals(true, vm.globals().get("LOAD_3"));
+		}
+		assertThrows(UnsupportedOperationException.class, () -> vm.execute("return load('LOAD_3 = true', 'test', 'b')"));
+		{
+			var newEnv = new LuaTable();
+			vm.globals().set("NEW_ENV", newEnv);
+			var func = (LuaFunction) vm.execute("return load('LOAD_4 = true', 'test', 't', NEW_ENV)");
+			func.call();
+			assertEquals(true, newEnv.get("LOAD_4"));
+		}
+	}
+	
+	@Test
+	public void loadfile() throws Throwable {
+		assertThrows(LuaException.class, () -> vm.execute("loadfile(\"src/test/resources/loadfile.lua\")"));
+		
+		var trustedVm = new LuaVm(VmOptions.builder()
+				.fileSystem(FileSystems.getDefault())
+				.stdIn(Files.newInputStream(Path.of("src/test/resources/loadfile.lua")))
+				.build()
+		);
+		trustedVm.execute("loadfile(\"src/test/resources/loadfile.lua\")()");
+		assertTrue((boolean) trustedVm.globals().get("LOADFILE_SUCCESS"));
+		trustedVm.globals().set("LOADFILE_SUCCESS", null);
+		
+		// Test loading from "stdin"
+		trustedVm.execute("loadfile()()");
+		assertTrue((boolean) trustedVm.globals().get("LOADFILE_SUCCESS"));
+	}
+	
+	@Test
 	public void dofile() throws Throwable {
-		vm.execute("dofile(\"src/test/resources/dofile.lua\")");
-		assertTrue((boolean) vm.globals().get("DOFILE_SUCCESS"));
+		assertThrows(LuaException.class, () -> vm.execute("dofile(\"src/test/resources/dofile.lua\")"));
+		
+		var trustedVm = new LuaVm(VmOptions.builder()
+				.fileSystem(FileSystems.getDefault())
+				.build()
+		);
+		trustedVm.execute("dofile(\"src/test/resources/dofile.lua\")");
+		assertTrue((boolean) trustedVm.globals().get("DOFILE_SUCCESS"));
 	}
 }

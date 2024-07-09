@@ -1,8 +1,11 @@
 package fi.benjami.code4jvm.lua;
 
+import java.io.InputStream;
 import java.io.PrintStream;
+import java.nio.file.FileSystem;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 import fi.benjami.code4jvm.lua.ffi.LuaLibrary;
 import fi.benjami.code4jvm.lua.stdlib.BasicLib;
@@ -20,7 +23,9 @@ public class VmOptions implements Cloneable {
 	}
 
 	private Collection<LuaLibrary> libraries = List.of(BasicLib.INSTANCE);
-	private PrintStream stdOut = System.out;
+	private Optional<PrintStream> stdOut = Optional.of(System.out);
+	private Optional<InputStream> stdIn = Optional.empty(); // By default, don't let VM capture user input!
+	private Optional<FileSystem> fileSystem = Optional.empty();
 	
 	private VmOptions() {}
 	
@@ -38,7 +43,17 @@ public class VmOptions implements Cloneable {
 		}
 		
 		public Builder stdOut(PrintStream out) {
-			opts.stdOut = out;
+			opts.stdOut = Optional.of(out);
+			return this;
+		}
+		
+		public Builder stdIn(InputStream in) {
+			opts.stdIn = Optional.of(in);
+			return this;
+		}
+		
+		public Builder fileSystem(FileSystem fs) {
+			opts.fileSystem = Optional.of(fs);
 			return this;
 		}
 		
@@ -55,7 +70,15 @@ public class VmOptions implements Cloneable {
 		return libraries;
 	}
 	
-	public PrintStream stdOut() {
+	public Optional<PrintStream> stdOut() {
 		return stdOut;
+	}
+	
+	public Optional<InputStream> stdIn() {
+		return stdIn;
+	}
+	
+	public Optional<FileSystem> fileSystem() {
+		return fileSystem;
 	}
 }

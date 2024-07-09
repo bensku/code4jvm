@@ -29,3 +29,5 @@ tasks.named('test') {
 generateGrammarSource {
 	arguments += ['-visitor', '-no-listener']
 }
+
+sourceSets.main.resources.srcDirs += 'src/main/lua'

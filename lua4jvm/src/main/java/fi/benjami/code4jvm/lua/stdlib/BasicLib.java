@@ -3,7 +3,6 @@ package fi.benjami.code4jvm.lua.stdlib;
 import java.io.IOException;
 import java.lang.invoke.MethodHandles;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.stream.Collectors;
@@ -16,6 +15,7 @@ import fi.benjami.code4jvm.lua.ffi.Inject;
 import fi.benjami.code4jvm.lua.ffi.JavaFunction;
 import fi.benjami.code4jvm.lua.ffi.LuaBinder;
 import fi.benjami.code4jvm.lua.ffi.LuaExport;
+import fi.benjami.code4jvm.lua.runtime.LuaFunction;
 import fi.benjami.code4jvm.lua.runtime.LuaTable;
 
 public class BasicLib implements LuaLibrary {
@@ -45,21 +45,89 @@ public class BasicLib implements LuaLibrary {
 		} // else: silently ignore, Lua code can't observe this (except for performance)
 	}
 	
-	// TODO move dofile out of here to (e.g.) BasicIoLib, because it can read files from disk!
+	@LuaExport("load")
+	public static LuaFunction load(@Inject LuaVm vm, Object chunk, String chunkname, String mode, LuaTable env) {
+		if (mode.equals("b")) {
+			throw new UnsupportedOperationException("lua4jvm does not support binary chunks");
+		}
+		String code;
+		if (chunk instanceof String text) {
+			code = text;
+		} else {
+			throw new UnsupportedOperationException("callable chunks are not yet supported");
+		}
+		
+		var module = vm.compile(code);
+		return vm.load(module, env);
+	}
+	
+	@LuaExport("load")
+	public static LuaFunction load(@Inject LuaVm vm, Object chunk, String chunkname, String mode) {
+		// According to Lua 5.4 spec, load defaults to VM's globals, not whatever current _ENV might be!
+		return load(vm, chunk, chunkname, mode, vm.globals());
+	}
+	
+	@LuaExport("load")
+	public static LuaFunction load(@Inject LuaVm vm, Object chunk, String chunkname) {
+		return load(vm, chunk, chunkname, "t");
+	}
+	
+	@LuaExport("load")
+	public static LuaFunction load(@Inject LuaVm vm, Object chunk) {
+		return load(vm, chunk, chunk instanceof String ? "chunk" : "=(load)");
+	}
+	
+	@LuaExport("loadfile")
+	public static LuaFunction loadfile(@Inject LuaVm vm, String filename, String mode, LuaTable env) {
+		String text;
+		if (filename == null) {
+			var stdin = vm.options().stdIn().orElseThrow(() -> new LuaException("stdin is not available"));
+			try {
+				text = new String(stdin.readAllBytes());
+			} catch (IOException e) {
+				throw new LuaException("failed to read VM stdin", e);
+			}
+		} else {			
+			var fs = vm.options().fileSystem().orElseThrow(() -> new LuaException("file system not available"));
+			var path = fs.getPath(filename);
+			
+			try {
+				text = Files.readString(path);
+			} catch (IOException e) {
+				throw new LuaException("failed to read " + filename, e);
+			}
+		}
+		return load(vm, text, filename, mode, env);
+	}
+	
+	@LuaExport("loadfile")
+	public static LuaFunction loadfile(@Inject LuaVm vm, String filename, String mode) {
+		return loadfile(vm, filename, mode, vm.globals());
+	}
+	
+	@LuaExport("loadfile")
+	public static LuaFunction loadfile(@Inject LuaVm vm, String filename) {
+		return loadfile(vm, filename, "t");
+	}
+	
+	@LuaExport("loadfile")
+	public static LuaFunction loadfile(@Inject LuaVm vm) {
+		return loadfile(vm, null);
+	}
 	
 	@LuaExport("dofile")
 	private static Object dofile(@Inject LuaVm vm, String filename) {
-		String text;
+		var func = loadfile(vm, filename);
 		try {
-			text = Files.readString(Path.of(filename));
-		} catch (IOException e) {
-			throw new LuaException("failed to load " + filename, e);
-		}
-		try {
-			return vm.execute(text);
+			return func.call();
 		} catch (Throwable e) {
 			throw new LuaException("failed to execute " + filename, e);
 		}
+	}
+	
+	@LuaExport("dofile")
+	private static Object dofile(@Inject LuaVm vm) {
+		return dofile(vm, null);
 	}
 	
 	@LuaExport("error")
@@ -83,18 +151,16 @@ public class BasicLib implements LuaLibrary {
 	}
 	
 	// TODO iteration: ipairs, pairs
-	
-	// TODO load: it is actually quite complex
-	// TODO loadfile
-	
+		
 	// TODO pcall - but should this be a normal function?
 	
 	@LuaExport("print")
 	private static void print(@Inject LuaVm vm, Object... args) {
+		var stdout = vm.options().stdOut().orElseThrow(() -> new LuaException("stdout is not available"));
 		var text = Arrays.stream(args)
 				.map(Object::toString)
 				.collect(Collectors.joining("\t"));
-		vm.options().stdOut().println(text);
+		stdout.println(text);
 	}
 	
 	@LuaExport("tonumber")
