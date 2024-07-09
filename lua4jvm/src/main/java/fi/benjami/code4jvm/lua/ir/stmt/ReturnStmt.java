@@ -30,11 +30,7 @@ public record ReturnStmt(
 			}
 		} else if (values.size() == 1 && !MultiVals.canReturnMultiVal(values.get(0))) {
 			var value = values.get(0);
-			if (value.outputType(ctx).equals(LuaType.NIL)) {
-				block.add(Return.nothing());
-			} else {
-				block.add(Return.value(value.emit(ctx, block).cast(ctx.returnType().backingType())));
-			}
+			block.add(Return.value(value.emit(ctx, block).cast(ctx.returnType().backingType())));
 		} else if (ctx.truncateReturn()) {
 			// Multiple return values, but only one is used
 			// The rest must still be emitted due to potential side effects

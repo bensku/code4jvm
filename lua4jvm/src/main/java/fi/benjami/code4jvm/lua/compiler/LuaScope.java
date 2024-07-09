@@ -33,11 +33,11 @@ public class LuaScope {
 	 * Reference to current loop or null, used for break'ing out of loop.
 	 * TODO this is kinda hacky
 	 */
-	private final LoopStmt.LoopRef currentLoop;
+	private final LoopRef currentLoop;
 	
 	private boolean hasVarargs;
 	
-	public LuaScope(LuaScope parent, boolean functionRoot, LoopStmt.LoopRef currentLoop) {
+	public LuaScope(LuaScope parent, boolean functionRoot, LoopRef currentLoop) {
 		this.parent = parent;
 		this.functionRoot = functionRoot;
 		this.locals = new HashMap<>();
@@ -103,7 +103,7 @@ public class LuaScope {
 		return new ArrayList<>(upvalues.values());
 	}
 	
-	public LoopStmt.LoopRef currentLoop() {
+	public LoopRef currentLoop() {
 		return currentLoop;
 	}
 	

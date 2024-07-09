@@ -162,6 +162,10 @@ public class LuaLinker {
 			}
 			target = funcTarget.method();
 			
+			if (funcTarget.varargs()) {
+				meta.usesRuntimeTypes = false; // FIXME catchTypeChange breaks spreading args
+			}
+			
 			// Inject arguments based on call site
 			var injectedArgs = funcTarget.injectedArgs().stream()
 					.map(arg -> arg.get(meta))
@@ -230,7 +234,7 @@ public class LuaLinker {
 	 * @param options Call site options.
 	 * @param callable The callable object, e.g. a {@link LuaFunction function}
 	 * or a {@link DynamicTarget dynamic target}.
-	 * @param args Arguments for the call site (as compile-time values).
+	 * @param args Arguments for the call site (as code4jvm values).
 	 * @return An expression that emits the call.
 	 */
 	public static Expression setupCall(LuaContext ctx, CallSiteOptions options, Object callable, Value... args) {

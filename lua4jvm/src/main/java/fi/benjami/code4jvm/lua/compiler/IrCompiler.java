@@ -27,6 +27,7 @@ import fi.benjami.code4jvm.lua.ir.expr.StringConcatExpr;
 import fi.benjami.code4jvm.lua.ir.expr.TableInitExpr;
 import fi.benjami.code4jvm.lua.ir.expr.VariableExpr;
 import fi.benjami.code4jvm.lua.ir.stmt.IfBlockStmt;
+import fi.benjami.code4jvm.lua.ir.stmt.IteratorForStmt;
 import fi.benjami.code4jvm.lua.ir.stmt.LoopBreakStmt;
 import fi.benjami.code4jvm.lua.ir.stmt.LoopStmt;
 import fi.benjami.code4jvm.lua.ir.stmt.ReturnStmt;
@@ -174,7 +175,7 @@ public class IrCompiler extends LuaBaseVisitor<IrNode> {
 
 	@Override
 	public IrNode visitWhileLoop(WhileLoopContext ctx) {
-		var ref = new LoopStmt.LoopRef();
+		var ref = new LoopRef();
 		var condition = visit(ctx.condition);
 		pushScope(new LuaScope(currentScope(), false, ref));
 		var body = visitBlock(ctx.block());
@@ -184,7 +185,7 @@ public class IrCompiler extends LuaBaseVisitor<IrNode> {
 
 	@Override
 	public IrNode visitRepeatLoop(RepeatLoopContext ctx) {
-		var ref = new LoopStmt.LoopRef();
+		var ref = new LoopRef();
 		var condition = visit(ctx.condition);
 		pushScope(new LuaScope(currentScope(), false, ref));
 		var body = visitBlock(ctx.block());
@@ -220,7 +221,19 @@ public class IrCompiler extends LuaBaseVisitor<IrNode> {
 
 	@Override
 	public IrNode visitForInLoop(ForInLoopContext ctx) {
-		throw new UnsupportedOperationException();
+		var ref = new LoopRef();
+		var iterable = ctx.iterable.exp().stream()
+				.map(this::visit)
+				.toList();
+		pushScope(new LuaScope(currentScope(), false, ref));
+		var innerScope = currentScope();
+		var loopVars = ctx.entries.Name().stream()
+				.map(TerminalNode::getText)
+				.map(innerScope::declare)
+				.toList();
+		var body = visitBlock(ctx.block());
+		popScope();
+		return new IteratorForStmt(body, ref, loopVars, iterable);
 	}
 
 	@Override

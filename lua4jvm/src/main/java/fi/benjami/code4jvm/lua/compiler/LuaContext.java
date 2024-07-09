@@ -1,6 +1,7 @@
 package fi.benjami.code4jvm.lua.compiler;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;

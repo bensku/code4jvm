@@ -223,12 +223,12 @@ public class LuaVmTest {
 				""");
 		func.call(callable, "a");
 		
-//		assertEquals("10.5", vm.execute("""
-//				return tostring(10.5)
-//				"""));
-//		assertEquals("number", vm.execute("""
-//				return type(10.5)
-//				"""));
+		assertEquals("10.5", vm.execute("""
+				return tostring(10.5)
+				"""));
+		assertEquals("number", vm.execute("""
+				return type(10.5)
+				"""));
 	}
 	
 	@Test

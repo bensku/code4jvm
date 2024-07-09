@@ -5,6 +5,7 @@ import java.lang.invoke.MethodHandles;
 import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import fi.benjami.code4jvm.lua.LuaVm;
@@ -158,7 +159,7 @@ public class BasicLib implements LuaLibrary {
 	private static void print(@Inject LuaVm vm, Object... args) {
 		var stdout = vm.options().stdOut().orElseThrow(() -> new LuaException("stdout is not available"));
 		var text = Arrays.stream(args)
-				.map(Object::toString)
+				.map(Objects::toString)
 				.collect(Collectors.joining("\t"));
 		stdout.println(text);
 	}
