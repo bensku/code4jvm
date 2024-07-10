@@ -21,6 +21,8 @@ import fi.benjami.code4jvm.lua.runtime.MultiVals;
 import fi.benjami.code4jvm.lua.stdlib.LuaException;
 import fi.benjami.code4jvm.statement.ArrayAccess;
 import fi.benjami.code4jvm.statement.Jump;
+import fi.benjami.code4jvm.statement.Instanceof;
+import fi.benjami.code4jvm.structure.IfBlock;
 
 public record IteratorForStmt(
 		LuaBlock body,
@@ -79,23 +81,37 @@ public record IteratorForStmt(
 		var bootstrap = LuaLinker.BOOTSTRAP_DYNAMIC;
 		var options = new CallSiteOptions(ctx.owner(), new LuaType[] {LuaType.UNKNOWN, LuaType.UNKNOWN}, true, false);
 		bootstrap = bootstrap.withCapturedArgs(ctx.addClassData(options));
-		var target = CallTarget.dynamic(bootstrap, Type.OBJECT.array(1), "_", Type.OBJECT, Type.OBJECT);
+		var target = CallTarget.dynamic(bootstrap, Type.OBJECT, "_", Type.OBJECT, Type.OBJECT);
 		var results = loop.add(target.call(next, state, control));
 		
 		// TODO add another path for non-array iterators
-		var resultCount = loop.add(ArrayAccess.length(results));
-		// Assign whatever was returned to loop variables (use nil/null as missing entries)
+		// Initialize loop variables with nulls, since some might not be assigned anything
 		for (var loopVar : loopJvmVars) {
 			loop.add(loopVar.set(Constant.nullValue(Type.OBJECT)));
 		}
-		var assignVars = Block.create("assign loop vars");
-		for (var i = 0; i < loopJvmVars.size(); i++) {
-			// Skip rest of assignments when we've reached end of next's results
-			var idx = Constant.of(i);
-			assignVars.add(Jump.to(assignVars, Jump.Target.END, Condition.equal(resultCount, idx)));
-			var value = assignVars.add(ArrayAccess.get(results, idx));
-			assignVars.add(loopJvmVars.get(i).set(value));
-		}
+		
+		// Assign whatever was returned to loop variables
+		var assignVars = new IfBlock();
+		assignVars.branch(inner -> {
+			var result = inner.add(Instanceof.isInstance(results, Type.OBJECT.array(1)));
+			return Condition.isTrue(result);
+		}, inner -> {
+			// Got multival for loop variables
+			var array = results.cast(Type.OBJECT.array(1));
+			var resultCount = inner.add(ArrayAccess.length(array));
+			for (var i = 0; i < loopJvmVars.size(); i++) {
+				// Skip rest of assignments when we've reached end of next's results
+				var idx = Constant.of(i);
+				inner.add(Jump.to(inner, Jump.Target.END, Condition.equal(resultCount, idx)));
+				var value = inner.add(ArrayAccess.get(array, idx));
+				inner.add(loopJvmVars.get(i).set(value));
+			}
+		});
+		assignVars.fallback(inner -> {
+			// Only one value, assign it to the first loop var (control)
+			inner.add(control.set(results));
+		});
+		
 		loop.add(assignVars);
 		
 		// Finally, if the control (=first of loop variables) is null, end loop

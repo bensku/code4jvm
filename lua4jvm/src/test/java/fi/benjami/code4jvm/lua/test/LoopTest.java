@@ -32,4 +32,26 @@ public class LoopTest {
 			assertEquals(true, tbl.get(i));
 		}
 	}
+	
+	@Test
+	public void iteratorForNoMultival() throws Throwable {
+		vm.execute("""
+				local function testNext(state, ctrl)
+					if ctrl == 10 then
+						return nil
+					else
+						return ctrl + 1
+					end
+				end
+				
+				iTbl = {}
+				for i in testNext, nil, 0 do
+					iTbl[i] = true
+				end
+				""");
+		var tbl = (LuaTable) vm.globals().get("iTbl");
+		for (double i = 1; i < 10; i++) {
+			assertEquals(true, tbl.get(i));
+		}
+	}
 }
