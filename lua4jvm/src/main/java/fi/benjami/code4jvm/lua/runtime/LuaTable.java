@@ -18,6 +18,7 @@ public class LuaTable {
 	public static final Type TYPE = Type.of(LuaTable.class);
 	
 	private static final Object[] EMPTY = new Object[0];
+	private static final Object TOMBSTONE = new Object();
 
 	private Object[] table;
 	private int arraySize, arrayCapacity;
@@ -43,6 +44,7 @@ public class LuaTable {
 		var slot = hash(key) & (keys.length - 1);
 		for (; slot < keys.length; slot++) {
 			var actualKey = keys[slot];
+			// TODO consider storing hashes and checking against them; equality checks may be slow
 			if (actualKey == null) {
 				return -1;
 			} else if (key.equals(actualKey)) {
@@ -122,6 +124,7 @@ public class LuaTable {
 			// If a key is removed from table, a different key could be placed to same slot
 			// Additionally, this affects __index and __newindex if those exist
 			shapeChanged();
+			key = TOMBSTONE; // We might be punching a hole to a cluster of hash collisions
 		} else if (metatable != null && oldKey == null) {
 			// If an entirely new key is written AND we have a metatable
 			// get/set on that key will no longer be sent to __index/__newindex
@@ -195,7 +198,7 @@ public class LuaTable {
 		var slot = hash(key) & (keys.length - 1);
 		for (; slot < keys.length; slot++) {
 			var actualKey = keys[slot];
-			if (actualKey == null || key.equals(actualKey)) {
+			if (actualKey == null || actualKey == TOMBSTONE || key.equals(actualKey)) {
 				return slot;
 			}
 		}
