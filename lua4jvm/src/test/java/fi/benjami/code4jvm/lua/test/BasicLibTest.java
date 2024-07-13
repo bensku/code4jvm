@@ -1,5 +1,6 @@
 package fi.benjami.code4jvm.lua.test;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -139,5 +140,16 @@ public class BasicLibTest {
 		assertEquals(1d, out.get("foo"));
 		assertEquals(2d, out.get("bar"));
 		assertEquals(3d, out.get("baz"));
+	}
+	
+	@Test
+	public void next() throws Throwable {
+		var results = (Object[]) vm.execute("""
+				tbl = {foo = "bar"}
+				local k1, v1 = next(tbl)
+				local k2, v2 = next(tbl, k1)
+				return k1, v1, k2, v2
+				""");
+		assertArrayEquals(new Object[] {"foo", "bar", null, null}, results);
 	}
 }

@@ -228,4 +228,14 @@ public class BasicLib implements LuaLibrary {
 		}
 	}
 	
+	@LuaExport("next")
+	public static Object[] next(LuaTable table, Object prevKey) {
+		return table.next(prevKey);
+	}
+	
+	@LuaExport("next")
+	public static Object[] next(LuaTable table) {
+		return table.next(null);
+	}
+	
 }
