@@ -330,14 +330,21 @@ public class LuaTable {
 			}
 		}
 		
-		if (prevKey instanceof Double index && index < arraySize + 1) {
+		int slot;
+		if (prevKey instanceof Double index) {
 			// Iterate the array in order as long as we have elements
-			var newIndex = index + 1;
-			return new Object[] {newIndex, getArray((int) newIndex)};
+			if (index < arraySize - 1) {				
+				var newIndex = index + 1;
+				return new Object[] {newIndex, getArray((int) newIndex)};
+			} else {
+				slot = 0; // First entry after array part
+			}
+		} else {
+			slot = getSlot(prevKey) + 1;
 		}
 		
 		// Out of array members
-		for (var i = getSlot(prevKey) + 1; i < table.length; i++) {
+		for (var i = slot + arrayCapacity; i < table.length; i++) {
 			if (table[i] != null) {
 				return new Object[] {keys[i - arrayCapacity], table[i]};
 			}
@@ -375,7 +382,7 @@ public class LuaTable {
 		private int index;
 		
 		private Iterator() {
-			this.array = false;
+			this.array = true;
 			this.index = 0;
 		}
 		
@@ -407,7 +414,7 @@ public class LuaTable {
 		}
 		
 		public Object key() {
-			return array ? (double) index : keys[index];
+			return array ? (double) index : keys[index - arrayCapacity];
 		}
 		
 		public Object value() {

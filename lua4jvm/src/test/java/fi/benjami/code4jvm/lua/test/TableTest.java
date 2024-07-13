@@ -239,6 +239,7 @@ public class TableTest {
 	@Test
 	public void tableIterators() {
 		var table = new LuaTable();
+		table.set(1d, "test");
 		table.set("foo", 1d);
 		table.set("bar", 2d);
 		table.set("baz", 3d);
@@ -266,8 +267,8 @@ public class TableTest {
 			}
 		} while (prevKey != null);
 		
-		var keys = Set.of("foo", "bar", "baz");
-		var values = Set.of(1d, 2d, 3d);
+		var keys = Set.of(1d, "foo", "bar", "baz");
+		var values = Set.of("test", 1d, 2d, 3d);
 		
 		assertEquals(keys, itKeys);
 		assertEquals(values, itVals);

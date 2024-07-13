@@ -74,7 +74,7 @@ public record IteratorForStmt(
 				var length = inner.add(ArrayAccess.length(array));
 				inner.add(next, ArrayAccess.get(array, Constant.of(0))); // This must exist, but TODO improve error messages
 				inner.add(Jump.to(init, Jump.Target.END, Condition.equal(length, Constant.of(1))));
-				inner.add(ArrayAccess.get(array, Constant.of(1)));
+				inner.add(state, ArrayAccess.get(array, Constant.of(1)));
 				inner.add(Jump.to(init, Jump.Target.END, Condition.equal(length, Constant.of(2))));
 				inner.add(control, ArrayAccess.get(array, Constant.of(2)));
 			});

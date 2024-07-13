@@ -46,8 +46,18 @@ public class LuaBinder {
 		}
 		
 		return methods.entrySet().stream()
-				.map(entry -> bindFunction(entry.getKey(), entry.getValue()))
+				.map(entry -> bindFunction(entry.getKey(), toSorted(entry.getValue())))
 				.toList();
+	}
+	
+	private List<Method> toSorted(List<Method> methods) {
+		// getDeclaredMethods() has no well-defined order...
+		methods.sort(Comparator.comparing(Method::getParameterCount).reversed()); // Most parameters first
+		// Intrinsics first
+		Comparator<Method> notIntrinsic = Comparator.comparing(method -> method.isAnnotationPresent(LuaIntrinsic.class));
+		methods.sort(notIntrinsic.reversed());
+		// TODO least specific types last? fallback last?
+		return methods;
 	}
 	
 	public JavaFunction bindFunction(String name, List<Method> targetMethods) {

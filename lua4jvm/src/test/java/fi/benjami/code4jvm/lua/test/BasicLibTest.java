@@ -112,13 +112,32 @@ public class BasicLibTest {
 	}
 	
 	@Test
-	@Disabled
 	public void pairs() throws Throwable {
 		vm.execute("""
 				tbl = {foo = 1, bar = 2, baz = 3}
+				out = {}
 				for k,v in pairs(tbl) do
-				
+					out[k] = v
 				end
 				""");
+		var out = (LuaTable) vm.globals().get("out");
+		assertEquals(1d, out.get("foo"));
+		assertEquals(2d, out.get("bar"));
+		assertEquals(3d, out.get("baz"));
+	}
+	
+	@Test
+	public void pairs2() throws Throwable {
+		vm.execute("""
+				tbl = {"foo", "bar", "baz", foo = 1, bar = 2, baz = 3}
+				out = {}
+				for k,v in pairs(tbl) do
+					out[k] = v
+				end
+				""");
+		var out = (LuaTable) vm.globals().get("out");
+		assertEquals(1d, out.get("foo"));
+		assertEquals(2d, out.get("bar"));
+		assertEquals(3d, out.get("baz"));
 	}
 }
