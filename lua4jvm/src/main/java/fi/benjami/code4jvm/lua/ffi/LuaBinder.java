@@ -99,7 +99,9 @@ public class LuaBinder {
 			throw new IllegalStateException("lookup provided for LuaBinder has insufficient access", e);
 		}
 		
-		return new JavaFunction.Target(injectedArgs, args, method.isVarArgs(), LuaType.of(returnType), multipleReturns, handle);
+		var intrinsic = method.getAnnotation(LuaIntrinsic.class);
+		var intrinsicId = intrinsic != null ? intrinsic.value() : null;
+		return new JavaFunction.Target(injectedArgs, args, method.isVarArgs(), LuaType.of(returnType), multipleReturns, handle, intrinsicId);
 	}
 	
 	private InjectedArg toInjectedArg(Class<?> type, String source) {

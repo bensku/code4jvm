@@ -4,6 +4,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -231,5 +234,44 @@ public class TableTest {
 		
 		meta.set("__index", null);
 		assertNull(func.call(table));
+	}
+	
+	@Test
+	public void tableIterators() {
+		var table = new LuaTable();
+		table.set("foo", 1d);
+		table.set("bar", 2d);
+		table.set("baz", 3d);
+		
+		var itKeys = new HashSet<>();
+		var itVals = new HashSet<>();
+		var nextKeys = new HashSet<>();
+		var nextVals = new HashSet<>();
+		
+		var it = table.iterator();
+		while (it.next()) {
+			itKeys.add(it.key());
+			itVals.add(it.value());
+		}
+		
+		Object prevKey = null;
+		do {
+			var entry = table.next(prevKey);
+			if (entry != null) {
+				prevKey = entry[0];
+				nextKeys.add(entry[0]);
+				nextVals.add(entry[1]);
+			} else {
+				prevKey = null;
+			}
+		} while (prevKey != null);
+		
+		var keys = Set.of("foo", "bar", "baz");
+		var values = Set.of(1d, 2d, 3d);
+		
+		assertEquals(keys, itKeys);
+		assertEquals(values, itVals);
+		assertEquals(keys, nextKeys);
+		assertEquals(values, nextVals);
 	}
 }

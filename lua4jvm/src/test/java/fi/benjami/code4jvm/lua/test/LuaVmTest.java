@@ -214,7 +214,7 @@ public class LuaVmTest {
 		var handle = MethodHandles.lookup().findVirtual(Function.class, "apply",
 				MethodType.methodType(Object.class, Object.class)).bindTo(javaFunc);
 		var callable = new JavaFunction("javaFunc", List.of(
-				new JavaFunction.Target(List.of(), List.of(new JavaFunction.Arg("str", LuaType.STRING, false)), false, LuaType.STRING, false, handle)
+				new JavaFunction.Target(List.of(), List.of(new JavaFunction.Arg("str", LuaType.STRING, false)), false, LuaType.STRING, false, handle, null)
 		), null);
 		var func = (LuaFunction) vm.execute("""
 				return function (f, arg)

@@ -304,4 +304,114 @@ public class LuaTable {
 	public Object shape() {
 		return shape;
 	}
+	
+	/**
+	 * Gets the next entry in this table.
+	 * 
+	 * <p>This method supports stateless iteration, much like Lua's next()
+	 * function. When writing Java, this is probably not what you want!
+	 * Stateful iterators produced by {@link #iterator()} are more efficient,
+	 * potentially significantly so.
+	 * @param prevKey Key of the previous entry, or null to start from scratch.
+	 * @return A pair of key and value.
+	 */
+	public Object[] next(Object prevKey) {
+		if (prevKey == null) {
+			if (arraySize != 0) {				
+				// First call, array has at least one member
+				return new Object[] {1d, getArray(1)};
+			} else {
+				// First call, no array members -> return "first" table member
+				for (var i = arrayCapacity; i < table.length; i++) {
+					if (table[i] != null) {
+						return new Object[] {keys[i - arrayCapacity], table[i]};
+					}
+				}
+			}
+		}
+		
+		if (prevKey instanceof Double index && index < arraySize + 1) {
+			// Iterate the array in order as long as we have elements
+			var newIndex = index + 1;
+			return new Object[] {newIndex, getArray((int) newIndex)};
+		}
+		
+		// Out of array members
+		for (var i = getSlot(prevKey) + 1; i < table.length; i++) {
+			if (table[i] != null) {
+				return new Object[] {keys[i - arrayCapacity], table[i]};
+			}
+		}
+		return null; // Table end
+	}
+	
+	/**
+	 * Creates a stateful table iterator of this table.
+	 * 
+	 * <p><b>Note:</b> Table iterators are not compatible with
+	 * {@link java.util.Iterator}!
+	 * @return A table iterator.
+	 */
+	public Iterator iterator() {
+		return new Iterator();
+	}
+	
+	/**
+	 * A stateful table iterator.
+	 * 
+	 * <p>Typical usage:
+	 * <pre>
+	 * var it = table.iterator();
+	 * while (it.next()) {
+	 *     var key = it.key();
+	 *     var value = it.value();
+	 * }
+	 * </pre>
+	 *
+	 */
+	public class Iterator {
+		
+		private boolean array;
+		private int index;
+		
+		private Iterator() {
+			this.array = false;
+			this.index = 0;
+		}
+		
+		public boolean next() {
+			return array ? nextArray() : nextTable();
+		}
+		
+		private boolean nextArray() {
+			index++;
+			if (index >= arraySize) {
+				// Reached array end
+				array = false;
+				index = arrayCapacity - 1; // Jump over possible unused array space
+				return nextTable(); // Table might or might not have entries
+			}
+			return true;
+		}
+		
+		private boolean nextTable() {
+			// Iterate over empty space until we find next entry
+			for (var i = index + 1; i < table.length; i++) {
+				if (table[i] != null) {
+					index = i;
+					return true;
+				}
+			}
+			index = table.length;
+			return false;
+		}
+		
+		public Object key() {
+			return array ? (double) index : keys[index];
+		}
+		
+		public Object value() {
+			return table[index];
+		}
+	}
 }

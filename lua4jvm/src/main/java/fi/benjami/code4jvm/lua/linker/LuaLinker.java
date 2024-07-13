@@ -35,7 +35,7 @@ public class LuaLinker {
 	private static final MethodHandles.Lookup LOOKUP = MethodHandles.lookup();
 	public static final Type TYPE = Type.of(LuaLinker.class);
 	
-	static final MethodHandle TARGET_HAS_CHANGED, PROTOTYPE_HAS_CHANGED, TYPE_HAS_CHANGED,
+	public static final MethodHandle TARGET_HAS_CHANGED, PROTOTYPE_HAS_CHANGED, TYPE_HAS_CHANGED,
 			ARRAY_FIRST, SHAPE_ARRAYS, UPDATE_SITE, NEW_WRAPPER_EX, WRAPPER_EX_CAUSE;
 	
 	private static final class WrapperException extends RuntimeException {
@@ -126,6 +126,7 @@ public class LuaLinker {
 			}
 		} else if (callable instanceof JavaFunction function) {
 			// Java method exposed to Lua via FFI
+			var intrinsicId = meta.options.intrinsicId();
 			var specializedTypes = compiledTypes;
 			JavaFunction.Target funcTarget;
 			if (meta.hasUnknownTypes) {
@@ -134,16 +135,16 @@ public class LuaLinker {
 					// Use them! Runtime types are never LESS applicable than compile-time types
 					// so we don't need to check anything else
 					specializedTypes = Arrays.stream(args).map(LuaType::of).toArray(LuaType[]::new);
-					funcTarget = function.matchToArgs(specializedTypes);
+					funcTarget = function.matchToArgs(specializedTypes, intrinsicId);
 					meta.usesRuntimeTypes = true;
 				} else {
 					// Too many type changes; we'd prefer to use compile-time types
-					funcTarget = function.matchToArgs(compiledTypes);
+					funcTarget = function.matchToArgs(compiledTypes, intrinsicId);
 					if (funcTarget == null) {
 						// But it is entirely possible that we can't!
 						// Performance be damned, a call that has correct types at runtime must not fail
 						specializedTypes = Arrays.stream(args).map(LuaType::of).toArray(LuaType[]::new);
-						funcTarget = function.matchToArgs(specializedTypes);
+						funcTarget = function.matchToArgs(specializedTypes, intrinsicId);
 						meta.usesRuntimeTypes = true;
 					} else {
 						meta.usesRuntimeTypes = false;
@@ -151,7 +152,7 @@ public class LuaLinker {
 				}
 			} else {
 				// All argument types are known compile-time
-				funcTarget = function.matchToArgs(compiledTypes);
+				funcTarget = function.matchToArgs(compiledTypes, intrinsicId);
 				meta.usesRuntimeTypes = false;
 			}
 			

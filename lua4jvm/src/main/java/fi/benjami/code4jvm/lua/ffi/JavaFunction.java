@@ -3,6 +3,7 @@ package fi.benjami.code4jvm.lua.ffi;
 import java.lang.invoke.MethodHandle;
 import java.util.List;
 
+import fi.benjami.code4jvm.lua.linker.CallSiteOptions;
 import fi.benjami.code4jvm.lua.ir.LuaType;
 
 /**
@@ -62,16 +63,25 @@ public record JavaFunction(
 			/**
 			 * Java method that should be called for this target.
 			 */
-			MethodHandle method
+			MethodHandle method,
+			
+			/**
+			 * Intrinsic id. If non-null, this target is ignored unless the
+			 * {@link CallSiteOptions#intrinsicId call site} has same id set.
+			 */
+			String intrinsicId
 	) {}
 	
 	public record Arg(String name, LuaType type, boolean nullable) {}
 	
 	// TODO support functions for generating errors
 	
-	public Target matchToArgs(LuaType[] argTypes) {
+	public Target matchToArgs(LuaType[] argTypes, String intrinsicId) {
 		// Try all targets in order
 		for (var target : targets) {
+			if (target.intrinsicId != null && !target.intrinsicId.equals(intrinsicId)) {
+				continue; // Intrinsic not allowed by caller
+			}
 			if (checkArgs(target, argTypes) == MatchResult.SUCCESS) {
 				return target;
 			}

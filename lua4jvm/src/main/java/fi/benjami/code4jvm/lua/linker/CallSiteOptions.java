@@ -29,8 +29,19 @@ public record CallSiteOptions(
 		 * as the its last argument. This forces the linker to inspect the
 		 * arguments and (attempt to) spread it over arguments.
 		 */
-		boolean spreadArguments
+		boolean spreadArguments,
+		
+		/**
+		 * Intrinsic id of this call site. If non-null, when the call target is
+		 * a Java function, its targets with same intrinsic id are selected in
+		 * addition to 
+		 */
+		String intrinsicId
 ) {
+	
+	public CallSiteOptions(LuaVm owner, LuaType[] types, boolean spreadResults, boolean spreadArguments) {
+		this(owner, types, spreadResults, spreadArguments, null);
+	}
 	
 	/**
 	 * Creates call site options for a non-function call.

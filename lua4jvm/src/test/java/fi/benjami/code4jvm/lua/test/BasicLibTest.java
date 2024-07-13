@@ -10,6 +10,7 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import fi.benjami.code4jvm.lua.LuaVm;
@@ -108,5 +109,16 @@ public class BasicLibTest {
 		);
 		trustedVm.execute("dofile(\"src/test/resources/dofile.lua\")");
 		assertTrue((boolean) trustedVm.globals().get("DOFILE_SUCCESS"));
+	}
+	
+	@Test
+	@Disabled
+	public void pairs() throws Throwable {
+		vm.execute("""
+				tbl = {foo = 1, bar = 2, baz = 3}
+				for k,v in pairs(tbl) do
+				
+				end
+				""");
 	}
 }

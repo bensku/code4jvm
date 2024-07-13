@@ -12,10 +12,14 @@ import fi.benjami.code4jvm.lua.LuaVm;
 import fi.benjami.code4jvm.lua.ffi.LuaLibrary;
 import fi.benjami.code4jvm.lua.ffi.Nullable;
 import fi.benjami.code4jvm.lua.ir.LuaType;
+import fi.benjami.code4jvm.lua.linker.CallSiteOptions;
+import fi.benjami.code4jvm.lua.linker.LuaCallSite;
+import fi.benjami.code4jvm.lua.linker.LuaLinker;
 import fi.benjami.code4jvm.lua.ffi.Inject;
 import fi.benjami.code4jvm.lua.ffi.JavaFunction;
 import fi.benjami.code4jvm.lua.ffi.LuaBinder;
 import fi.benjami.code4jvm.lua.ffi.LuaExport;
+import fi.benjami.code4jvm.lua.ffi.LuaIntrinsic;
 import fi.benjami.code4jvm.lua.runtime.LuaFunction;
 import fi.benjami.code4jvm.lua.runtime.LuaTable;
 
@@ -187,6 +191,41 @@ public class BasicLib implements LuaLibrary {
 	@LuaExport("type")
 	public static String type(Object value) {
 		return LuaType.of(value).name();
+	}
+	
+	private static final JavaFunction INTRINSIC_ITERATOR = InternalLib.FUNCTIONS.get("intrinsicIterator"),
+			TABLE_ITERATOR = InternalLib.FUNCTIONS.get("tableIterator");
+		
+	@LuaExport("pairs")
+	@LuaIntrinsic("iteratorFor")
+	private static Object[] pairsStateful(@Inject LuaVm vm, Object iterable) throws Throwable {
+		if (iterable instanceof LuaTable table
+				&& (table.metatable() == null || table.metatable().get("__pairs") == null)) {
+			// Normal Lua table; let's cheat a bit and use a stateful table iterator (intrinsic path)
+			return new Object[] {INTRINSIC_ITERATOR, table.iterator()};
+		}
+		
+		// Aside of the above fast path, delegate to normal pairs
+		return pairs(vm, iterable);
+	}
+	
+	@LuaExport("pairs")
+	private static Object[] pairs(@Inject LuaVm vm, Object iterable) throws Throwable {
+		if (iterable instanceof LuaTable table) {
+			if (table.metatable() != null) {
+				var metamethod = table.metatable().get("__pairs");
+				if (metamethod != null) {
+					// Call __pairs and use whatever it returns as an iterator
+					var target = LuaLinker.linkCall(new LuaCallSite(null, CallSiteOptions.nonFunction(vm, LuaType.TABLE)),
+							metamethod, table);
+					return (Object[]) target.target().invoke(metamethod, table);
+				}
+			}
+			// No __pairs, just iterate over the table normally (non-intrinsic path)
+			return new Object[] {TABLE_ITERATOR, table};
+		} else {
+			throw new LuaException("value not iterable");
+		}
 	}
 	
 }

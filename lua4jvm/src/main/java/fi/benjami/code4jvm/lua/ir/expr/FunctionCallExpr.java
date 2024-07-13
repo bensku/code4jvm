@@ -23,6 +23,10 @@ public record FunctionCallExpr(
 	
 	@Override
 	public Value emit(LuaContext ctx, Block block) {
+		return emit(ctx, block, null);
+	}
+	
+	public Value emit(LuaContext ctx, Block block, String intrinsicId) {
 		// Get expensive-to-compute types from cache
 		var cache = (CachedCall) ctx.getCache(this);
 		var argTypes = cache.argTypes();
@@ -31,7 +35,7 @@ public record FunctionCallExpr(
 		// TODO constant bootstrap is broken due to upvalues
 		var bootstrap = LuaLinker.BOOTSTRAP_DYNAMIC;
 		var lastMultiVal = !args.isEmpty() && MultiVals.canReturnMultiVal(args.get(args.size() - 1));
-		var options = new CallSiteOptions(ctx.owner(), argTypes, ctx.allowSpread(), lastMultiVal);
+		var options = new CallSiteOptions(ctx.owner(), argTypes, ctx.allowSpread(), lastMultiVal, intrinsicId);
 		bootstrap = bootstrap.withCapturedArgs(ctx.addClassData(options));
 		
 		// Evaluate arguments to values (function is first argument)
