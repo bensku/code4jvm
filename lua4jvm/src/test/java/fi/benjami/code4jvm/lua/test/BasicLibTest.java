@@ -11,7 +11,6 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import fi.benjami.code4jvm.lua.LuaVm;
@@ -151,5 +150,22 @@ public class BasicLibTest {
 				return k1, v1, k2, v2
 				""");
 		assertArrayEquals(new Object[] {"foo", "bar", null, null}, results);
+	}
+	
+	@Test
+	public void ipairs() throws Throwable {
+		vm.execute("""
+				tbl = {"foo", "bar", "baz", test = 1, second = 2}
+				out = {}
+				for k,v in ipairs(tbl) do
+					out[#out+1] = v
+				end
+				""");
+		var out = (LuaTable) vm.globals().get("out");
+		assertEquals("foo", out.get(1d));
+		assertEquals("bar", out.get(2d));
+		assertEquals("baz", out.get(3d));
+		assertEquals(null, out.get("test"));
+		assertEquals(null, out.get("second"));
 	}
 }

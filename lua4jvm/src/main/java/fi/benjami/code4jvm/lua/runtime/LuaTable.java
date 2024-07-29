@@ -239,7 +239,8 @@ public class LuaTable {
 	private void enlargeArray() {
 		shapeChanged();
 		
-		var newCapacity = Math.max(4, (int) (arrayCapacity * 1.3f));
+		// TODO don't always double capacity; but make sure this always adds at least 3 slots (to account for gaps)!
+		var newCapacity = Math.max(4, arrayCapacity * 2);
 		var newTable = new Object[newCapacity + keys.length];
 		
 		// Copy old array part
@@ -360,7 +361,15 @@ public class LuaTable {
 	 * @return A table iterator.
 	 */
 	public Iterator iterator() {
-		return new Iterator();
+		return new Iterator(false);
+	}
+	
+	/**
+	 * Creates a stateful table iterator that only iterates through the array part.
+	 * @return A table iterator.
+	 */
+	public Iterator arrayIterator() {
+		return new Iterator(true);
 	}
 	
 	/**
@@ -378,10 +387,12 @@ public class LuaTable {
 	 */
 	public class Iterator {
 		
+		private final boolean arrayOnly;
 		private boolean array;
 		private int index;
 		
-		private Iterator() {
+		private Iterator(boolean arrayOnly) {
+			this.arrayOnly = arrayOnly;
 			this.array = true;
 			this.index = 0;
 		}
@@ -392,8 +403,15 @@ public class LuaTable {
 		
 		private boolean nextArray() {
 			index++;
-			if (index >= arraySize) {
+			if (index >= arraySize || table[index] == null) {
 				// Reached array end
+				// ... but if there were previously gaps, some hash table entries
+				// might also need to be visible to array iterators
+				var nextEntry = getRaw((double) index);
+				if (nextEntry != null) {
+					return true;
+				} // else: REALLY reached array end
+				
 				array = false;
 				index = arrayCapacity - 1; // Jump over possible unused array space
 				return nextTable(); // Table might or might not have entries
@@ -402,6 +420,10 @@ public class LuaTable {
 		}
 		
 		private boolean nextTable() {
+			if (arrayOnly) {
+				return false; // ipairs() like behavior
+			}
+			
 			// Iterate over empty space until we find next entry
 			for (var i = index + 1; i < table.length; i++) {
 				if (table[i] != null) {

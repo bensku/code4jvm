@@ -194,7 +194,8 @@ public class BasicLib implements LuaLibrary {
 	}
 	
 	private static final JavaFunction INTRINSIC_ITERATOR = InternalLib.FUNCTIONS.get("intrinsicIterator"),
-			TABLE_ITERATOR = InternalLib.FUNCTIONS.get("tableIterator");
+			TABLE_ITERATOR = InternalLib.FUNCTIONS.get("tableIterator"),
+			ARRAY_ITERATOR = InternalLib.FUNCTIONS.get("arrayIterator");
 		
 	@LuaExport("pairs")
 	@LuaIntrinsic("iteratorFor")
@@ -223,6 +224,38 @@ public class BasicLib implements LuaLibrary {
 			}
 			// No __pairs, just iterate over the table normally (non-intrinsic path)
 			return new Object[] {TABLE_ITERATOR, table};
+		} else {
+			throw new LuaException("value not iterable");
+		}
+	}
+	
+	@LuaExport("ipairs")
+	@LuaIntrinsic("iteratorFor")
+	private static Object[] ipairsStateful(@Inject LuaVm vm, Object iterable) throws Throwable {
+		if (iterable instanceof LuaTable table
+				&& (table.metatable() == null || table.metatable().get("__ipairs") == null)) {
+			// Normal Lua table; let's cheat a bit and use a stateful table iterator (intrinsic path)
+			return new Object[] {INTRINSIC_ITERATOR, table.arrayIterator()};
+		}
+		
+		// Aside of the above fast path, delegate to normal pairs
+		return pairs(vm, iterable);
+	}
+	
+	@LuaExport("ipairs")
+	private static Object[] ipairs(@Inject LuaVm vm, Object iterable) throws Throwable {
+		if (iterable instanceof LuaTable table) {
+			if (table.metatable() != null) {
+				var metamethod = table.metatable().get("__ipairs");
+				if (metamethod != null) {
+					// Call __pairs and use whatever it returns as an iterator
+					var target = LuaLinker.linkCall(new LuaCallSite(null, CallSiteOptions.nonFunction(vm, LuaType.TABLE)),
+							metamethod, table);
+					return (Object[]) target.target().invoke(metamethod, table);
+				}
+			}
+			// No __pairs, just iterate over the table normally (non-intrinsic path)
+			return new Object[] {ARRAY_ITERATOR, table};
 		} else {
 			throw new LuaException("value not iterable");
 		}

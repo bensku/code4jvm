@@ -41,4 +41,11 @@ class InternalLib {
 	private static Object[] tableIterator(LuaTable table, String prevKey) {
 		return table.next(prevKey);
 	}
+	
+	@LuaExport("arrayIterator")
+	private static Object[] arrayIterator(LuaTable table, Object prevKey) {
+		int index = prevKey == null ? 1 : ((Number) prevKey).intValue();
+		index++;
+		return new Object[] {(double) index, table.get(index)};
+	}
 }

@@ -1,8 +1,10 @@
 package fi.benjami.code4jvm.lua.test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -274,5 +276,99 @@ public class TableTest {
 		assertEquals(values, itVals);
 		assertEquals(keys, nextKeys);
 		assertEquals(values, nextVals);
+	}
+	
+	@Test
+	public void arrayIterator() {
+		var table = new LuaTable();
+		table.set(1d, "test");
+		table.set(2d, "second");
+		table.set(4d, "third"); // This is after gap, shouldn't be visible!
+		table.set("foo", 1d);
+		table.set("bar", 2d);
+		table.set("baz", 3d);
+		
+		{
+			var itKeys = new HashSet<>();
+			var itVals = new HashSet<>();
+			
+			var it = table.arrayIterator();
+			while (it.next()) {
+				itKeys.add(it.key());
+				itVals.add(it.value());
+			}
+			
+			var keys = Set.of(1d, 2d);
+			var values = Set.of("test", "second");
+			
+			assertEquals(keys, itKeys);
+			assertEquals(values, itVals);
+		}
+		
+		table.set(3d, "later!"); // This should close the gap
+		
+		{
+			var itKeys = new HashSet<>();
+			var itVals = new HashSet<>();
+			
+			var it = table.arrayIterator();
+			while (it.next()) {
+				itKeys.add(it.key());
+				itVals.add(it.value());
+			}
+			
+			var keys = Set.of(1d, 2d, 3d, 4d);
+			var values = Set.of("test", "second", "later!", "third");
+			
+			assertEquals(keys, itKeys);
+			assertEquals(values, itVals);
+		}
+	}
+	
+	@Test
+	public void fakeArray() {
+		// If there were too big gaps in table for it to be array,
+		// filling those gaps should still make the entries visible
+		var table = new LuaTable();
+		table.set(1d, "test");
+		table.set(10d, "second");
+		table.set(100d, "third");
+		
+		{
+			var it = table.arrayIterator();
+			assertTrue(it.next());
+			assertEquals(1d, it.key());
+			assertEquals("test", "test");
+			assertFalse(it.next());
+		}
+		
+		for (double i = 2; i < 10; i++) {
+			table.set(i, i);
+		}
+		
+		{
+			var itKeys = new HashSet<>();
+			var itVals = new HashSet<>();
+			
+			var it = table.arrayIterator();
+			while (it.next()) {
+				itKeys.add(it.key());
+				itVals.add(it.value());
+			}
+			
+			var keys = Set.of(1d, 2d, 3d, 4d, 5d, 6d, 7d, 8d, 9d, 10d);
+			var values = Set.of("test", "second", 2d, 3d, 4d, 5d, 6d, 7d, 8d, 9d);
+			
+			assertEquals(keys, itKeys);
+			assertEquals(values, itVals);
+		}
+	}
+	
+	@Test
+	public void enlargeArray() {
+		// Wrong multiplier for array size may cause AOOBE in edge cases like this
+		var table = new LuaTable();
+		table.set(1d, "test");
+		table.set(5d, "second");
 	}
 }
