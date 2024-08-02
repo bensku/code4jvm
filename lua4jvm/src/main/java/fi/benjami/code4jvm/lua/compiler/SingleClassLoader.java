@@ -1,6 +1,10 @@
 package fi.benjami.code4jvm.lua.compiler;
 
-public class SingleClassLoader extends ClassLoader {
+class SingleClassLoader extends ClassLoader {
+	
+	public static Class<?> load(String name, byte[] code) {
+		return new SingleClassLoader(code).findClass(name);
+	}
 	
 	private final byte[] code;
 	
@@ -9,8 +13,7 @@ public class SingleClassLoader extends ClassLoader {
 	}
 
 	@Override
-	protected Class<?> findClass(String name) throws ClassNotFoundException {
+	public Class<?> findClass(String name) {
 		return defineClass(name, code, 0, code.length);
-
 	}
 }

@@ -1,11 +1,13 @@
 package fi.benjami.code4jvm;
 
 import java.lang.invoke.MethodHandles;
+import java.util.Arrays;
 import java.util.Optional;
 
 import org.objectweb.asm.ConstantDynamic;
 
 import fi.benjami.code4jvm.call.CallTarget;
+import fi.benjami.code4jvm.call.FixedCallTarget;
 
 public class Constant implements Value {
 	
@@ -69,6 +71,16 @@ public class Constant implements Value {
 				Type.of(MethodHandles.Lookup.class), Type.STRING, CLASS, Type.INT).toMethodHandle();
 		var dynamic = new ConstantDynamic("_", type.descriptor(), handle, index);
 		return new Constant(dynamic, type);
+	}
+	
+	public static Constant dynamic(Type type, FixedCallTarget bootstrap, Constant... args) {
+		var handle = bootstrap.toMethodHandle();
+		var argValues = Arrays.stream(args)
+				.map(Constant::value)
+				.toArray();
+		var dynamic = new ConstantDynamic("_", type.descriptor(), handle, argValues);
+		return new Constant(dynamic, type);
+
 	}
 	
 	// TODO method handle, (more) constant dynamic

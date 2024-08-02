@@ -1,7 +1,6 @@
 package fi.benjami.code4jvm.lua.compiler;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -199,11 +198,11 @@ public class LuaContext {
 	public Constant addClassData(Object value, Type type) {
 		var index = classData.size();
 		classData.add(value);
-		return Constant.classDataAt(type, index);
+		return Constant.dynamic(type, ClassData.BOOTSTRAP, Constant.of(index));
 	}
 	
-	public Object allClassData() {
-		return classData;
+	public Object[] allClassData() {
+		return classData.toArray();
 	}
 	
 	public <T> T cached(Object key, T value) {

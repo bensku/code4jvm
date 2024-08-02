@@ -62,7 +62,17 @@ public class FunctionCompiler {
 			var ctx = LuaContext.forFunction(function.owner(), function.type(), truncateReturn, argTypes);
 			var code = generateCode(ctx, function.type(), argTypes, upvalueTypes);
 			try {
-				var lookup = LOOKUP.defineHiddenClassWithClassData(code, ctx.allClassData(), true);
+				// Load the class with single-use class loader
+				// Using hidden classes would be preferable, but JVM hides them from stack frames
+				// ... which really screws up stack traces of Lua code
+				// See https://bugs.openjdk.org/browse/JDK-8212620
+				var implClass = SingleClassLoader.load("unknown", code);
+				try {
+					LOOKUP.findStaticSetter(implClass, ClassData.FIELD_NAME, Object[].class)
+							.invokeExact(ctx.allClassData());
+				} catch (Throwable e) {
+					throw new AssertionError(e); // We just generated the field!
+				}
 				
 				// Cache the constructor and actual function MHs
 				// They'll hold references to the underlying class
@@ -70,7 +80,7 @@ public class FunctionCompiler {
 						.map(LuaType::backingType)
 						.map(Type::loadedClass)
 						.toArray(Class[]::new);
-				var constructor = lookup.findConstructor(lookup.lookupClass(),
+				var constructor = LOOKUP.findConstructor(implClass,
 						MethodType.methodType(void.class, jvmUpvalueTypes));
 				
 				var normalArgCount = function.type().acceptedArgs().size();
@@ -90,7 +100,7 @@ public class FunctionCompiler {
 				
 				var jvmReturnType = ctx.returnType().equals(LuaType.NIL)
 						? Type.VOID : ctx.returnType().backingType();
-				var method = LOOKUP.findVirtual(lookup.lookupClass(), "call",
+				var method = LOOKUP.findVirtual(implClass, "call",
 						MethodType.methodType(jvmReturnType.loadedClass(), jvmArgTypes));
 				
 				return new CompiledFunction(constructor, method);
@@ -118,7 +128,10 @@ public class FunctionCompiler {
 			LuaType[] argTypes, LuaType[] upvalueTypes) {
 		// Create class that wraps the method acting as function body
 		// TODO store name in function if available?
-		var def = ClassDef.create("fi.benjami.code4jvm.lua.compiler.CompiledFunction", Access.PUBLIC);
+		var def = ClassDef.create("unknown", Access.PUBLIC);
+		
+		// Class data constants
+		def.addStaticField(Access.PUBLIC, Type.OBJECT.array(1), ClassData.FIELD_NAME);
 		
 		// Add fields for upvalues
 		for (var i = 0; i < upvalueTypes.length; i++) {
