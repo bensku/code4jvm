@@ -3,16 +3,20 @@ package fi.benjami.code4jvm.lua.compiler;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import org.antlr.v4.runtime.ParserRuleContext;
+import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
+import fi.benjami.code4jvm.lua.ir.DebugInfoNode;
 import fi.benjami.code4jvm.lua.ir.IrNode;
 import fi.benjami.code4jvm.lua.ir.LuaBlock;
 import fi.benjami.code4jvm.lua.ir.LuaLocalVar;
-import fi.benjami.code4jvm.lua.ir.LuaType;
 import fi.benjami.code4jvm.lua.ir.LuaVariable;
 import fi.benjami.code4jvm.lua.ir.TableField;
 import fi.benjami.code4jvm.lua.ir.expr.ArithmeticExpr;
@@ -91,10 +95,14 @@ import fi.benjami.code4jvm.lua.parser.LuaParser.WhileLoopContext;
 
 public class IrCompiler extends LuaBaseVisitor<IrNode> {
 	
+	private final String moduleName;
 	private final Deque<LuaScope> scopes;
 	
-	public IrCompiler(LuaScope rootScope) {
-		scopes = new ArrayDeque<>();
+	private int lastLine;
+	
+	public IrCompiler(String moduleName, LuaScope rootScope) {
+		this.moduleName = moduleName;
+		this.scopes = new ArrayDeque<>();
 		scopes.push(rootScope);
 	}
 	
@@ -108,6 +116,19 @@ public class IrCompiler extends LuaBaseVisitor<IrNode> {
 	
 	private void popScope() {
 		scopes.pop();
+	}
+	
+	@Override
+	public IrNode visit(ParseTree tree) {
+		if (tree instanceof ParserRuleContext ctx) {
+			var line = ctx.getStart().getLine();
+			if (line != lastLine) {
+				// Line number changed, make sure to record it
+				assert line > lastLine;
+				return new DebugInfoNode(line, super.visit(tree));
+			}
+		}
+		return super.visit(tree);
 	}
 	
 	@Override
@@ -243,14 +264,16 @@ public class IrCompiler extends LuaBaseVisitor<IrNode> {
 		for (var i = 1; i < ctx.Name().size(); i++) {
 			target = new VariableExpr(new TableField(target, new LuaConstant(ctx.Name(i))));
 		}
-		var function = visitFuncbody(ctx.funcbody(), ctx.oopPart != null);
+		// TODO incorporate the full name as part of function name
+		var function = visitFuncbody(ctx.Name(ctx.Name().size() - 1).getText(), ctx.funcbody(), ctx.oopPart != null);
 		return new SetVariablesStmt(List.of(target.source()), List.of(function), false);
 	}
 
 	@Override
 	public IrNode visitLocalFunction(LocalFunctionContext ctx) {
-		var function = visitFuncbody(ctx.funcbody(), false);
-		return new SetVariablesStmt(List.of(currentScope().declare(ctx.Name().getText())), List.of(function), false);
+		var name = ctx.Name().getText();
+		var function = visitFuncbody(name, ctx.funcbody(), false);
+		return new SetVariablesStmt(List.of(currentScope().declare(name)), List.of(function), false);
 	}
 
 	@Override
@@ -498,10 +521,10 @@ public class IrCompiler extends LuaBaseVisitor<IrNode> {
 
 	@Override
 	public IrNode visitFunctiondef(FunctiondefContext ctx) {
-		return visitFuncbody(ctx.funcbody(), false);
+		return visitFuncbody("anonymous", ctx.funcbody(), false);
 	}
 
-	public IrNode visitFuncbody(FuncbodyContext ctx, boolean addSelfArg) {
+	public IrNode visitFuncbody(String name, FuncbodyContext ctx, boolean addSelfArg) {
 		pushScope(new LuaScope(currentScope(), true));
 		var scope = currentScope();
 		List<LuaLocalVar> args;
@@ -528,7 +551,7 @@ public class IrCompiler extends LuaBaseVisitor<IrNode> {
 		}
 		var body = visitBlock(ctx.block());	
 		popScope();
-		return new FunctionDeclExpr(scope.upvalues(), args, body);
+		return new FunctionDeclExpr(moduleName, name, scope.upvalues(), args, body);
 	}
 
 	@Override

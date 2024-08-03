@@ -45,7 +45,7 @@ public class LuaVm {
 		return globals;
 	}
 	
-	public LuaModule compile(String chunk) {
+	public LuaModule compile(String name, String chunk) {
 		// Tokenize and parse the chunk
 		var lexer = new LuaLexer(CharStreams.fromString(chunk));
 		var parser = new LuaParser(new CommonTokenStream(lexer));
@@ -53,8 +53,12 @@ public class LuaVm {
 		
 		// Perform semantic analysis and compile to IR
 		var rootScope = LuaScope.chunkRoot();
-		var visitor = new IrCompiler(rootScope);
-		return new LuaModule(visitor.visitChunk(tree), (LuaLocalVar) rootScope.resolve("_ENV"));
+		var visitor = new IrCompiler(name, rootScope);
+		return new LuaModule(name, visitor.visitChunk(tree), (LuaLocalVar) rootScope.resolve("_ENV"));
+	}
+	
+	public LuaModule compile(String chunk) {
+		return compile("unknown", chunk);
 	}
 	
 	public LuaFunction load(LuaModule module, LuaTable env) {
@@ -62,14 +66,20 @@ public class LuaVm {
 		var type = LuaType.function(
 				List.of(new UpvalueTemplate(module.env(), LuaType.TABLE)),
 				List.of(),
-				module.root()
+				module.root(),
+				module.name(),
+				"main chunk"
 				);
 		return new LuaFunction(this, type, new Object[] {env});
 	}
 	
-	public Object execute(String chunk) throws Throwable {
-		var module = compile(chunk);
+	public Object execute(String name, String chunk) throws Throwable {
+		var module = compile(name, chunk);
 		var func = load(module, globals());
 		return func.call();
+	}
+	
+	public Object execute(String chunk) throws Throwable {
+		return execute("unknown", chunk);
 	}
 }

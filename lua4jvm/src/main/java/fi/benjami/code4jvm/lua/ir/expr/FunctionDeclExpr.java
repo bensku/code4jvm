@@ -16,6 +16,16 @@ import fi.benjami.code4jvm.lua.runtime.LuaFunction;
 import fi.benjami.code4jvm.statement.ArrayAccess;
 
 public record FunctionDeclExpr(
+		/**
+		 * Name of the module this function declaration belongs to.
+		 */
+		String moduleName,
+		
+		/**
+		 * Name of this function.
+		 */
+		String name,
+		
 		List<Upvalue> upvalues,
 		
 		/**
@@ -56,7 +66,7 @@ public record FunctionDeclExpr(
 		var upvalueTemplates = upvalues.stream()
 				.map(upvalue -> new UpvalueTemplate(upvalue.inside(), ctx.variableType(upvalue.outside())))
 				.toList();
-		return ctx.cached(this, LuaType.function(upvalueTemplates, arguments, body));
+		return ctx.cached(this, LuaType.function(upvalueTemplates, arguments, body, moduleName, name));
 	}
 
 }

@@ -15,8 +15,9 @@ import fi.benjami.code4jvm.lua.ir.expr.VariableExpr;
 public class MultiVals {
 
 	public static boolean canReturnMultiVal(IrNode source) {
-		return source instanceof FunctionCallExpr
-				|| source instanceof VariableExpr expr && expr.source() == LuaLocalVar.VARARGS;
+		var concrete = source.concreteNode();
+		return concrete instanceof FunctionCallExpr
+				|| concrete instanceof VariableExpr expr && expr.source() == LuaLocalVar.VARARGS;
 	}
 	
 	// Called from generated code

@@ -45,6 +45,7 @@ public class ClassDef implements CompileHook.Carrier {
 	private final int access;
 	private final Type type;
 	
+	private String sourceFile;
 	private Type superClass;
 	private Type[] interfaces;
 	
@@ -83,6 +84,13 @@ public class ClassDef implements CompileHook.Carrier {
 			throw new IllegalStateException("already implements interfaces");
 		}
 		interfaces = types;
+	}
+	
+	public void sourceFile(String fileName) {
+		if (sourceFile != null) {
+			throw new IllegalStateException("source file already set");
+		}
+		sourceFile = fileName;
 	}
 	
 	/**
@@ -302,6 +310,10 @@ public class ClassDef implements CompileHook.Carrier {
 		// TODO customizable Java version (needs more than just this flag, though)
 		cv.visit(opts.get(CoreOptions.JAVA_VERSION).opcode(),
 				access, type.internalName(), null, superName, interfaceNames);
+		
+		if (sourceFile != null) {
+			cv.visitSource(sourceFile, null);
+		}
 
 		// Add fields
 		for (var field : fields) {

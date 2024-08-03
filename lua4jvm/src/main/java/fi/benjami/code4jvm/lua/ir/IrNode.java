@@ -13,4 +13,8 @@ public interface IrNode {
 	default boolean hasReturn() {
 		return false;
 	}
+	
+	default IrNode concreteNode() {
+		return this;
+	}
 }

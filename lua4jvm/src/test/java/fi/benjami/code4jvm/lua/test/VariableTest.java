@@ -45,7 +45,7 @@ public class VariableTest {
 								false
 								),
 						new ReturnStmt(List.of(new VariableExpr(c)))
-				)));
+				)), "unknown", "main");
 		var func = new LuaFunction(dummy, type, new Object[0]);
 		assertEquals(3d, func.call(1d, 2d));
 		assertThrows(LuaException.class, () -> func.call(null, 4d));
@@ -72,7 +72,7 @@ public class VariableTest {
 								false
 								),
 						new ReturnStmt(List.of(new VariableExpr(c)))
-				)));
+				)), "unknown", "main");
 		var func = new LuaFunction(dummy, type, new Object[0]);
 		assertEquals(10d, func.call(5d, 10d));
 		assertNull(func.call(1d, null));
@@ -94,7 +94,7 @@ public class VariableTest {
 								false
 								),
 						new ReturnStmt(List.of(new VariableExpr(c), new VariableExpr(d)))
-				)));
+				)), "unknown", "main");
 		var func = new LuaFunction(dummy, type, new Object[0]);
 		assertArrayEquals(new Object[] {5d, 10d}, (Object[]) func.call(5d, 10d));
 		assertArrayEquals(new Object[] {5d, null}, (Object[]) func.call(5d, null));
@@ -108,7 +108,7 @@ public class VariableTest {
 				List.of(),
 				new LuaBlock(List.of(
 						new ReturnStmt(List.of(new LuaConstant(5d), new LuaConstant(6d)))
-				)));
+				)), "unknown", "main");
 		var calledFunc = new LuaFunction(dummy, calledType, new Object[0]);
 		
 		{
@@ -126,7 +126,7 @@ public class VariableTest {
 							),
 							new ReturnStmt(List.of(new VariableExpr(a), new VariableExpr(b), new VariableExpr(c)))
 							))
-					);
+					, "unknown", "main");
 			var func = new LuaFunction(dummy, type, new Object[0]);
 			assertArrayEquals(new Object[] {5d, 6d, null}, (Object[]) func.call());
 		}
@@ -145,7 +145,7 @@ public class VariableTest {
 									true),
 							new ReturnStmt(List.of(new VariableExpr(a), new VariableExpr(b), new VariableExpr(c)))
 							))
-					);
+					, "unknown", "main");
 			var func = new LuaFunction(dummy, type, new Object[0]);
 			assertArrayEquals(new Object[] {5d, 6d, null}, (Object[]) func.call());
 		}
@@ -166,7 +166,7 @@ public class VariableTest {
 								List.of(new TableInitExpr(List.of(new TableInitExpr.Entry(new VariableExpr(a), new VariableExpr(b))))),
 								false),
 						new ReturnStmt(List.of(new VariableExpr(c)))
-				)));
+				)), "unknown", "main");
 		var func = new LuaFunction(dummy, type, new Object[0]);
 		var res = (LuaTable) func.call("foo", "bar");
 		assertEquals("bar", res.get("foo"));
@@ -194,7 +194,7 @@ public class VariableTest {
 								List.of(new VariableExpr(a), new VariableExpr(b)),
 								false),
 						new ReturnStmt(List.of(new VariableExpr(c)))
-				)));
+				)), "unknown", "main");
 		var func = new LuaFunction(dummy, type, new Object[0]);
 		var res = (LuaTable) func.call("foo", "bar");
 		assertEquals("foo", res.get(1d));
@@ -210,7 +210,7 @@ public class VariableTest {
 				new ReturnStmt(List.of(
 						new VariableExpr(new TableField(new VariableExpr(a), new VariableExpr(b)))
 						))
-				)));
+				)), "unknown", "main");
 		var func = new LuaFunction(dummy, type, new Object[0]);
 		var table = new LuaTable();
 		table.set("foo", "bar");

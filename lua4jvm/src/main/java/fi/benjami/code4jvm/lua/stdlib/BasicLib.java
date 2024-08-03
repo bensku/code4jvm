@@ -2,9 +2,11 @@ package fi.benjami.code4jvm.lua.stdlib;
 
 import java.io.IOException;
 import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
 import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -26,8 +28,9 @@ import fi.benjami.code4jvm.lua.runtime.LuaTable;
 public class BasicLib implements LuaLibrary {
 	
 	public static final BasicLib INSTANCE = new BasicLib();
-		
-	private static final Collection<JavaFunction> FUNCTIONS = new LuaBinder(MethodHandles.lookup()).bindFunctionsFrom(BasicLib.class);
+	
+	private static final MethodHandles.Lookup LOOKUP = MethodHandles.lookup();
+	private static final Collection<JavaFunction> FUNCTIONS = new LuaBinder(LOOKUP).bindFunctionsFrom(BasicLib.class);
 	
 	private BasicLib() {}
 	
@@ -37,8 +40,29 @@ public class BasicLib implements LuaLibrary {
 		for (var func : FUNCTIONS) {
 			globals.set(func.name(), func);
 		}
+		globals.set("error", makeError());
 		globals.set("_G", globals);
 		globals.set("_VERSION", "lua4jvm 0.1 (Lua 5.4)"); // TODO derive from build config
+	}
+	
+	// Do this the hard way to avoid stack frames from error function itself
+	private static JavaFunction makeError() {
+		try {
+			var newError = LOOKUP.findConstructor(LuaException.class, MethodType.methodType(void.class, Object.class));
+			var throwError = MethodHandles.dropArguments(MethodHandles.throwException(void.class, LuaException.class), 1, Object.class);
+			var target = MethodHandles.foldArguments(throwError, newError);
+			return new JavaFunction("error", List.of(new JavaFunction.Target(
+					List.of(),
+					List.of(new JavaFunction.Arg("message", LuaType.UNKNOWN, false)),
+					false,
+					LuaType.NIL,
+					false,
+					target,
+					null
+			)), null);
+		} catch (NoSuchMethodException | IllegalAccessException e) {
+			throw new AssertionError();
+		}
 	}
 
 	// TODO assert
@@ -62,7 +86,7 @@ public class BasicLib implements LuaLibrary {
 			throw new UnsupportedOperationException("callable chunks are not yet supported");
 		}
 		
-		var module = vm.compile(code);
+		var module = vm.compile(chunkname, code);
 		return vm.load(module, env);
 	}
 	
@@ -92,6 +116,7 @@ public class BasicLib implements LuaLibrary {
 			} catch (IOException e) {
 				throw new LuaException("failed to read VM stdin", e);
 			}
+			filename = "stdin";
 		} else {			
 			var fs = vm.options().fileSystem().orElseThrow(() -> new LuaException("file system not available"));
 			var path = fs.getPath(filename);
@@ -133,12 +158,6 @@ public class BasicLib implements LuaLibrary {
 	@LuaExport("dofile")
 	private static Object dofile(@Inject LuaVm vm) {
 		return dofile(vm, null);
-	}
-	
-	@LuaExport("error")
-	private static void error(Object message) {
-		// TODO use level? currently not possible, and potentially redundant when stack traces are improved
-		throw new LuaException(message);
 	}
 	
 	@LuaExport("getmetatable")

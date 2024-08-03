@@ -48,7 +48,7 @@ public record IteratorForStmt(
 			// Before loop body, call the iterable to (hopefully) produce an array of:
 			// iterator function, state, initial value for control variable, (TODO closing value)
 			// TODO Java iterable interop?
-			var first = iterable.get(0);
+			var first = iterable.get(0).concreteNode();
 			Value iterator;
 			if (first instanceof FunctionCallExpr call) {
 				ctx.setAllowSpread(true);

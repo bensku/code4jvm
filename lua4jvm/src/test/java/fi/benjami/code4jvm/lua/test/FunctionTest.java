@@ -30,7 +30,7 @@ public class FunctionTest {
 		// Empty function with no upvalues or arguments that returns nothing
 		var type = LuaType.function(List.of(), List.of(), new LuaBlock(List.of(
 				new ReturnStmt(List.of())
-				)));
+				)), "unknown", "main");
 		var func = new LuaFunction(dummy, type, new Object[0]);
 		func.call();
 	}
@@ -46,7 +46,7 @@ public class FunctionTest {
 				new LuaBlock(List.of(new ReturnStmt(List.of(
 						new ArithmeticExpr(new VariableExpr(a), ArithmeticExpr.Kind.ADD, new VariableExpr(b))
 						))
-				)));
+				)), "unknown", "main");
 		var func = new LuaFunction(dummy, type, new Object[0]);
 		assertEquals(3d, func.call(1d, 2d));
 		assertThrows(LuaException.class, () -> func.call(null, 4d));
@@ -63,7 +63,7 @@ public class FunctionTest {
 				new LuaBlock(List.of(new ReturnStmt(List.of(
 						new ArithmeticExpr(new VariableExpr(a), ArithmeticExpr.Kind.ADD, new VariableExpr(b))
 						))
-				)));
+				)), "unknown", "main");
 		var func = new LuaFunction(dummy, type, new Object[] {10d});
 		assertEquals(12d, func.call(2d));
 	}
@@ -79,7 +79,7 @@ public class FunctionTest {
 				new LuaBlock(List.of(new ReturnStmt(List.of(
 						new ArithmeticExpr(new VariableExpr(a1), ArithmeticExpr.Kind.ADD, new VariableExpr(b1))
 						))
-				)));
+				)), "unknown", "main");
 		var target = new LuaFunction(dummy, targetType, new Object[0]);
 		
 		var a2 = new LuaLocalVar("a");
@@ -93,7 +93,7 @@ public class FunctionTest {
 										new LuaConstant(target, targetType),
 										List.of(new VariableExpr(a2), new VariableExpr(b2))
 								)))
-				)));
+				)), "unknown", "main");
 		var wrapper = new LuaFunction(dummy, wrapperType, new Object[0]);
 		assertEquals(40d, wrapper.call(15d, 25d));
 	}
@@ -111,6 +111,7 @@ public class FunctionTest {
 				List.of(b),
 				new LuaBlock(List.of(
 						new ReturnStmt(List.of(new FunctionDeclExpr(
+								"unknown", "main",
 								List.of(
 										new FunctionDeclExpr.Upvalue(insideA, a),
 										new FunctionDeclExpr.Upvalue(insideB, b)
@@ -129,7 +130,7 @@ public class FunctionTest {
 														)))
 										))
 								)))
-				)));
+				)), "unknown", "main");
 		var func = new LuaFunction(dummy, type, new Object[] {10d});
 		var nested = (LuaFunction) func.call(5d);
 		assertEquals(27.5d, nested.call(3.5d));

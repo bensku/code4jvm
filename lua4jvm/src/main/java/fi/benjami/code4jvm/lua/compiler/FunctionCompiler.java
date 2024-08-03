@@ -3,6 +3,7 @@ package fi.benjami.code4jvm.lua.compiler;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -66,7 +67,7 @@ public class FunctionCompiler {
 				// Using hidden classes would be preferable, but JVM hides them from stack frames
 				// ... which really screws up stack traces of Lua code
 				// See https://bugs.openjdk.org/browse/JDK-8212620
-				var implClass = SingleClassLoader.load("unknown", code);
+				var implClass = SingleClassLoader.load(toClassName(function.type().moduleName()), code);
 				try {
 					LOOKUP.findStaticSetter(implClass, ClassData.FIELD_NAME, Object[].class)
 							.invokeExact(ctx.allClassData());
@@ -100,7 +101,7 @@ public class FunctionCompiler {
 				
 				var jvmReturnType = ctx.returnType().equals(LuaType.NIL)
 						? Type.VOID : ctx.returnType().backingType();
-				var method = LOOKUP.findVirtual(implClass, "call",
+				var method = LOOKUP.findVirtual(implClass, function.type().functionName(),
 						MethodType.methodType(jvmReturnType.loadedClass(), jvmArgTypes));
 				
 				return new CompiledFunction(constructor, method);
@@ -127,8 +128,8 @@ public class FunctionCompiler {
 	private static byte[] generateCode(LuaContext ctx, LuaType.Function type,
 			LuaType[] argTypes, LuaType[] upvalueTypes) {
 		// Create class that wraps the method acting as function body
-		// TODO store name in function if available?
-		var def = ClassDef.create("unknown", Access.PUBLIC);
+		var def = ClassDef.create(toClassName(type.moduleName()), Access.PUBLIC);
+		def.sourceFile(type.moduleName());
 		
 		// Class data constants
 		def.addStaticField(Access.PUBLIC, Type.OBJECT.array(1), ClassData.FIELD_NAME);
@@ -155,7 +156,7 @@ public class FunctionCompiler {
 		// Generate method contents
 		var jvmReturnType = ctx.returnType().equals(LuaType.NIL)
 				? Type.VOID : ctx.returnType().backingType();
-		var method = def.addMethod(jvmReturnType, "call", Access.PUBLIC);
+		var method = def.addMethod(jvmReturnType, type.functionName(), Access.PUBLIC);
 		
 		// Add the LuaFunction ('self') argument
 		// Currently unused, but easier to drop it here than with MethodHandles
@@ -196,6 +197,14 @@ public class FunctionCompiler {
 		type.body().emit(ctx, method.block());
 		
 		return def.compile(); // Delegate to code4jvm for compilation
+	}
+	
+	private static String toClassName(String moduleName) {
+		// Of course, there is no guarantee that it actually is a path
+		// But if it is, we'd best use platform path handling to strip the unnecessary parts
+		var path = Path.of(moduleName);
+		var fileName = path.getFileName().toString();
+		return fileName.endsWith(".lua") ? fileName.substring(0, fileName.length() - 4) : fileName;
 	}
 
 }

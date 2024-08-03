@@ -87,13 +87,17 @@ public interface LuaType {
 		private final List<UpvalueTemplate> upvalues;
 		private final List<LuaLocalVar> acceptedArgs;
 		private final LuaBlock body;
+		private final String moduleName;
+		private final String funcName;
 		
 		private final Map<FunctionCompiler.CacheKey, CompiledFunction> specializations;
 		
-		private Function(List<UpvalueTemplate> upvalues, List<LuaLocalVar> args, LuaBlock body) {
+		private Function(List<UpvalueTemplate> upvalues, List<LuaLocalVar> args, LuaBlock body, String moduleName, String funcName) {
 			this.upvalues = upvalues;
 			this.acceptedArgs = args;
 			this.body = body;
+			this.moduleName = moduleName;
+			this.funcName = funcName;
 			this.specializations = new HashMap<>();
 		}
 		
@@ -115,6 +119,14 @@ public interface LuaType {
 		
 		public boolean isVarargs() {
 			return !acceptedArgs.isEmpty() && acceptedArgs.get(acceptedArgs.size() - 1) == LuaLocalVar.VARARGS;
+		}
+		
+		public String moduleName() {
+			return moduleName;
+		}
+		
+		public String functionName() {
+			return funcName;
 		}
 
 		@Override
@@ -254,14 +266,15 @@ public interface LuaType {
 		return new Tuple(types);
 	}
 	
-	public static Function function(List<UpvalueTemplate> upvalues, List<LuaLocalVar> args, LuaBlock body) {
+	public static Function function(List<UpvalueTemplate> upvalues, List<LuaLocalVar> args, LuaBlock body,
+			String moduleName, String name) {
 		if (!body.hasReturn()) {
 			// If the function doesn't always return, insert return nil at end
 			var nodes = new ArrayList<>(body.nodes());
 			nodes.add(new ReturnStmt(List.of()));
 			body = new LuaBlock(nodes);
 		}
-		return new Function(upvalues, args, body);
+		return new Function(upvalues, args, body, moduleName, name);
 	}
 	
 	public static Shape shape() {

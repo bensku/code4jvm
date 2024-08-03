@@ -19,6 +19,6 @@ public class LuaRunner {
 		}
 		vm.globals().set("arg", argTable);
 		
-		vm.execute(script);
+		vm.execute(args[0], script);
 	}
 }
