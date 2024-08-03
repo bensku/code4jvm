@@ -1,18 +1,29 @@
 package fi.benjami.code4jvm.lua;
 
+import java.util.ArrayList;
 import java.util.List;
 
+import org.antlr.v4.runtime.BailErrorStrategy;
+import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
+import org.antlr.v4.runtime.DefaultErrorStrategy;import org.antlr.v4.runtime.Parser;
+import org.antlr.v4.runtime.RecognitionException;
+import org.antlr.v4.runtime.Recognizer;
+import org.antlr.v4.runtime.atn.ATNConfigSet;
+import org.antlr.v4.runtime.dfa.DFA;
+import org.antlr.v4.runtime.misc.ParseCancellationException;
 
 import fi.benjami.code4jvm.lua.compiler.IrCompiler;
 import fi.benjami.code4jvm.lua.compiler.LuaScope;
+import fi.benjami.code4jvm.lua.compiler.LuaSyntaxException;
 import fi.benjami.code4jvm.lua.ir.LuaLocalVar;
 import fi.benjami.code4jvm.lua.ir.LuaModule;
 import fi.benjami.code4jvm.lua.ir.LuaType;
 import fi.benjami.code4jvm.lua.ir.UpvalueTemplate;
 import fi.benjami.code4jvm.lua.parser.LuaLexer;
 import fi.benjami.code4jvm.lua.parser.LuaParser;
+import fi.benjami.code4jvm.lua.parser.LuaParser.ChunkContext;
 import fi.benjami.code4jvm.lua.runtime.LuaFunction;
 import fi.benjami.code4jvm.lua.runtime.LuaTable;
 
@@ -49,7 +60,32 @@ public class LuaVm {
 		// Tokenize and parse the chunk
 		var lexer = new LuaLexer(CharStreams.fromString(chunk));
 		var parser = new LuaParser(new CommonTokenStream(lexer));
-		var tree = parser.chunk();
+		parser.setErrorHandler(new BailErrorStrategy());
+		
+		ChunkContext tree;
+		try {			
+			tree = parser.chunk();
+		} catch (ParseCancellationException e) {
+			// Parse error; try again, this time with error recovery and no IR generation
+			lexer = new LuaLexer(CharStreams.fromString(chunk));
+			parser = new LuaParser(new CommonTokenStream(lexer));
+			parser.removeErrorListeners();
+			
+			var errors = new ArrayList<LuaSyntaxException.Error>();
+			parser.addErrorListener(new BaseErrorListener() {
+				@Override
+				public void syntaxError(Recognizer<?, ?> recognizer,
+						Object offendingSymbol,
+						int line,
+						int charPositionInLine,
+						String msg,
+						RecognitionException e) {
+					errors.add(new LuaSyntaxException.Error(name, line, charPositionInLine, msg));
+				}
+			});
+			tree = parser.chunk();
+			throw new LuaSyntaxException(errors);
+		}
 		
 		// Perform semantic analysis and compile to IR
 		var rootScope = LuaScope.chunkRoot();
