@@ -67,7 +67,7 @@ public class TableAccess {
 			return new LuaCallTarget(GET);
 		}
 		
-		var key = args[1];
+		var key = LuaTable.normalizeKey(args[1]); // Low-level table APIs don't do this for us
 		if (args[0] instanceof LuaTable table) {
 			var metatable = table.metatable();
 			var arrayIndex = table.getArrayIndex(key);

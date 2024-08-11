@@ -41,7 +41,7 @@ public record NegateExpr(IrNode expr) implements IrNode {
 	@Override
 	public Value emit(LuaContext ctx, Block block) {
 		var value = expr.emit(ctx, block);
-		if (outputType(ctx).equals(LuaType.NUMBER)) {
+		if (outputType(ctx).isNumber()) {
 			return block.add(Arithmetic.negate(value));
 		} else {
 			return block.add(LuaLinker.setupCall(ctx, CallSiteOptions.nonFunction(ctx.owner(), LuaType.UNKNOWN, LuaType.UNKNOWN), TARGET, value));
@@ -50,8 +50,14 @@ public record NegateExpr(IrNode expr) implements IrNode {
 
 	@Override
 	public LuaType outputType(LuaContext ctx) {
+		var exprType = expr.outputType(ctx);
+		if (exprType == LuaType.INTEGER) {
+			return LuaType.INTEGER;
+		} else if (exprType == LuaType.FLOAT) {
+			return LuaType.FLOAT;
+		}
 		// We can't do type analysis through metatables (yet)
-		return expr.outputType(ctx).equals(LuaType.NUMBER) ? LuaType.NUMBER : LuaType.UNKNOWN;
+		return LuaType.UNKNOWN;
 	}
 
 }

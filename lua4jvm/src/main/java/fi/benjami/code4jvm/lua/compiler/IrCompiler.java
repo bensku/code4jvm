@@ -447,8 +447,8 @@ public class IrCompiler extends LuaBaseVisitor<IrNode> {
 
 	@Override
 	public IrNode visitNumberLiteral(NumberLiteralContext ctx) {
-		// TODO non-decimal numbers
-		return new LuaConstant(Double.valueOf(ctx.Numeral().getText()));
+		var value = Double.valueOf(ctx.Numeral().getText());
+		return new LuaConstant(value.intValue() == value ? value.intValue() : value);
 	}
 
 	@Override

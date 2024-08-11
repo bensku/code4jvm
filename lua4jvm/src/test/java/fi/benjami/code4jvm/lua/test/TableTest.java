@@ -269,7 +269,7 @@ public class TableTest {
 			}
 		} while (prevKey != null);
 		
-		var keys = Set.of(1d, "foo", "bar", "baz");
+		var keys = Set.of(1, "foo", "bar", "baz");
 		var values = Set.of("test", 1d, 2d, 3d);
 		
 		assertEquals(keys, itKeys);
@@ -298,7 +298,7 @@ public class TableTest {
 				itVals.add(it.value());
 			}
 			
-			var keys = Set.of(1d, 2d);
+			var keys = Set.of(1, 2);
 			var values = Set.of("test", "second");
 			
 			assertEquals(keys, itKeys);
@@ -317,7 +317,7 @@ public class TableTest {
 				itVals.add(it.value());
 			}
 			
-			var keys = Set.of(1d, 2d, 3d, 4d);
+			var keys = Set.of(1, 2, 3, 4);
 			var values = Set.of("test", "second", "later!", "third");
 			
 			assertEquals(keys, itKeys);
@@ -337,7 +337,7 @@ public class TableTest {
 		{
 			var it = table.arrayIterator();
 			assertTrue(it.next());
-			assertEquals(1d, it.key());
+			assertEquals(1, it.key());
 			assertEquals("test", "test");
 			assertFalse(it.next());
 		}
@@ -356,7 +356,7 @@ public class TableTest {
 				itVals.add(it.value());
 			}
 			
-			var keys = Set.of(1d, 2d, 3d, 4d, 5d, 6d, 7d, 8d, 9d, 10d);
+			var keys = Set.of(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
 			var values = Set.of("test", "second", 2d, 3d, 4d, 5d, 6d, 7d, 8d, 9d);
 			
 			assertEquals(keys, itKeys);

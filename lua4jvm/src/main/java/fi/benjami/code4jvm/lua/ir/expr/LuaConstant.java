@@ -27,6 +27,8 @@ public record LuaConstant(
 			return Constant.nullValue(Type.OBJECT);
 		} else if (value instanceof Boolean bool) {
 			return Constant.of(bool);
+		} else if (value instanceof Integer num) {
+			return Constant.of(num);
 		} else if (value instanceof Double num) {
 			return Constant.of(num);
 		} else if (value instanceof String str) {

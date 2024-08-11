@@ -6,15 +6,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 
 import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.Value;
 import fi.benjami.code4jvm.lua.compiler.CompiledFunction;
 import fi.benjami.code4jvm.lua.compiler.CompiledShape;
 import fi.benjami.code4jvm.lua.compiler.FunctionCompiler;
-import fi.benjami.code4jvm.lua.compiler.LuaContext;
-import fi.benjami.code4jvm.lua.compiler.ShapeGenerator;
 import fi.benjami.code4jvm.lua.compiler.ShapeTypes;
 import fi.benjami.code4jvm.lua.ir.stmt.ReturnStmt;
 import fi.benjami.code4jvm.lua.runtime.LuaFunction;
@@ -232,7 +229,8 @@ public interface LuaType {
 	// Lua standard types
 	static final LuaType NIL = new Simple("nil", Type.OBJECT);
 	static final LuaType BOOLEAN = new Simple("boolean", Type.BOOLEAN);
-	static final LuaType NUMBER = new Simple("number", Type.DOUBLE);
+	static final LuaType INTEGER = new Simple("number", Type.INT);
+	static final LuaType FLOAT = new Simple("number", Type.DOUBLE);
 	static final LuaType STRING = new Simple("string", Type.STRING);
 	static final LuaType TABLE = new Simple("table", LuaTable.TYPE);
 	// TODO userdata, thread
@@ -281,23 +279,6 @@ public interface LuaType {
 		return new Shape();
 	}
 	
-	public static List<LuaType> readList(String str) {
-		var types = new ArrayList<LuaType>();
-		for (var i = 0; i < str.length(); i++) {
-			types.add(switch (str.charAt(i)) {
-			case 'V' -> LuaType.NIL;
-			case 'B' -> LuaType.BOOLEAN;
-			case 'N' -> LuaType.NUMBER;
-			case 'S' -> LuaType.STRING;
-			case 'U' -> LuaType.UNKNOWN;
-			case 'T' -> throw new UnsupportedOperationException("todo");
-			case 'F' -> throw new UnsupportedOperationException("todo");
-			default -> throw new IllegalArgumentException("unknown type: " + str.charAt(i));
-			});
-		}
-		return types;
-	}
-	
 	/**
 	 * Name of type for Lua code.
 	 * @return Lua type name.
@@ -316,5 +297,9 @@ public interface LuaType {
 	
 	default boolean isAssignableFrom(LuaType other) {
 		return this == LuaType.UNKNOWN || equals(other);
+	}
+	
+	default boolean isNumber() {
+		return this == LuaType.INTEGER || this == LuaType.FLOAT;
 	}
 }

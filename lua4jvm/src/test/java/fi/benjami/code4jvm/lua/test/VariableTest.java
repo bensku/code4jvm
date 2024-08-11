@@ -188,8 +188,8 @@ public class VariableTest {
 								false),
 						new SetVariablesStmt(
 								List.of(
-										new TableField(new VariableExpr(c), new LuaConstant(1d, LuaType.NUMBER)),
-										new TableField(new VariableExpr(c), new LuaConstant(2d, LuaType.NUMBER))
+										new TableField(new VariableExpr(c), new LuaConstant(1d, LuaType.FLOAT)),
+										new TableField(new VariableExpr(c), new LuaConstant(2d, LuaType.FLOAT))
 										),
 								List.of(new VariableExpr(a), new VariableExpr(b)),
 								false),

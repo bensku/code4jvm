@@ -37,6 +37,16 @@ public class LuaTable {
 		return key == null ? 0 : (hash = key.hashCode()) ^ (hash >>> 16);
 	}
 	
+	static Object normalizeKey(Object key) {
+		if (key instanceof Double num) {
+			var intVal = num.intValue();
+			if (intVal == num) {
+				return intVal;
+			}
+		}
+		return key;
+	}
+	
 	int getSlot(Object key) {
 		if (keys == EMPTY) {
 			return -1;
@@ -55,9 +65,8 @@ public class LuaTable {
 	}
 	
 	int getArrayIndex(Object key) {
-		if (key instanceof Double num) {
-			var index = num.intValue();
-			if (index == num.doubleValue() && index < arrayCapacity) {
+		if (key instanceof Integer index) {
+			if (index < arrayCapacity) {
 				return index;
 			}
 		}
@@ -76,6 +85,7 @@ public class LuaTable {
 	}
 	
 	public Object getRaw(Object key) {
+		key = normalizeKey(key);
 		var arrayIndex = getArrayIndex(key);
 		if (arrayIndex != -1) {
 			return table[arrayIndex];
@@ -142,16 +152,16 @@ public class LuaTable {
 	}
 	
 	public void setRaw(Object key, Object value) {
-		if (key instanceof Double num) {
+		key = normalizeKey(key);
+		if (key instanceof Integer index) {
 			// The logic here is subtly different from getArrayIndex()
 			// We allow appending to array (with a few gaps) even if it is full
-			var integer = num.intValue();
-			if (integer == num.doubleValue() && integer < arrayCapacity + 3) {
-				if (integer >= arrayCapacity) {
+			if (index < arrayCapacity + 3) {
+				if (index >= arrayCapacity) {
 					enlargeArray();
 				}
-				table[integer] = value;
-				arraySize = Math.max(arraySize, integer + 1);
+				table[index] = value;
+				arraySize = Math.max(arraySize, index + 1);
 				return;
 			}
 		}
@@ -191,7 +201,7 @@ public class LuaTable {
 		}
 	}
 	
-	int getFreeSlot(Object key) {
+	private int getFreeSlot(Object key) {
 		if (keys == EMPTY) {
 			return -1;
 		}
@@ -251,11 +261,10 @@ public class LuaTable {
 		// Scan rest of the table to find if any keys should be moved to array part
 		for (var i = 0; i < keys.length; i++) {
 			var key = keys[i];
-			if (key instanceof Double d) {
-				var integer = d.intValue();
-				if (integer == d.doubleValue() && integer < newCapacity) {
+			if (key instanceof Integer index) {
+				if (index < newCapacity) {
 					// Move to array part
-					newTable[integer] = table[arrayCapacity + i];
+					newTable[index] = table[arrayCapacity + i];
 					table[arrayCapacity + i] = null;
 					keys[i] = null;
 				}
@@ -320,7 +329,7 @@ public class LuaTable {
 		if (prevKey == null) {
 			if (arraySize != 0) {				
 				// First call, array has at least one member
-				return new Object[] {1d, getArray(1)};
+				return new Object[] {1, getArray(1)};
 			} else {
 				// First call, no array members -> return "first" table member
 				for (var i = arrayCapacity; i < table.length; i++) {
@@ -332,11 +341,11 @@ public class LuaTable {
 		}
 		
 		int slot;
-		if (prevKey instanceof Double index) {
+		if (prevKey instanceof Integer index) {
 			// Iterate the array in order as long as we have elements
 			if (index < arraySize - 1) {				
 				var newIndex = index + 1;
-				return new Object[] {newIndex, getArray((int) newIndex)};
+				return new Object[] {newIndex, getArray(newIndex)};
 			} else {
 				slot = 0; // First entry after array part
 			}
@@ -407,7 +416,7 @@ public class LuaTable {
 				// Reached array end
 				// ... but if there were previously gaps, some hash table entries
 				// might also need to be visible to array iterators
-				var nextEntry = getRaw((double) index);
+				var nextEntry = getRaw(index);
 				if (nextEntry != null) {
 					return true;
 				} // else: REALLY reached array end
@@ -436,7 +445,7 @@ public class LuaTable {
 		}
 		
 		public Object key() {
-			return array ? (double) index : keys[index - arrayCapacity];
+			return array ? index : keys[index - arrayCapacity];
 		}
 		
 		public Object value() {

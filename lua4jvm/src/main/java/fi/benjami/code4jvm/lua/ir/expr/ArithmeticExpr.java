@@ -3,6 +3,7 @@ package fi.benjami.code4jvm.lua.ir.expr;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
+import java.util.List;
 import java.util.function.BiFunction;
 
 import fi.benjami.code4jvm.Expression;
@@ -38,7 +39,10 @@ public record ArithmeticExpr(
 	public enum Kind {
 		POWER(MATH_POW::call, "power", "__pow"),
 		MULTIPLY(Arithmetic::multiply, "multiply", "__mul"),
-		DIVIDE(Arithmetic::divide, "divide", "__div"),
+		DIVIDE((lhs, rhs) -> {
+			// Lua uses float division unless integer division is explicitly request (see below)
+			return Arithmetic.divide(lhs.cast(Type.DOUBLE), rhs.cast(Type.DOUBLE));
+		}, "divide", "__div"),
 		FLOOR_DIVIDE(FLOOR_DIV::call, "floorDivide", "__idiv"),
 		MODULO((lhs, rhs) -> (block -> {
 			// Lua expects modulo to be always positive; Java's remainder can return negative values
@@ -53,16 +57,27 @@ public record ArithmeticExpr(
 		
 		Kind(BiFunction<Value, Value, Expression> directEmitter, String methodName, String metamethod) {
 			this.directEmitter = directEmitter;
-			MethodHandle fastPath;
+			var intReturnType = methodName == "power" || methodName.equals("divide") ? double.class : int.class;
+			MethodHandle doublePath, intPath;
 			try {
 				// Drop the call target argument, it is not needed
-				fastPath = MethodHandles.dropArguments(LOOKUP.findStatic(ArithmeticExpr.class, methodName,
+				doublePath = MethodHandles.dropArguments(LOOKUP.findStatic(ArithmeticExpr.class, methodName,
 						MethodType.methodType(double.class, double.class, double.class)), 0, Object.class);
+				intPath = MethodHandles.dropArguments(LOOKUP.findStatic(ArithmeticExpr.class, methodName,
+						MethodType.methodType(intReturnType, int.class, int.class)), 0, Object.class);
 			} catch (NoSuchMethodException | IllegalAccessException e) {
 				throw new AssertionError(e);
 			}
-			this.callTarget = BinaryOp.newTarget(Double.class, fastPath, metamethod,
-					(a, b) -> new LuaException("attempted to perform arithmetic on non-number values"));
+			// If we have any doubles at all, take the double path
+			var paths = List.of(
+					new BinaryOp.Path(Integer.class, Integer.class, intPath),
+					new BinaryOp.Path(Double.class, Double.class, doublePath),
+					new BinaryOp.Path(Integer.class, Double.class, MethodHandles.explicitCastArguments(doublePath, MethodType.methodType(double.class, Object.class, int.class, double.class))),
+					new BinaryOp.Path(Double.class, Integer.class, MethodHandles.explicitCastArguments(doublePath, MethodType.methodType(double.class, Object.class, double.class, int.class)))
+			);
+			this.callTarget = BinaryOp.newTarget(paths, metamethod,
+					(a, b) -> new LuaException("cannot " + methodName + " "
+							+ LuaType.of(a).name() + " and " + LuaType.of(b).name()));
 		}
 	}
 	
@@ -102,11 +117,44 @@ public record ArithmeticExpr(
 		return lhs - rhs;
 	}
 	
+	@SuppressWarnings("unused")
+	private static double power(int lhs, int rhs) {
+		return Math.pow(lhs, rhs);
+	}
+	
+	@SuppressWarnings("unused")
+	private static int multiply(int lhs, int rhs) {
+		return lhs * rhs;
+	}
+	
+	private static double divide(int lhs, int rhs) {
+		return ((double) lhs) / ((double) rhs);
+	}
+	
+	public static int floorDivide(int lhs, int rhs) {
+		return (int) Math.floor(divide(lhs, rhs)); 
+	}
+	
+	@SuppressWarnings("unused")
+	private static int modulo(int lhs, int rhs) {
+		return Math.abs(lhs % rhs);
+	}
+	
+	@SuppressWarnings("unused")
+	private static int add(int lhs, int rhs) {
+		return lhs + rhs;
+	}
+	
+	@SuppressWarnings("unused")
+	private static int subtract(int lhs, int rhs) {
+		return lhs - rhs;
+	}
+	
 	@Override
 	public Value emit(LuaContext ctx, Block block) {
 		var lhsValue = lhs.emit(ctx, block);
 		var rhsValue = rhs.emit(ctx, block);
-		if (outputType(ctx).equals(LuaType.NUMBER)) {
+		if (outputType(ctx).isNumber()) {
 			// Both arguments are known to be numbers; emit arithmetic operation directly
 			return block.add(kind.directEmitter.apply(lhsValue, rhsValue));
 		} else {
@@ -117,8 +165,19 @@ public record ArithmeticExpr(
 	
 	@Override
 	public LuaType outputType(LuaContext ctx) {
-		return lhs.outputType(ctx).equals(LuaType.NUMBER) && rhs.outputType(ctx).equals(LuaType.NUMBER)
-				? LuaType.NUMBER : LuaType.UNKNOWN;
+		var lhsOut = lhs.outputType(ctx);
+		var rhsOut = rhs.outputType(ctx);
+		if (lhsOut.isNumber() && rhsOut.isNumber()) {
+			if (kind == Kind.POWER || kind == Kind.DIVIDE) {
+				// Lua spec says that these always produce floats
+				return LuaType.FLOAT;
+			} else if (lhsOut == LuaType.INTEGER && rhsOut == LuaType.INTEGER) {
+				return LuaType.INTEGER; // Both sides are integers
+			}
+			return LuaType.FLOAT; // Float on at least one side
+		} else {
+			return LuaType.UNKNOWN;
+		}
 	}
 
 }

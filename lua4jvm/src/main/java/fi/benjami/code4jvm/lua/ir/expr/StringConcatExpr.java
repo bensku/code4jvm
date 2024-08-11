@@ -35,7 +35,7 @@ public record StringConcatExpr(
 			throw new AssertionError();
 		}
 		
-		TARGET = BinaryOp.newTarget(String.class, CONCAT_TWO, "__concat",
+		TARGET = BinaryOp.newTarget(List.of(new BinaryOp.Path(String.class, String.class, CONCAT_TWO)), "__concat",
 				(a, b) -> new LuaException("attempted to concatenate non-string values"));
 	}
 	

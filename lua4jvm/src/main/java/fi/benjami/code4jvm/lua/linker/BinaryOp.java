@@ -3,6 +3,7 @@ package fi.benjami.code4jvm.lua.linker;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
+import java.util.List;
 import java.util.function.BiFunction;
 
 import fi.benjami.code4jvm.lua.ir.LuaType;
@@ -19,8 +20,8 @@ import fi.benjami.code4jvm.lua.stdlib.LuaException;
  */
 public class BinaryOp {
 	
-	private static final boolean checkTypes(Class<?> expected, Object callable, Object lhs, Object rhs) {
-		return lhs != null && lhs.getClass() == expected && rhs != null && rhs.getClass() == expected;
+	private static final boolean checkTypes(Class<?> expectedLhs, Class<?> expectedRhs, Object callable, Object lhs, Object rhs) {
+		return lhs != null && lhs.getClass() == expectedLhs && rhs != null && rhs.getClass() == expectedRhs;
 	}
 	
 	@SuppressWarnings("unused") // MethodHandle
@@ -37,7 +38,7 @@ public class BinaryOp {
 		var lookup = MethodHandles.lookup();
 		try {
 			CHECK_TYPES = lookup.findStatic(BinaryOp.class, "checkTypes",
-					MethodType.methodType(boolean.class, Class.class, Object.class, Object.class, Object.class));
+					MethodType.methodType(boolean.class, Class.class, Class.class, Object.class, Object.class, Object.class));
 			CHECK_LHS_METAMETHOD = lookup.findStatic(BinaryOp.class, "checkLhsMetamethod",
 					MethodType.methodType(boolean.class, String.class, Object.class, Object.class));
 		} catch (NoSuchMethodException | IllegalAccessException e) {
@@ -45,30 +46,36 @@ public class BinaryOp {
 		}
 	}
 	
+	public record Path(
+			Class<?> lhsType,
+			Class<?> rhsType,
+			MethodHandle target
+	) {}
+	
 	/**
 	 * Produces a dynamic call target for a binary operation call site.
-	 * @param expectedType Type that the fast path supports.
-	 * @param fastPath Fast path that is entered if both sides are of expected
-	 * type. The fast path should accept the call target as first parameter,
-	 * LHS as second and RHS as third.
+	 * @param fastPaths Fast paths, to be evaluated in order.
 	 * @param metamethod Name of the metamethod call if metatables are present.
 	 * @param errorHandler Called when either value has invalid type and
 	 * metamethods are not found. Returns a Lua exception that is thrown.
 	 * @return Call target.
 	 */
-	public static DynamicTarget newTarget(Class<?> expectedType, MethodHandle fastPath, String metamethod,
+	public static DynamicTarget newTarget(List<Path> fastPaths, String metamethod,
 			BiFunction<Object, Object, LuaException> errorHandler) {
-		assert !expectedType.isPrimitive(); // LHS and RHS will be in their boxed forms
-		assert !expectedType.equals(LuaType.class); // This is currently unnecessary for Lua
 		return (meta, args) -> {
 			assert args.length == 2;
 			var lhs = args[0];
 			var rhs = args[1];
-			if (checkTypes(expectedType, null, lhs, rhs)) {
-				// Fast path, e.g. arithmetic operation on numbers or string concatenation on strings
-				var guard = CHECK_TYPES.bindTo(expectedType);
-				return new LuaCallTarget(fastPath, guard);
-			} else if (lhs instanceof LuaTable table
+			for (var path : fastPaths) {
+				if (checkTypes(path.lhsType, path.rhsType, null, lhs, rhs)) {
+					// Fast path, e.g. arithmetic operation on numbers or string concatenation on strings
+					var guard = MethodHandles.insertArguments(CHECK_TYPES, 0, path.lhsType, path.rhsType);
+					return new LuaCallTarget(path.target, guard);
+				}
+			}
+			
+			// None of the fast paths matched
+			if (lhs instanceof LuaTable table
 					&& table.metatable() != null
 					&& table.metatable().get(metamethod) != null) {
 				// Slower path, call LHS metamethod

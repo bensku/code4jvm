@@ -48,8 +48,8 @@ public class UnaryOpTest {
 	
 	@Test
 	public void stringLength() throws Throwable {
-		assertEquals(5d, vm.execute("return #\"12345\""));
-		assertEquals(5d, vm.execute("""
+		assertEquals(5, vm.execute("return #\"12345\""));
+		assertEquals(5, vm.execute("""
 				str = "12345"
 				return #str
 				"""));
@@ -58,9 +58,9 @@ public class UnaryOpTest {
 	@Test
 	public void tableLength() throws Throwable {
 		// Array length
-		assertEquals(0d, vm.execute("return #{}"));
-		assertEquals(5d, vm.execute("return #{1, 2, 3, false, true}"));
-		assertEquals(0d, vm.execute("return #{foo = 1}"));
+		assertEquals(0, vm.execute("return #{}"));
+		assertEquals(5, vm.execute("return #{1, 2, 3, false, true}"));
+		assertEquals(0, vm.execute("return #{foo = 1}"));
 		
 		// Metatables
 		var metaTbl = new LuaTable();
@@ -76,6 +76,6 @@ public class UnaryOpTest {
 		
 		assertEquals("nope!", vm.execute("return #tbl"));
 		metaTbl.set("__len", null);
-		assertEquals(0d, vm.execute("return #tbl"));
+		assertEquals(0, vm.execute("return #tbl"));
 	}
 }

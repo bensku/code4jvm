@@ -25,10 +25,8 @@ public record LengthExpr(IrNode expr) implements IrNode {
 	static {
 		var lookup = MethodHandles.lookup();
 		try {
-			TABLE_LENGTH = MethodHandles.dropArguments(lookup.findVirtual(LuaTable.class, "arraySize", MethodType.methodType(int.class))
-					.asType(MethodType.methodType(double.class, LuaTable.class)), 0, Object.class);
-			STRING_LENGTH = MethodHandles.dropArguments(lookup.findVirtual(String.class, "length", MethodType.methodType(int.class))
-					.asType(MethodType.methodType(double.class, String.class)), 0, Object.class);
+			TABLE_LENGTH = MethodHandles.dropArguments(lookup.findVirtual(LuaTable.class, "arraySize", MethodType.methodType(int.class)), 0, Object.class);
+			STRING_LENGTH = MethodHandles.dropArguments(lookup.findVirtual(String.class, "length", MethodType.methodType(int.class)), 0, Object.class);
 		} catch (NoSuchMethodException | IllegalAccessException e) {
 			throw new AssertionError(e);
 		}
@@ -50,7 +48,7 @@ public record LengthExpr(IrNode expr) implements IrNode {
 	@Override
 	public LuaType outputType(LuaContext ctx) {
 		// We can't do type analysis through metatables (yet)
-		return expr.outputType(ctx).equals(LuaType.STRING) ? LuaType.NUMBER : LuaType.UNKNOWN;
+		return expr.outputType(ctx).equals(LuaType.STRING) ? LuaType.INTEGER : LuaType.UNKNOWN;
 	}
 
 }
