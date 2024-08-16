@@ -7,14 +7,18 @@ repositories {
 }
 
 dependencies {
-	api 'org.ow2.asm:asm:9.2'
-	compileOnly 'org.ow2.asm:asm-util:9.2' // Used for opt-in debugging
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.9.1'
-    testImplementation 'org.junit.jupiter:junit-jupiter-params:5.9.1'
-    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.9.1'
-    testImplementation 'org.ow2.asm:asm-util:9.2'
+	api 'org.ow2.asm:asm:9.7'
+	compileOnly 'org.ow2.asm:asm-util:9.7' // Used for opt-in debugging
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.11.0'
+    testImplementation 'org.junit.jupiter:junit-jupiter-params:5.11.0'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.11.0'
+    testImplementation 'org.ow2.asm:asm-util:9.7'
 }
 
 tasks.named('test') {
     useJUnitPlatform()
+}
+
+compileJava {
+	options.release = 17
 }
