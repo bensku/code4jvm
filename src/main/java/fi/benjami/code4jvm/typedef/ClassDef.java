@@ -1,12 +1,12 @@
 package fi.benjami.code4jvm.typedef;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
@@ -299,8 +299,20 @@ public class ClassDef implements CompileHook.Carrier {
 		// We can compute frames, local variable count and maximum stack size ourself!
 		var writer = new ClassWriter(0);
 		// Enable ASM checks if user has requested them
-		// FIXME why this blows up if ASM_CHECKS is false and CheckClassAdapter is missing?
-		ClassVisitor cv = DebugOptions.ASM_CHECKS ? new CheckClassAdapter(writer, true) : writer;
+		ClassVisitor cv;
+		if (DebugOptions.ASM_CHECKS) {
+			try {
+				cv = (ClassVisitor) Class.forName("org.objectweb.asm.util.CheckClassAdapter")
+						.getDeclaredConstructor(ClassVisitor.class, boolean.class)
+						.newInstance(writer, true);
+			} catch (InstantiationException | IllegalAccessException | IllegalArgumentException
+					| InvocationTargetException | NoSuchMethodException | SecurityException
+					| ClassNotFoundException e) {
+				throw new AssertionError("failed to enable ASM_CHECKS", e);
+			}
+		} else {
+			cv = writer;
+		}
 		
 		// Compute superclass and interfaces
 		var superName = superClass != null ? superClass.internalName() : "java/lang/Object";
@@ -330,6 +342,13 @@ public class ClassDef implements CompileHook.Carrier {
 		
 		cv.visitEnd();
 		return writer.toByteArray();
+	}
+	
+	private static class CheckAdapterContainer {
+		
+		public ClassVisitor addAsmChecks(ClassVisitor cv) {
+			return new CheckClassAdapter(cv);
+		}
 	}
 	
 	private void compileField(ClassVisitor cv, Field field) {

@@ -2,7 +2,6 @@ package fi.benjami.code4jvm.block;
 
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.util.CheckMethodAdapter;
 
 import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.call.CallTarget;
@@ -20,6 +19,7 @@ import fi.benjami.code4jvm.util.TypeUtils;
 
 import static org.objectweb.asm.Opcodes.*;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.stream.Stream;
 
 /**
@@ -51,10 +51,17 @@ public class MethodCompiler {
 		var mv = cv.visitMethod(accessBits, method.name(),
 				TypeUtils.methodDescriptor(method.returnType(), argTypes), null, null);
 		if (DebugOptions.ASM_CHECKS) {
-			var checker = new CheckMethodAdapter(mv);
-			// CheckMethodAdapter needs version set to accept newer functionality
-			checker.version = options.get(CoreOptions.JAVA_VERSION).opcode();
-			mv = checker;
+			try {
+				mv = (MethodVisitor) Class.forName("org.objectweb.asm.util.CheckMethodAdapter")
+						.getConstructor(MethodVisitor.class)
+						.newInstance(mv);
+				// CheckMethodAdapter needs version set to accept newer functionality
+				mv.getClass().getDeclaredField("version").set(mv, options.get(CoreOptions.JAVA_VERSION).opcode());
+			} catch (InstantiationException | IllegalAccessException | IllegalArgumentException
+					| InvocationTargetException | NoSuchMethodException | SecurityException
+					| ClassNotFoundException | NoSuchFieldException e) {
+				throw new AssertionError("failed to enable ASM_CHECKS", e);
+			}
 		}
 		
 		if (method instanceof ConcreteMethod concrete) {

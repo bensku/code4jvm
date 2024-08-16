@@ -10,10 +10,9 @@ repositories {
 
 dependencies {
 	implementation project(':')
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.9.1'
-    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.9.1'
-    implementation 'org.ow2.asm:asm-util:9.2' // TODO temporary, remove
-    antlr 'org.antlr:antlr4:4.13.0'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.11.0'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.11.0'
+    antlr 'org.antlr:antlr4:4.13.2'
 }
 
 jar {
@@ -31,3 +30,7 @@ generateGrammarSource {
 }
 
 sourceSets.main.resources.srcDirs += 'src/main/lua'
+
+compileJava {
+	options.release = 21
+}
