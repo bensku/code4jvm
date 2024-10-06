@@ -10,12 +10,15 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import fi.benjami.code4jvm.call.CallTarget;
 import fi.benjami.code4jvm.lua.LuaVm;
 import fi.benjami.code4jvm.lua.ffi.LuaLibrary;
 import fi.benjami.code4jvm.lua.ffi.Nullable;
 import fi.benjami.code4jvm.lua.ir.LuaType;
 import fi.benjami.code4jvm.lua.linker.CallSiteOptions;
+import fi.benjami.code4jvm.lua.linker.DynamicTarget;
 import fi.benjami.code4jvm.lua.linker.LuaCallSite;
+import fi.benjami.code4jvm.lua.linker.LuaCallTarget;
 import fi.benjami.code4jvm.lua.linker.LuaLinker;
 import fi.benjami.code4jvm.lua.ffi.Inject;
 import fi.benjami.code4jvm.lua.ffi.JavaFunction;
@@ -41,6 +44,7 @@ public class BasicLib implements LuaLibrary {
 			globals.set(func.name(), func);
 		}
 		globals.set("error", makeError());
+		globals.set("pcall", makePcall());
 		globals.set("_G", globals);
 		globals.set("_VERSION", "lua4jvm 0.1 (Lua 5.4)"); // TODO derive from build config
 	}
@@ -63,6 +67,58 @@ public class BasicLib implements LuaLibrary {
 		} catch (NoSuchMethodException | IllegalAccessException e) {
 			throw new AssertionError();
 		}
+	}
+	
+	private static DynamicTarget makePcall() {
+		return (meta, args) -> {
+			// Link call to first argument, passing rest of the arguments to it
+			// If the call site is multival, we'll need to handle that
+			var site = LuaLinker.linkCall(new LuaCallSite(meta.site, meta.options.wrappedCall(1)),
+					args[0], Arrays.copyOfRange(args, 1, args.length))
+					.withGuards(LuaLinker.TARGET_HAS_CHANGED);
+			var target = site.target();
+			
+			// Make the target compatible with call site that has itself as first argument
+			target = MethodHandles.dropArguments(target, 0, Object.class);
+			
+			try {
+				// Handle success multival return
+				if (target.type().returnType() == void.class) {
+					// Target returns nothing, but we'll need to return true!
+					target = MethodHandles.filterReturnValue(target, MethodHandles.constant(Object[].class, new Object[] {true}));
+				} else {
+					var filter = LOOKUP.findStatic(BasicLib.class, "handleSuccess",
+							MethodType.methodType(Object[].class, Object.class));
+					target = MethodHandles.filterReturnValue(target,
+							filter.asType(MethodType.methodType(Object[].class, target.type().returnType())));
+				}
+				
+				// Handle exception error return
+				target = MethodHandles.catchException(target, Exception.class,
+						LOOKUP.findStatic(BasicLib.class, "handleError", MethodType.methodType(Object[].class, Exception.class)));
+			} catch (NoSuchMethodException | IllegalAccessException e) {
+				throw new AssertionError(e);
+			}
+			return new LuaCallTarget(target, site.guards());
+		};
+	}
+	
+	@SuppressWarnings("unused") // MethodHandle
+	private static Object[] handleSuccess(Object value) {
+		if (value instanceof Object[] array) {
+			var result = new Object[1 + array.length];
+			result[0] = true;
+			System.arraycopy(array, 0, result, 1, array.length);
+			return result;
+		} else {
+			return new Object[] {true, value};
+		}
+	}
+	
+	@SuppressWarnings("unused") // MethodHandle
+	private static Object[] handleError(Exception e) {
+		var errorObj = e instanceof LuaException luaEx ? luaEx.getLuaMessage() : e;
+		return new Object[] {false, errorObj};
 	}
 
 	// TODO assert
@@ -173,10 +229,6 @@ public class BasicLib implements LuaLibrary {
 		table.metatable(metatable);
 		return table;
 	}
-	
-	// TODO iteration: ipairs, pairs
-		
-	// TODO pcall - but should this be a normal function?
 	
 	@LuaExport("print")
 	private static void print(@Inject LuaVm vm, Object... args) {

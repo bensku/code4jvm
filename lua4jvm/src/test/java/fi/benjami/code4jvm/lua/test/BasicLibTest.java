@@ -168,4 +168,34 @@ public class BasicLibTest {
 		assertEquals(null, out.get("test"));
 		assertEquals(null, out.get("second"));
 	}
+	
+	@Test
+	public void pcallTest() throws Throwable {
+		{			
+			var result = (Object[]) vm.execute("return pcall(error, \"foo\")");
+			assertArrayEquals(new Object[] {false, "foo"}, result);
+		}
+		
+		{
+			var result = (Object[]) vm.execute("""
+					local function raiseError()
+						error("foo123")
+					end
+					
+					return pcall(raiseError)
+					""");
+			assertArrayEquals(new Object[] {false, "foo123"}, result);
+		}
+		
+		{
+			var result = (Object[]) vm.execute("""
+					local function noError(arg)
+						return "ok", arg, "bar"
+					end
+					
+					return pcall(noError, "foo")
+					""");
+			assertArrayEquals(new Object[] {true, "ok", "foo", "bar"}, result);
+		}
+	}
 }

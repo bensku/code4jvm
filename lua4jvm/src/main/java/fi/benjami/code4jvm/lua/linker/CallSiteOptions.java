@@ -1,5 +1,7 @@
 package fi.benjami.code4jvm.lua.linker;
 
+import java.util.Arrays;
+
 import fi.benjami.code4jvm.lua.LuaVm;
 import fi.benjami.code4jvm.lua.ir.LuaType;
 
@@ -50,6 +52,11 @@ public record CallSiteOptions(
 	 */
 	public static CallSiteOptions nonFunction(LuaVm vm, LuaType... types) {
 		return new CallSiteOptions(vm, types, false, false);
+	}
+	
+	public CallSiteOptions wrappedCall(int popArgs) {
+		var innerTypes = Arrays.copyOfRange(types, popArgs, types.length - popArgs + 1);
+		return new CallSiteOptions(owner, innerTypes, spreadResults, spreadArguments);
 	}
 
 }
