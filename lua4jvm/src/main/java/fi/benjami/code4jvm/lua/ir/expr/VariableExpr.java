@@ -12,6 +12,7 @@ import fi.benjami.code4jvm.lua.ir.LuaVariable;
 import fi.benjami.code4jvm.lua.ir.TableField;
 import fi.benjami.code4jvm.lua.linker.CallSiteOptions;
 import fi.benjami.code4jvm.lua.linker.LuaLinker;
+import fi.benjami.code4jvm.lua.runtime.LuaBox;
 import fi.benjami.code4jvm.lua.runtime.TableAccess;
 
 /**
@@ -25,7 +26,14 @@ public record VariableExpr(
 	@Override
 	public Value emit(LuaContext ctx, Block block) {
 		if (source instanceof LuaLocalVar localVar) {
-			return ctx.resolveLocalVar(localVar);
+			if (localVar.upvalue() && localVar.mutable()) {
+				// Mutable upvalues have to use LuaBoxes
+				// TODO cast should not be needed - potential code4jvm bug
+				return block.add(ctx.resolveLocalVar(localVar).cast(LuaBox.TYPE).getField(outputType(ctx).backingType(), "value"));
+			} else {
+				// Normal JVM local variable
+				return ctx.resolveLocalVar(localVar);
+			}
 		} else if (source instanceof TableField tableField) {			
 			var table = tableField.table().emit(ctx, block);
 			var field = tableField.field().emit(ctx, block);

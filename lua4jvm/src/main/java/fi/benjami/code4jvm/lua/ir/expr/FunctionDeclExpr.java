@@ -26,7 +26,7 @@ public record FunctionDeclExpr(
 		 */
 		String name,
 		
-		List<Upvalue> upvalues,
+		List<LuaLocalVar> upvalues,
 		
 		/**
 		 * Arguments inside the new function.
@@ -38,11 +38,6 @@ public record FunctionDeclExpr(
 		 */
 		LuaBlock body
 ) implements IrNode {
-	
-	public record Upvalue(
-			LuaLocalVar inside,
-			LuaLocalVar outside
-	) {}
 
 	@Override
 	public Value emit(LuaContext ctx, Block block) {
@@ -52,7 +47,7 @@ public record FunctionDeclExpr(
 		// Copy local variables to upvalues array
 		var upvalueValues = block.add(Type.OBJECT.array(1).newInstance(Constant.of(upvalues.size())));
 		for (var i = 0; i < upvalues.size(); i++) {
-			var value = ctx.resolveLocalVar(upvalues.get(i).outside());
+			var value = ctx.resolveLocalVar(upvalues.get(i));
 			block.add(ArrayAccess.set(upvalueValues, Constant.of(i), value.cast(Type.OBJECT)));
 		}
 		
@@ -64,7 +59,7 @@ public record FunctionDeclExpr(
 	public LuaType.Function outputType(LuaContext ctx) {
 		// Upvalue template has the variable INSIDE declared function, with type of OUTSIDE variable
 		var upvalueTemplates = upvalues.stream()
-				.map(upvalue -> new UpvalueTemplate(upvalue.inside(), ctx.variableType(upvalue.outside())))
+				.map(upvalue -> new UpvalueTemplate(upvalue, upvalue.mutable() ? LuaType.UNKNOWN : ctx.variableType(upvalue), upvalue.mutable()))
 				.toList();
 		return ctx.cached(this, LuaType.function(upvalueTemplates, arguments, body, moduleName, name));
 	}

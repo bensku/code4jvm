@@ -96,8 +96,10 @@ public class LuaVm {
 	
 	public LuaFunction load(LuaModule module, LuaTable env) {
 		// Instantiate the module
+		module.env().markMutable(); // Initial assignment by VM
 		var type = LuaType.function(
-				List.of(new UpvalueTemplate(module.env(), LuaType.TABLE)),
+				// TODO _ENV mutability tracking
+				List.of(new UpvalueTemplate(module.env(), module.env().mutable() ? LuaType.UNKNOWN : LuaType.TABLE, module.env().mutable())),
 				List.of(),
 				module.root(),
 				module.name(),

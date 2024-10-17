@@ -198,4 +198,16 @@ public class BasicLibTest {
 			assertArrayEquals(new Object[] {true, "ok", "foo", "bar"}, result);
 		}
 	}
+	
+	@Test
+	public void nestedPcallTest() throws Throwable {
+		var result = (Object[]) vm.execute("""
+					local function raiseError()
+						error("foo123")
+					end
+					
+					return pcall(pcall, pcall, raiseError)
+				""");
+		assertArrayEquals(new Object[] {true, true, false, "foo123"}, result);
+	}
 }

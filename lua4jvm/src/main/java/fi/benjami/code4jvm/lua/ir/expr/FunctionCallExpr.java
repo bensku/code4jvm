@@ -7,8 +7,10 @@ import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.Value;
 import fi.benjami.code4jvm.block.Block;
 import fi.benjami.code4jvm.call.CallTarget;
+import fi.benjami.code4jvm.call.FixedCallTarget;
 import fi.benjami.code4jvm.lua.compiler.LuaContext;
 import fi.benjami.code4jvm.lua.ir.IrNode;
+import fi.benjami.code4jvm.lua.ir.LuaLocalVar;
 import fi.benjami.code4jvm.lua.ir.LuaType;
 import fi.benjami.code4jvm.lua.linker.CallSiteOptions;
 import fi.benjami.code4jvm.lua.linker.LuaLinker;
@@ -33,6 +35,16 @@ public record FunctionCallExpr(
 		var returnType = cache.returnType();
 		
 		// TODO constant bootstrap is broken due to upvalues
+//		FixedCallTarget bootstrap;
+//		if (function instanceof VariableExpr variable // function is a variable read
+//				&& variable.source() instanceof LuaLocalVar localVar // from local variable
+//				&& localVar.upvalue() && !localVar.mutable() // that will be stable between calls to this function
+//				&& TODO we also need to check that 1) linker has used LuaType.TARGET_HAS_CHANGED (to prove upvalue's block hasn't been re-executed)
+//				&& TODO 2) cache key includes identity of the upvalue, not just its type! (this is quite tricky)
+//				) {
+//			
+//		}
+//		
 		var bootstrap = LuaLinker.BOOTSTRAP_DYNAMIC;
 		var lastMultiVal = !args.isEmpty() && MultiVals.canReturnMultiVal(args.get(args.size() - 1));
 		var options = new CallSiteOptions(ctx.owner(), argTypes, ctx.allowSpread(), lastMultiVal, intrinsicId);

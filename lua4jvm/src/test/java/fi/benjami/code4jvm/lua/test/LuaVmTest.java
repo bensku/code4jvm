@@ -1,5 +1,6 @@
 package fi.benjami.code4jvm.lua.test;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
@@ -271,5 +272,32 @@ public class LuaVmTest {
 				return g
 				""");
 		assertEquals(13d, func.call(4d, 6d));
+		
+		// Then with "fake" mutability: should work exactly as above, but generated code differs
+		func = (LuaFunction) vm.execute("""
+				local function f(a, b)
+					return a + b
+				end
+				f = f
+				local function g(a, b)
+					return f(a, b) + 3
+				end
+				return g
+				""");
+		assertEquals(13d, func.call(4d, 6d));
+	}
+	
+	@Test
+	public void upvalueCounter() throws Throwable {
+		// REAL upvalue mutability
+		var result = (Object[]) vm.execute("""
+				counter = 0
+				local function count()
+					counter = counter + 1
+					return counter
+				end
+				return count(), count(), count()
+				""");
+		assertArrayEquals(new Object[] {1d, 2d, 3d}, result);
 	}
 }

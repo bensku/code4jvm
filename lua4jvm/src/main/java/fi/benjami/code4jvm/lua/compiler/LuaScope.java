@@ -11,15 +11,13 @@ import fi.benjami.code4jvm.lua.ir.LuaVariable;
 import fi.benjami.code4jvm.lua.ir.TableField;
 import fi.benjami.code4jvm.lua.ir.expr.LuaConstant;
 import fi.benjami.code4jvm.lua.ir.expr.VariableExpr;
-import fi.benjami.code4jvm.lua.ir.expr.FunctionDeclExpr.Upvalue;
-import fi.benjami.code4jvm.lua.ir.stmt.LoopStmt;
 
 public class LuaScope {
 	
 	public static LuaScope chunkRoot() {
 		var scope = new LuaScope(null, true);
 		var env = scope.declare("_ENV");
-		scope.upvalues.put("_ENV", new Upvalue(env, null));
+		scope.upvalues.put("_ENV", env);
 		return scope;
 	}
 	
@@ -27,7 +25,7 @@ public class LuaScope {
 	private final boolean functionRoot;
 	
 	private final Map<String, LuaLocalVar> locals;
-	private final Map<String, Upvalue> upvalues;
+	private final Map<String, LuaLocalVar> upvalues;
 	
 	/**
 	 * Reference to current loop or null, used for break'ing out of loop.
@@ -66,15 +64,11 @@ public class LuaScope {
 		if (result != null) {
 			// Local variable or upvalue
 			if (result.isUpvalue()) {
-				// Upvalue: record it and create a local variable
-				var inside = new LuaLocalVar(name);
-				locals.put(name, inside);
-				var outside = result.variable();
-				upvalues.put(name, new Upvalue(inside, outside));
-				return inside;
-			} else {
-				return result.variable(); // Local variable
+				locals.put(name, result.variable());
+				upvalues.put(name, result.variable());
+				result.variable().markUpvalue();
 			}
+			return result.variable(); // Local variable
 		} else {			
 			// Neither local variable or upvalue; take a look at _ENV table
 			var env = resolve("_ENV");
@@ -99,7 +93,7 @@ public class LuaScope {
 		}
 	}
 	
-	public List<Upvalue> upvalues() {
+	public List<LuaLocalVar> upvalues() {
 		return new ArrayList<>(upvalues.values());
 	}
 	

@@ -1,7 +1,6 @@
 package fi.benjami.code4jvm.lua.compiler;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -15,6 +14,7 @@ import fi.benjami.code4jvm.lua.ir.LuaType;
 import fi.benjami.code4jvm.lua.ir.LuaVariable;
 import fi.benjami.code4jvm.lua.ir.TableField;
 import fi.benjami.code4jvm.lua.ir.expr.LuaConstant;
+import fi.benjami.code4jvm.lua.runtime.LuaBox;
 
 public class LuaContext {
 	
@@ -58,6 +58,11 @@ public class LuaContext {
 	private final Map<LuaLocalVar, Variable> variables;
 	
 	/**
+	 * Local variables that are, in fact, upvalues.
+	 */
+	private final Map<LuaLocalVar, Variable> upvalues;
+	
+	/**
 	 * Data given to JVM when the function is loaded as a hidden class.
 	 * This is used for creating constants of arbitrary kind, which can then
 	 * be used at e.g. invokedynamic call sites.
@@ -85,6 +90,7 @@ public class LuaContext {
 		assert owner != null;
 		this.typeTable = new IdentityHashMap<>();
 		this.variables = new IdentityHashMap<>();
+		this.upvalues = new IdentityHashMap<>();
 		this.classData = new ArrayList<>();
 		this.cache = new IdentityHashMap<>();
 		this.truncateReturn = truncateReturn;
@@ -118,6 +124,15 @@ public class LuaContext {
 		variables.put(arg, variable);
 	}
 	
+	public void addUpvalue(LuaLocalVar arg, Variable variable) {
+		variables.put(arg, variable);
+		upvalues.put(arg, variable);
+	}
+	
+	public boolean isUpvalue(LuaLocalVar localVar) {
+		return upvalues.containsKey(localVar);
+	}
+	
 	public LuaType variableType(LuaVariable variable) {
 		if (variable instanceof LuaLocalVar) {
 			assert typeTable.containsKey(variable) : variable;
@@ -133,11 +148,16 @@ public class LuaContext {
 		}
 	}
 	
+	public boolean hasBeenAssigned(LuaLocalVar variable) {
+		return variables.containsKey(variable);
+	}
+	
 	public Variable resolveLocalVar(LuaLocalVar variable) {
 		var backingVar = variables.get(variable);
 		if (backingVar == null) {
 			var type = typeTable.get(variable);
-			backingVar = Variable.create(type.backingType(), variable.name());
+			var useBox = variable.upvalue() && variable.mutable();
+			backingVar = Variable.create(useBox ? LuaBox.TYPE : type.backingType(), variable.name());
 			variables.put(variable, backingVar);
 		}
 		return backingVar;

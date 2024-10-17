@@ -190,7 +190,7 @@ public class FunctionCompiler {
 			var template = type.upvalues().get(i);
 			var value = method.add(template.variable().name(), method.self()
 					.getField(upvalueTypes[i].backingType(), template.variable().name()));
-			ctx.addFunctionArg(template.variable(), value);
+			ctx.addUpvalue(template.variable(), value);
 		}
 		
 		// Emit Lua code as JVM bytecode

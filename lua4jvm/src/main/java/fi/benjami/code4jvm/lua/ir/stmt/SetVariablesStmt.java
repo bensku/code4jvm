@@ -16,6 +16,7 @@ import fi.benjami.code4jvm.lua.ir.LuaVariable;
 import fi.benjami.code4jvm.lua.ir.TableField;
 import fi.benjami.code4jvm.lua.ir.expr.FunctionCallExpr;
 import fi.benjami.code4jvm.lua.ir.expr.VariableExpr;
+import fi.benjami.code4jvm.lua.runtime.LuaBox;
 import fi.benjami.code4jvm.lua.runtime.LuaTable;
 import fi.benjami.code4jvm.lua.runtime.MultiVals;
 
@@ -97,8 +98,19 @@ public record SetVariablesStmt(
 	private Statement setVariable(LuaContext ctx, LuaVariable variable, Value value) {
 		return block -> {
 			if (variable instanceof LuaLocalVar localVar) {
-				var jvmVar = ctx.resolveLocalVar(localVar);
-				block.add(jvmVar.set(value.cast(jvmVar.type())));
+				if (localVar.upvalue() && localVar.mutable()) {
+					// Mutable upvalues need to be put to LuaBoxes
+					if (!ctx.hasBeenAssigned(localVar)) {
+						// First assignment? Initialize box!
+						var box = block.add(LuaBox.TYPE.newInstance());
+						block.add(ctx.resolveLocalVar(localVar).set(box));
+					}
+					block.add(ctx.resolveLocalVar(localVar).putField("value", value.cast(Type.OBJECT)));
+				} else {
+					// Normal local variable assignment
+					var jvmVar = ctx.resolveLocalVar(localVar);
+					block.add(jvmVar.set(value.cast(jvmVar.type())));
+				}
 			} else if (variable instanceof TableField tableField) {
 				// Just call the setter
 				// TODO invokedynamic to TableAccess.CONSTANT_SET once it has some optimizations
@@ -115,7 +127,9 @@ public record SetVariablesStmt(
 	public LuaType outputType(LuaContext ctx) {
 		var normalSources = spread ? sources.size() - 1 : sources.size();
 		for (var i = 0; i < Math.min(normalSources, targets.size()); i++) {
-			ctx.recordType(targets.get(i), sources.get(i).outputType(ctx));
+			var target = targets.get(i);
+			ctx.recordType(target, sources.get(i).outputType(ctx));
+			target.markMutable();
 		}
 		
 		if (spread) {
@@ -128,12 +142,16 @@ public record SetVariablesStmt(
 				// Tuple -> types for individual variables
 				// UNKNOWN -> current behavior
 				// anything else -> first multiValType, rest NIL
-				ctx.recordType(targets.get(i), LuaType.UNKNOWN);
+				var target = targets.get(i);
+				ctx.recordType(target, LuaType.UNKNOWN);
+				target.markMutable();
 			}
 		} else {
 			// If there are leftover targets, set them to nil
 			for (var i = normalSources; i < targets.size(); i++) {
-				ctx.recordType(targets.get(i), LuaType.NIL);
+				var target = targets.get(i);
+				ctx.recordType(target, LuaType.NIL);
+				target.markMutable();
 			}
 		}
 		return LuaType.NIL;
