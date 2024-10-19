@@ -1,6 +1,7 @@
 package fi.benjami.code4jvm.lua.ir;
 
 import fi.benjami.code4jvm.Type;
+import fi.benjami.code4jvm.lua.compiler.CompilerPass;
 
 public final class LuaLocalVar implements LuaVariable {
 	
@@ -9,7 +10,6 @@ public final class LuaLocalVar implements LuaVariable {
 	public static final LuaLocalVar VARARGS = new LuaLocalVar("...");
 	
 	private final String name;
-	private int mutationSites;
 	private boolean upvalue;
 	
 	public LuaLocalVar(String name) {
@@ -20,21 +20,10 @@ public final class LuaLocalVar implements LuaVariable {
 		return name;
 	}
 	
-	@Override
-	public void markMutable() {
-		mutationSites++;
-	}
-	
-	/**
-	 * Whether or not this local variable is ever assigned to after its initial
-	 * assignment. This includes mutations by blocks that inherit it as upvalue
-	 * (to be precise, Lua upvalues are essentially external local variables).
-	 */
-	public boolean mutable() {
-		return mutationSites > 1;
-	}
+	// The below mutations are safe, because they're done in IR compilation phase that is run once only
 	
 	public void markUpvalue() {
+		assert CompilerPass.IR_GEN.active();
 		upvalue = true;
 	}
 	
@@ -42,6 +31,7 @@ public final class LuaLocalVar implements LuaVariable {
 	 * Whether or not this local variable is an upvalue for some block.
 	 */
 	public boolean upvalue() {
+		assert CompilerPass.IR_GEN.inactive();
 		return upvalue;
 	}
 

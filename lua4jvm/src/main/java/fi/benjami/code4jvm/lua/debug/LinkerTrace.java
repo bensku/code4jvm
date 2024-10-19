@@ -9,4 +9,6 @@ public class LinkerTrace {
 	public Object callable;
 	
 	public Object currentPrototype;
+	
+	public int stableTargets;
 }

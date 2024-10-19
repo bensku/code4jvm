@@ -107,6 +107,20 @@ public class LinkerTest {
 		assertEquals(3, trace.metadata.linkageCount);
 	}
 	
+	@Test
+	public void constantSite() throws Throwable {
+		var func = (LuaFunction) vm.execute("""
+				local function g(a, b)
+					return a
+				end
+				return function (a, b)
+					return g(a, b)
+				end
+				""");
+		func.call("foo", "bar");
+		assertEquals(1, trace.stableTargets);
+	}
+	
 	@AfterEach
 	public void cleanup() {
 		LuaDebugOptions.linkerTrace = null;

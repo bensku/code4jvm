@@ -5,6 +5,7 @@ import fi.benjami.code4jvm.Value;
 import fi.benjami.code4jvm.block.Block;
 import fi.benjami.code4jvm.call.CallTarget;
 import fi.benjami.code4jvm.lua.compiler.LuaContext;
+import fi.benjami.code4jvm.lua.compiler.VariableFlag;
 import fi.benjami.code4jvm.lua.ir.IrNode;
 import fi.benjami.code4jvm.lua.ir.LuaLocalVar;
 import fi.benjami.code4jvm.lua.ir.LuaType;
@@ -26,7 +27,7 @@ public record VariableExpr(
 	@Override
 	public Value emit(LuaContext ctx, Block block) {
 		if (source instanceof LuaLocalVar localVar) {
-			if (localVar.upvalue() && localVar.mutable()) {
+			if (localVar.upvalue() && ctx.hasFlag(localVar, VariableFlag.MUTABLE)) {
 				// Mutable upvalues have to use LuaBoxes
 				// TODO cast should not be needed - potential code4jvm bug
 				return block.add(ctx.resolveLocalVar(localVar).cast(LuaBox.TYPE).getField(outputType(ctx).backingType(), "value"));
@@ -39,7 +40,7 @@ public record VariableExpr(
 			var field = tableField.field().emit(ctx, block);
 			if (tableField.field() instanceof LuaConstant constant) {				
 				// Use invokedynamic w/ LuaLinker to try to speed up reads
-				var options = new CallSiteOptions(ctx.owner(), new LuaType[] {LuaType.UNKNOWN, LuaType.UNKNOWN, LuaType.UNKNOWN}, false, false);
+				var options = new CallSiteOptions(ctx.owner(), new LuaType[] {LuaType.UNKNOWN, LuaType.UNKNOWN, LuaType.UNKNOWN}, false, false, false);
 				var bootstrap = LuaLinker.BOOTSTRAP_DYNAMIC.withCapturedArgs(ctx.addClassData(options));
 				// FIXME code4jvm bug: calling a dynamic target tries to infer types from values, even though it has explicit argTypes available!
 				var getter = ctx.addClassData(TableAccess.CONSTANT_GET, Type.OBJECT);

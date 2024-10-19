@@ -11,6 +11,7 @@ import org.antlr.v4.runtime.RecognitionException;
 import org.antlr.v4.runtime.Recognizer;
 import org.antlr.v4.runtime.misc.ParseCancellationException;
 
+import fi.benjami.code4jvm.lua.compiler.CompilerPass;
 import fi.benjami.code4jvm.lua.compiler.IrCompiler;
 import fi.benjami.code4jvm.lua.compiler.LuaScope;
 import fi.benjami.code4jvm.lua.compiler.LuaSyntaxException;
@@ -87,7 +88,10 @@ public class LuaVm {
 		// Perform semantic analysis and compile to IR
 		var rootScope = LuaScope.chunkRoot();
 		var visitor = new IrCompiler(name, rootScope);
-		return new LuaModule(name, visitor.visitChunk(tree), (LuaLocalVar) rootScope.resolve("_ENV"));
+		CompilerPass.setCurrent(CompilerPass.IR_GEN);
+		var root = visitor.visitChunk(tree);
+		CompilerPass.setCurrent(null);
+		return new LuaModule(name, root, (LuaLocalVar) rootScope.resolve("_ENV"));
 	}
 	
 	public LuaModule compile(String chunk) {
@@ -96,10 +100,9 @@ public class LuaVm {
 	
 	public LuaFunction load(LuaModule module, LuaTable env) {
 		// Instantiate the module
-		module.env().markMutable(); // Initial assignment by VM
 		var type = LuaType.function(
 				// TODO _ENV mutability tracking
-				List.of(new UpvalueTemplate(module.env(), module.env().mutable() ? LuaType.UNKNOWN : LuaType.TABLE, module.env().mutable())),
+				List.of(new UpvalueTemplate(module.env(), LuaType.TABLE)),
 				List.of(),
 				module.root(),
 				module.name(),

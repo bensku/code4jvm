@@ -1,6 +1,7 @@
 package fi.benjami.code4jvm.lua.linker;
 
 import java.lang.invoke.CallSite;
+import java.lang.invoke.ConstantCallSite;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
@@ -90,6 +91,9 @@ public class LuaLinker {
 			if (callable instanceof LuaFunction function) {				
 				LuaDebugOptions.linkerTrace.currentPrototype = function.type();
 			}
+			if (meta.options.stableTarget()) {
+				LuaDebugOptions.linkerTrace.stableTargets++;
+			}
 		}
 
 		var compiledTypes = meta.options.types();
@@ -112,9 +116,12 @@ public class LuaLinker {
 				specializedTypes = Arrays.copyOf(specializedTypes, function.type().acceptedArgs().size());
 				Arrays.fill(specializedTypes, compiledTypes.length, specializedTypes.length, LuaType.UNKNOWN);
 			}
+			
+			// FIXME upvalue typing is incorrect for mutable upvalues until VARIABLE_TRACING pass is implemented
+			var useUpvalueTypes = false; // checkTarget
 
 			// Truncate multival return if site doesn't want to spread
-			target = FunctionCompiler.callTarget(specializedTypes, function, checkTarget,
+			target = FunctionCompiler.callTarget(specializedTypes, function, useUpvalueTypes,
 					!meta.options.spreadResults());
 			guard = checkTarget ? TARGET_HAS_CHANGED.bindTo(function)
 					: PROTOTYPE_HAS_CHANGED.bindTo(function.type());
@@ -200,7 +207,8 @@ public class LuaLinker {
 		
 		if (meta.options.spreadArguments()) {
 			// Last argument of this function call could be a multival
-			if (args[args.length - 1] instanceof Object[] || compiledTypes.length == 1) {
+			var multiVal = args[args.length - 1] instanceof Object[] || compiledTypes.length == 1;
+			if (multiVal) {
 				int requiredArgs = target.type().parameterCount() - 1; // self arg is never in varargs
 				// Yeah, we have a multival that has a multival as its last element
 				// We need a wrapper that merges them into one flat array
@@ -218,7 +226,7 @@ public class LuaLinker {
 			}
 			// Use a guard for whatever the decision was
 			var spreadGuard = MethodHandles.dropArguments(
-					TYPE_HAS_CHANGED.bindTo(args[args.length - 1].getClass())
+					TYPE_HAS_CHANGED.bindTo(multiVal ? Object[].class : args[args.length - 1].getClass())
 						.asType(MethodType.methodType(boolean.class, target.type().lastParameterType())),
 					0,
 					Arrays.copyOfRange(meta.site.type().parameterArray(), 0, meta.site.type().parameterCount() - 1)
@@ -226,7 +234,11 @@ public class LuaLinker {
 			return new LuaCallTarget(target, guard, spreadGuard);
 		}
 		
-		return new LuaCallTarget(target, guard);
+		if (meta.options.stableTarget()) {
+			return new LuaCallTarget(target);
+		} else {			
+			return new LuaCallTarget(target, guard);
+		}
 	}
 	
 	/**
@@ -418,12 +430,16 @@ public class LuaLinker {
 	}
 	
 	public static final FixedCallTarget BOOTSTRAP_CONSTANT = TYPE.staticMethod(Type.of(CallSite.class), "constant",
-			Type.of(MethodHandles.Lookup.class), Type.STRING, Type.of(MethodType.class), Type.of(CallSiteOptions.class));
+			Type.of(MethodHandles.Lookup.class), Type.STRING, Type.of(MethodType.class), Type.of(CallSiteOptions.class), Type.OBJECT);
 	
 	public static CallSite constant(MethodHandles.Lookup lookup, String name, MethodType type,
-			CallSiteOptions options) {
-		// TODO currently unused, but constant call sites could be used for functions that do not access upvalues
-		return dynamic(lookup, name, type, options);
+			CallSiteOptions options, Object callable) {
+		assert options.stableTarget(); // Constant call sites must be stable
+		var meta = new LuaCallSite(null, options);
+		var target = linkCall(meta, callable);
+		assert target.guards().length == 0; // A constant call site cannot be relinked
+		
+		return new ConstantCallSite(target.target());
 	}
 	
 }

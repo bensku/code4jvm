@@ -1,6 +1,7 @@
 package fi.benjami.code4jvm.lua.compiler;
 
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,6 +24,7 @@ public class LuaContext {
 		var ctx = new LuaContext(vm, truncateReturn);
 		for (var upvalue : type.upvalues()) {
 			ctx.recordType(upvalue.variable(), upvalue.type());
+			ctx.setFlag(upvalue.variable(), VariableFlag.ASSIGNED); // Compiler generates code to assign upvalues
 		}
 
 		// Add types of function arguments
@@ -34,11 +36,13 @@ public class LuaContext {
 		}
 		var acceptedArgs = type.acceptedArgs();
 		for (var i = 0; i < normalArgs; i++) {
+			var arg = acceptedArgs.get(i);
 			if (argTypes.length > i) {
-				ctx.recordType(acceptedArgs.get(i), argTypes[i]);
+				ctx.recordType(arg, argTypes[i]);
 			} else {
-				ctx.recordType(acceptedArgs.get(i), LuaType.NIL);
+				ctx.recordType(arg, LuaType.NIL);
 			}
+			ctx.setFlag(arg, VariableFlag.ASSIGNED); // JVM assigns arguments to these
 		}
 		
 		// Compute types of local variables and the return type
@@ -60,7 +64,14 @@ public class LuaContext {
 	/**
 	 * Local variables that are, in fact, upvalues.
 	 */
-	private final Map<LuaLocalVar, Variable> upvalues;
+	private final Map<LuaLocalVar, Object> upvalues;
+	
+	/**
+	 * Flags for local variables. This is used to circumvent the issue the
+	 * fact that local variables cannot be mutated, since the same objects may
+	 * be used for multiple compilation runs.
+	 */
+	private final Map<LuaLocalVar, EnumSet<VariableFlag>> variableFlags;
 	
 	/**
 	 * Data given to JVM when the function is loaded as a hidden class.
@@ -91,6 +102,7 @@ public class LuaContext {
 		this.typeTable = new IdentityHashMap<>();
 		this.variables = new IdentityHashMap<>();
 		this.upvalues = new IdentityHashMap<>();
+		this.variableFlags = new IdentityHashMap<>();
 		this.classData = new ArrayList<>();
 		this.cache = new IdentityHashMap<>();
 		this.truncateReturn = truncateReturn;
@@ -124,13 +136,24 @@ public class LuaContext {
 		variables.put(arg, variable);
 	}
 	
-	public void addUpvalue(LuaLocalVar arg, Variable variable) {
-		variables.put(arg, variable);
-		upvalues.put(arg, variable);
+	/**
+	 * Adds an upvalue to local variables at this context.
+	 * @param localVar Lua local variable that represents the upvalue.
+	 * @param jvmVar JVM variable that represents it in currently compiled method.
+	 * @param value Known value of the upvalue at compilation time. This can be
+	 * used by compiler if it is known to be constant.
+	 */
+	public void addUpvalue(LuaLocalVar localVar, Variable jvmVar, Object value) {
+		variables.put(localVar, jvmVar);
+		upvalues.put(localVar, value);
 	}
 	
 	public boolean isUpvalue(LuaLocalVar localVar) {
 		return upvalues.containsKey(localVar);
+	}
+	
+	public Object getUpvalue(LuaLocalVar localVar) {
+		return upvalues.get(localVar);
 	}
 	
 	public LuaType variableType(LuaVariable variable) {
@@ -156,11 +179,26 @@ public class LuaContext {
 		var backingVar = variables.get(variable);
 		if (backingVar == null) {
 			var type = typeTable.get(variable);
-			var useBox = variable.upvalue() && variable.mutable();
+			var useBox = variable.upvalue() && hasFlag(variable, VariableFlag.MUTABLE);
 			backingVar = Variable.create(useBox ? LuaBox.TYPE : type.backingType(), variable.name());
 			variables.put(variable, backingVar);
 		}
 		return backingVar;
+	}
+	
+	public boolean hasFlag(LuaLocalVar variable, VariableFlag flag) {
+		assert flag.lockedPass == null || flag.lockedPass.inactive();
+		var set = variableFlags.get(variable);
+		return set != null ? set.contains(flag) : false;
+	}
+	
+	public void setFlag(LuaLocalVar variable, VariableFlag flag) {
+		var set = variableFlags.get(variable);
+		if (set == null) {
+			set = EnumSet.of(flag);
+		} else {
+			set.add(flag);
+		}
 	}
 	
 	public void returnTypes(LuaType... types) {

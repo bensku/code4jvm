@@ -9,6 +9,7 @@ import fi.benjami.code4jvm.Value;
 import fi.benjami.code4jvm.block.Block;
 import fi.benjami.code4jvm.call.CallTarget;
 import fi.benjami.code4jvm.lua.compiler.LuaContext;
+import fi.benjami.code4jvm.lua.compiler.VariableFlag;
 import fi.benjami.code4jvm.lua.ir.IrNode;
 import fi.benjami.code4jvm.lua.ir.LuaLocalVar;
 import fi.benjami.code4jvm.lua.ir.LuaType;
@@ -98,7 +99,7 @@ public record SetVariablesStmt(
 	private Statement setVariable(LuaContext ctx, LuaVariable variable, Value value) {
 		return block -> {
 			if (variable instanceof LuaLocalVar localVar) {
-				if (localVar.upvalue() && localVar.mutable()) {
+				if (localVar.upvalue() && ctx.hasFlag(localVar, VariableFlag.MUTABLE)) {
 					// Mutable upvalues need to be put to LuaBoxes
 					if (!ctx.hasBeenAssigned(localVar)) {
 						// First assignment? Initialize box!
@@ -129,7 +130,7 @@ public record SetVariablesStmt(
 		for (var i = 0; i < Math.min(normalSources, targets.size()); i++) {
 			var target = targets.get(i);
 			ctx.recordType(target, sources.get(i).outputType(ctx));
-			target.markMutable();
+			markMutable(ctx, target);
 		}
 		
 		if (spread) {
@@ -144,17 +145,27 @@ public record SetVariablesStmt(
 				// anything else -> first multiValType, rest NIL
 				var target = targets.get(i);
 				ctx.recordType(target, LuaType.UNKNOWN);
-				target.markMutable();
+				markMutable(ctx, target);
 			}
 		} else {
 			// If there are leftover targets, set them to nil
 			for (var i = normalSources; i < targets.size(); i++) {
 				var target = targets.get(i);
 				ctx.recordType(target, LuaType.NIL);
-				target.markMutable();
+				markMutable(ctx, target);
 			}
 		}
 		return LuaType.NIL;
+	}
+	
+	private void markMutable(LuaContext ctx, LuaVariable target) {
+		if (target instanceof LuaLocalVar localVar) {
+			if (ctx.hasFlag(localVar, VariableFlag.ASSIGNED)) {
+				ctx.setFlag(localVar, VariableFlag.MUTABLE);
+			} else {
+				ctx.setFlag(localVar, VariableFlag.ASSIGNED);
+			}
+		}
 	}
 	
 	private static final CallTarget SPREAD_FIRST = Type.of(SetVariablesStmt.class)

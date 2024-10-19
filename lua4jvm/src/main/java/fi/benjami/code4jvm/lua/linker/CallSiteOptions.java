@@ -34,6 +34,13 @@ public record CallSiteOptions(
 		boolean spreadArguments,
 		
 		/**
+		 * True if the call target is known compile-time and will not change.
+		 * In some cases, this may allow using constant call sites or even not
+		 * using invokedynamic at all.
+		 */
+		boolean stableTarget,
+		
+		/**
 		 * Intrinsic id of this call site. If non-null, when the call target is
 		 * a Java function, its targets with same intrinsic id are selected in
 		 * addition to 
@@ -41,8 +48,8 @@ public record CallSiteOptions(
 		String intrinsicId
 ) {
 	
-	public CallSiteOptions(LuaVm owner, LuaType[] types, boolean spreadResults, boolean spreadArguments) {
-		this(owner, types, spreadResults, spreadArguments, null);
+	public CallSiteOptions(LuaVm owner, LuaType[] types, boolean spreadResults, boolean spreadArguments, boolean stableTarget) {
+		this(owner, types, spreadResults, spreadArguments, stableTarget, null);
 	}
 	
 	/**
@@ -51,12 +58,12 @@ public record CallSiteOptions(
 	 * @return Call site options.
 	 */
 	public static CallSiteOptions nonFunction(LuaVm vm, LuaType... types) {
-		return new CallSiteOptions(vm, types, false, false);
+		return new CallSiteOptions(vm, types, false, false, false);
 	}
 	
 	public CallSiteOptions wrappedCall(int popArgs) {
 		var innerTypes = Arrays.copyOfRange(types, popArgs, types.length - popArgs + 1);
-		return new CallSiteOptions(owner, innerTypes, spreadResults, spreadArguments);
+		return new CallSiteOptions(owner, innerTypes, spreadResults, spreadArguments, false);
 	}
 
 }

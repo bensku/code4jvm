@@ -59,7 +59,7 @@ public record FunctionDeclExpr(
 	public LuaType.Function outputType(LuaContext ctx) {
 		// Upvalue template has the variable INSIDE declared function, with type of OUTSIDE variable
 		var upvalueTemplates = upvalues.stream()
-				.map(upvalue -> new UpvalueTemplate(upvalue, upvalue.mutable() ? LuaType.UNKNOWN : ctx.variableType(upvalue), upvalue.mutable()))
+				.map(upvalue -> new UpvalueTemplate(upvalue, ctx.variableType(upvalue)))
 				.toList();
 		return ctx.cached(this, LuaType.function(upvalueTemplates, arguments, body, moduleName, name));
 	}

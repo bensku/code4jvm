@@ -140,28 +140,6 @@ public interface LuaType {
 		public String toString() {
 			return "LuaType.Function[upvalues=" + upvalues + ", acceptedArgs=" + acceptedArgs + ", body=" + body + "]";
 		}
-
-		@Override
-		public int hashCode() {
-			return Objects.hash(acceptedArgs, body, specializations, upvalues);
-		}
-
-		@Override
-		public boolean equals(Object obj) {
-			if (this == obj) {
-				return true;
-			}
-			if (obj == null) {
-				return false;
-			}
-			if (getClass() != obj.getClass()) {
-				return false;
-			}
-			Function other = (Function) obj;
-			return Objects.equals(acceptedArgs, other.acceptedArgs) && Objects.equals(body, other.body)
-					&& Objects.equals(specializations, other.specializations)
-					&& Objects.equals(upvalues, other.upvalues);
-		}
 		
 	}
 	

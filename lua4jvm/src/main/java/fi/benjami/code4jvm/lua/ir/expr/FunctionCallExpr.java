@@ -3,12 +3,14 @@ package fi.benjami.code4jvm.lua.ir.expr;
 import java.util.Arrays;
 import java.util.List;
 
+import fi.benjami.code4jvm.Constant;
 import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.Value;
 import fi.benjami.code4jvm.block.Block;
 import fi.benjami.code4jvm.call.CallTarget;
 import fi.benjami.code4jvm.call.FixedCallTarget;
 import fi.benjami.code4jvm.lua.compiler.LuaContext;
+import fi.benjami.code4jvm.lua.compiler.VariableFlag;
 import fi.benjami.code4jvm.lua.ir.IrNode;
 import fi.benjami.code4jvm.lua.ir.LuaLocalVar;
 import fi.benjami.code4jvm.lua.ir.LuaType;
@@ -32,24 +34,33 @@ public record FunctionCallExpr(
 		// Get expensive-to-compute types from cache
 		var cache = (CachedCall) ctx.getCache(this);
 		var argTypes = cache.argTypes();
+		var unknownTypes = false;
+		for (var type : argTypes) {
+			if (type.equals(LuaType.UNKNOWN)) {
+				unknownTypes = true;
+				break;
+			}
+		}
 		var returnType = cache.returnType();
 		
-		// TODO constant bootstrap is broken due to upvalues
-//		FixedCallTarget bootstrap;
-//		if (function instanceof VariableExpr variable // function is a variable read
-//				&& variable.source() instanceof LuaLocalVar localVar // from local variable
-//				&& localVar.upvalue() && !localVar.mutable() // that will be stable between calls to this function
-//				&& TODO we also need to check that 1) linker has used LuaType.TARGET_HAS_CHANGED (to prove upvalue's block hasn't been re-executed)
-//				&& TODO 2) cache key includes identity of the upvalue, not just its type! (this is quite tricky)
-//				) {
-//			
-//		}
-//		
-		var bootstrap = LuaLinker.BOOTSTRAP_DYNAMIC;
+		boolean stableTarget = function.concreteNode() instanceof VariableExpr variable // function is a variable read
+				&& variable.source() instanceof LuaLocalVar localVar // from local variable
+				&& localVar.upvalue() && !ctx.hasFlag(localVar, VariableFlag.MUTABLE) // that will be stable between calls to this function
+				&& !ctx.variableType(localVar).name().equals("table"); // and actually a function, not mutable table (TODO make this cleaner)
 		var lastMultiVal = !args.isEmpty() && MultiVals.canReturnMultiVal(args.get(args.size() - 1));
-		var options = new CallSiteOptions(ctx.owner(), argTypes, ctx.allowSpread(), lastMultiVal, intrinsicId);
-		bootstrap = bootstrap.withCapturedArgs(ctx.addClassData(options));
+		var options = new CallSiteOptions(ctx.owner(), argTypes, ctx.allowSpread(), lastMultiVal, stableTarget, intrinsicId);
 		
+		FixedCallTarget bootstrap;
+		if (stableTarget && !unknownTypes) { // Target is stable and and we don't need to do casts based on runtime types
+			// We know the call target will not change until call site is recompiled
+			var upvalue = ctx.getUpvalue((LuaLocalVar) ((VariableExpr) function.concreteNode()).source());
+			bootstrap = LuaLinker.BOOTSTRAP_CONSTANT.withCapturedArgs(ctx.addClassData(options), ctx.addClassData(upvalue));
+			// TODO even more special case: use invokevirtual if we don't need type conversions or varargs
+		} else {
+			// Call site might need to be relinked
+			bootstrap = LuaLinker.BOOTSTRAP_DYNAMIC.withCapturedArgs(ctx.addClassData(options));
+		}
+				
 		// Evaluate arguments to values (function is first argument)
 		var argValues = new Value[args.size() + 1];
 		argValues[0] = function.emit(ctx, block).asType(Type.OBJECT);

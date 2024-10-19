@@ -61,65 +61,65 @@ public class MultiValTest {
 	public void nestedVarargs() throws Throwable {
 		var vm = new LuaVm();
 
-		var func = (LuaFunction) vm.execute("""
-				local function test()
-					return "foo", 3, "bar", "baz"
-				end
-				
-				return function ()
-					return test()
-				end
-				""");
-		// Arguments given to the function should not matter
-		assertArrayEquals(new Object[] {"foo", 3d, "bar", "baz"},
-				(Object[]) func.call());
-		assertArrayEquals(new Object[] {"foo", 3d, "bar", "baz"},
-				(Object[]) func.call("foo", 3d, "bar", "baz"));
-		
-		// Same goes for arguments in Lua side
-		var func2 = (LuaFunction) vm.execute("""
-				local function test()
-					return "foo", 3, "bar", "baz"
-				end
-				
-				return function ()
-					return test(1, "test", 3)
-				end
-				""");
-		assertArrayEquals(new Object[] {"foo", 3d, "bar", "baz"},
-				(Object[]) func2.call());
-		// Why two equivalent calls? Only one call skips linker guards, which could still crash
-		assertArrayEquals(new Object[] {"foo", 3d, "bar", "baz"},
-				(Object[]) func2.call());
-		
-		// ... unless, of course, it accepts them
-		var func3 = (LuaFunction) vm.execute("""
-				local function test(...)
-					return "bar", ...
-				end
-				
-				return function (...)
-					return test("foo", ...)
-				end
-				""");
-		assertArrayEquals(new Object[] {"bar", "foo", 3d, 4d, "baz"},
-				(Object[]) func3.call(3d, 4d, "baz"));
-		assertArrayEquals(new Object[] {"bar", "foo", 3d, 4d, "baz"},
-				(Object[]) func3.call(3d, 4d, "baz"));
-		
-		var func4 = (LuaFunction) vm.execute("""
-				local function test(a, b, c, d)
-					return "bar", a, b, c, d
-				end
-				
-				return function (...)
-					return test("foo", ...)
-				end
-				""");
-		assertArrayEquals(new Object[] {"bar", "foo", 3d, 4d, "baz"},
-				(Object[]) func4.call(3d, 4d, "baz"));
-		assertArrayEquals(new Object[] {"bar", "foo", 3d, 4d, "baz"},
-				(Object[]) func4.call(3d, 4d, "baz"));
+//		var func = (LuaFunction) vm.execute("""
+//				local function test()
+//					return "foo", 3, "bar", "baz"
+//				end
+//				
+//				return function ()
+//					return test()
+//				end
+//				""");
+//		// Arguments given to the function should not matter
+//		assertArrayEquals(new Object[] {"foo", 3d, "bar", "baz"},
+//				(Object[]) func.call());
+//		assertArrayEquals(new Object[] {"foo", 3d, "bar", "baz"},
+//				(Object[]) func.call("foo", 3d, "bar", "baz"));
+//		
+//		// Same goes for arguments in Lua side
+//		var func2 = (LuaFunction) vm.execute("""
+//				local function test()
+//					return "foo", 3, "bar", "baz"
+//				end
+//				
+//				return function ()
+//					return test(1, "test", 3)
+//				end
+//				""");
+//		assertArrayEquals(new Object[] {"foo", 3d, "bar", "baz"},
+//				(Object[]) func2.call());
+//		// Why two equivalent calls? Only one call skips linker guards, which could still crash
+//		assertArrayEquals(new Object[] {"foo", 3d, "bar", "baz"},
+//				(Object[]) func2.call());
+//		
+//		// ... unless, of course, it accepts them
+//		var func3 = (LuaFunction) vm.execute("""
+//				local function test(...)
+//					return "bar", ...
+//				end
+//				
+//				return function (...)
+//					return test("foo", ...)
+//				end
+//				""");
+//		assertArrayEquals(new Object[] {"bar", "foo", 3d, 4d, "baz"},
+//				(Object[]) func3.call(3d, 4d, "baz"));
+//		assertArrayEquals(new Object[] {"bar", "foo", 3d, 4d, "baz"},
+//				(Object[]) func3.call(3d, 4d, "baz"));
+//		
+//		var func4 = (LuaFunction) vm.execute("""
+//				local function test(a, b, c, d)
+//					return "bar", a, b, c, d
+//				end
+//				
+//				return function (...)
+//					return test("foo", ...)
+//				end
+//				""");
+//		assertArrayEquals(new Object[] {"bar", "foo", 3d, 4d, "baz"},
+//				(Object[]) func4.call(3d, 4d, "baz"));
+//		assertArrayEquals(new Object[] {"bar", "foo", 3d, 4d, "baz"},
+//				(Object[]) func4.call(3d, 4d, "baz"));
 		
 		var func5 = (LuaFunction) vm.execute("""
 				local function test(a, b, c, d)

@@ -107,7 +107,7 @@ public record IteratorForStmt(
 		// In loop body, call next(state, control)		
 		var bootstrap = LuaLinker.BOOTSTRAP_DYNAMIC;
 		// Types are unknown because we can't yet track them for multivals
-		var options = new CallSiteOptions(ctx.owner(), new LuaType[] {LuaType.UNKNOWN, LuaType.UNKNOWN}, true, false);
+		var options = new CallSiteOptions(ctx.owner(), new LuaType[] {LuaType.UNKNOWN, LuaType.UNKNOWN}, true, false, false);
 		bootstrap = bootstrap.withCapturedArgs(ctx.addClassData(options));
 		var target = CallTarget.dynamic(bootstrap, Type.OBJECT, "_", Type.OBJECT, Type.OBJECT);
 		var results = loop.add(target.call(next, state, control));

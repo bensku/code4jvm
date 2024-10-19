@@ -15,11 +15,5 @@ public record UpvalueTemplate(
 		 * {@link LuaFunction#upvalueTypes final types} that are known after
 		 * the function has been instantiated, this may be unknown.
 		 */
-		LuaType type,
-		
-		/**
-		 * Whether or not the upvalue variable is assigned to after its initial
-		 * assignment.
-		 */
-		boolean mutable
+		LuaType type
 ) {}

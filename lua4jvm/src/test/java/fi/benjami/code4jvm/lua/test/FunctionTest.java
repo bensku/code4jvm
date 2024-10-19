@@ -59,7 +59,7 @@ public class FunctionTest {
 		var a = new LuaLocalVar("a");
 		var b = new LuaLocalVar("b");
 		var type = LuaType.function(
-				List.of(new UpvalueTemplate(a, LuaType.FLOAT, false)),
+				List.of(new UpvalueTemplate(a, LuaType.FLOAT)),
 				List.of(b),
 				new LuaBlock(List.of(new ReturnStmt(List.of(
 						new ArithmeticExpr(new VariableExpr(a), ArithmeticExpr.Kind.ADD, new VariableExpr(b))
@@ -109,7 +109,7 @@ public class FunctionTest {
 		var insideB = new LuaLocalVar("b");
 		var c = new LuaLocalVar("c");
 		var type = LuaType.function(
-				List.of(new UpvalueTemplate(a, LuaType.FLOAT, false)), 
+				List.of(new UpvalueTemplate(a, LuaType.FLOAT)), 
 				List.of(b),
 				new LuaBlock(List.of(
 						new ReturnStmt(List.of(new FunctionDeclExpr(

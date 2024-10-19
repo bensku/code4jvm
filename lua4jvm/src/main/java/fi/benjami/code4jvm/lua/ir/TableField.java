@@ -5,8 +5,4 @@ public record TableField(
 		IrNode field
 ) implements LuaVariable {
 
-	@Override
-	public void markMutable() {
-		// Do nothing, table fields are always mutable
-	}
 }

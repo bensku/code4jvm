@@ -18,6 +18,7 @@ import fi.benjami.code4jvm.lua.ir.LuaLocalVar;
 import fi.benjami.code4jvm.lua.ir.LuaType;
 import fi.benjami.code4jvm.lua.ir.UpvalueTemplate;
 import fi.benjami.code4jvm.lua.linker.LuaLinker;
+import fi.benjami.code4jvm.lua.runtime.LuaBox;
 import fi.benjami.code4jvm.lua.runtime.LuaFunction;
 import fi.benjami.code4jvm.statement.Return;
 import fi.benjami.code4jvm.typedef.ClassDef;
@@ -35,7 +36,9 @@ public class FunctionCompiler {
 			List<LuaType> argTypes,
 			List<LuaType> upvalueTypes,
 			boolean truncateReturn
-	) {}
+	) {
+		
+	}
 	
 	private static final MethodHandles.Lookup LOOKUP = MethodHandles.lookup();
 	
@@ -60,8 +63,13 @@ public class FunctionCompiler {
 		
 		// Compile and load the function code, or use something that is already cached
 		var compiledFunc = function.type().specializations().computeIfAbsent(cacheKey, t -> {
+			CompilerPass.setCurrent(CompilerPass.TYPE_ANALYSIS);
 			var ctx = LuaContext.forFunction(function.owner(), function.type(), truncateReturn, argTypes);
-			var code = generateCode(ctx, function.type(), argTypes, upvalueTypes);
+			
+			CompilerPass.setCurrent(CompilerPass.CODEGEN);
+			var code = generateCode(ctx, function.type(), argTypes, upvalueTypes, function.upvalues());
+			CompilerPass.setCurrent(null);
+			
 			try {
 				// Load the class with single-use class loader
 				// Using hidden classes would be preferable, but JVM hides them from stack frames
@@ -126,7 +134,7 @@ public class FunctionCompiler {
 	}
 	
 	private static byte[] generateCode(LuaContext ctx, LuaType.Function type,
-			LuaType[] argTypes, LuaType[] upvalueTypes) {
+			LuaType[] argTypes, LuaType[] upvalueTypes, Object[] upvalues) {
 		// Create class that wraps the method acting as function body
 		var def = ClassDef.create(toClassName(type.moduleName()), Access.PUBLIC);
 		def.sourceFile(type.moduleName());
@@ -188,9 +196,11 @@ public class FunctionCompiler {
 		// Read upvalues from fields to local variables
 		for (var i = 0; i < upvalueTypes.length; i++) {
 			var template = type.upvalues().get(i);
+			// If upvalue is mutable, its actual type is unknown - and JVM type is LuaBox
+			var actualType = upvalues[i] instanceof LuaBox ? LuaBox.TYPE : upvalueTypes[i].backingType();
 			var value = method.add(template.variable().name(), method.self()
-					.getField(upvalueTypes[i].backingType(), template.variable().name()));
-			ctx.addUpvalue(template.variable(), value);
+					.getField(actualType, template.variable().name()));
+			ctx.addUpvalue(template.variable(), value, upvalues[i]);
 		}
 		
 		// Emit Lua code as JVM bytecode
