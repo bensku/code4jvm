@@ -32,6 +32,11 @@ public record DebugInfoNode(
 	}
 	
 	@Override
+	public void flagVariables(LuaContext ctx) {
+		node.flagVariables(ctx);
+	}
+	
+	@Override
 	public IrNode concreteNode() {
 		return node.concreteNode();
 	}

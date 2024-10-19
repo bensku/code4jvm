@@ -14,6 +14,10 @@ public interface IrNode {
 		return false;
 	}
 	
+	default void flagVariables(LuaContext ctx) {
+		// No-op
+	}
+	
 	default IrNode concreteNode() {
 		return this;
 	}

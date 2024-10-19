@@ -7,6 +7,7 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
+import fi.benjami.code4jvm.internal.DebugOptions;
 import fi.benjami.code4jvm.lua.LuaVm;
 import fi.benjami.code4jvm.lua.runtime.LuaFunction;
 import fi.benjami.code4jvm.lua.runtime.LuaTable;
@@ -55,16 +56,23 @@ public class BinaryOpTest {
 	@Test
 	public void simpleMath() throws Throwable {
 		assertEquals(125d, vm.execute("return 5 ^ 3"));
-		assertEquals(15d, vm.execute("return 5 * 3"));
+		assertEquals(15, vm.execute("return 5 * 3"));
+		assertEquals(17.5, vm.execute("return 5 * 3.5"));
 		assertEquals(2.5, vm.execute("return 5 / 2"));
-		assertEquals(2d, vm.execute("return 5 // 2"));
-		assertEquals(2d, vm.execute("return 10 % 4"));
-		assertEquals(2d, vm.execute("return -10 % 4"));
-		assertEquals(8d, vm.execute("return 5 + 3"));
-		assertEquals(2d, vm.execute("return 5 - 3"));
+		assertEquals(2, vm.execute("return 5 // 2"));
+		assertEquals(2, vm.execute("return 10 % 4"));
+		assertEquals(2, vm.execute("return -10 % 4"));
+		assertEquals(8, vm.execute("return 5 + 3"));
+		assertEquals(8.4, vm.execute("return 5.4 + 3"));
+		assertEquals(2, vm.execute("return 5 - 3"));
+		assertEquals(1.1, vm.execute("return 5 - 3.9"));
 		
-		assertEquals(2d, vm.execute("""
+		assertEquals(2, vm.execute("""
 				lhs = 5
+				return lhs - 3
+				"""));
+		assertEquals(2.5, vm.execute("""
+				lhs = 5.5
 				return lhs - 3
 				"""));
 	}

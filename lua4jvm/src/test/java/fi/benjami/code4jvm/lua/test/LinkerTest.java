@@ -1,6 +1,7 @@
 package fi.benjami.code4jvm.lua.test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodType;
@@ -42,9 +43,9 @@ public class LinkerTest {
 				local function f(a, b)
 					return a + b
 				end
-				return f(1, 2)
+				return f(1.2, 2.1)
 				""");
-		assertEquals(3d, result);
+		assertEquals(3.3, result);
 		assertEquals(1, trace.metadata.linkageCount);
 		assertEquals(MethodType.methodType(double.class, Object.class, double.class, double.class),
 				getOnlySpecialization().bindTo(null).type());
@@ -119,6 +120,40 @@ public class LinkerTest {
 				""");
 		func.call("foo", "bar");
 		assertEquals(1, trace.stableTargets);
+	}
+	
+	@Test
+	public void unboxedMath() throws Throwable {
+		var func = (LuaFunction) vm.execute("""
+				local function sum(a, b)
+					return a + b
+				end
+				return function (a, b, c, d)
+					return sum(a, b) + sum(c, d)
+				end
+				""");
+		assertEquals(10, func.call(1, 2, 3, 4));
+		assertEquals(2, trace.stableTargets);
+		assertFalse(trace.metadata.hasUnknownTypes);
+	}
+	
+	@Test
+	public void unboxedMath2() throws Throwable {
+		var func = (LuaFunction) vm.execute("""
+				local function mul(a, b)
+					return a * b
+				end
+				
+				local function sum(a, b)
+					return mul(a, 3) + b
+				end
+				return function (a, b, c, d)
+					return sum(a, b) + sum(c, d)
+				end
+				""");
+		assertEquals(18, func.call(1, 2, 3, 4));
+		assertEquals(3, trace.stableTargets);
+		assertFalse(trace.metadata.hasUnknownTypes);
 	}
 	
 	@AfterEach

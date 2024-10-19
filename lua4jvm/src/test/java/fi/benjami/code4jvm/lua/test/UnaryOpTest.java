@@ -15,9 +15,18 @@ public class UnaryOpTest {
 	
 	@Test
 	public void negateNumbers() throws Throwable {
-		assertEquals(-10d, vm.execute("return -10"));
-		assertEquals(10d, vm.execute("return -(-10)"));
-		assertEquals(-10d, vm.execute("""
+		// Integers
+		assertEquals(-10.5, vm.execute("return -10.5"));
+		assertEquals(10.5, vm.execute("return -(-10.5)"));
+		assertEquals(-10.5, vm.execute("""
+				ten = 10.5
+				return -ten
+				"""));
+		
+		// Doubles
+		assertEquals(-10, vm.execute("return -10"));
+		assertEquals(10, vm.execute("return -(-10)"));
+		assertEquals(-10, vm.execute("""
 				ten = 10
 				return -ten
 				"""));

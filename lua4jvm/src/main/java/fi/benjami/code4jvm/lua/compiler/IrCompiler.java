@@ -448,7 +448,8 @@ public class IrCompiler extends LuaBaseVisitor<IrNode> {
 	@Override
 	public IrNode visitNumberLiteral(NumberLiteralContext ctx) {
 		var value = Double.valueOf(ctx.Numeral().getText());
-		return new LuaConstant(value.intValue() == value ? value.intValue() : value);
+		// Use Math.rint() to handle very large doubles safely
+		return Math.rint(value) == value ? new LuaConstant(value.intValue()) : new LuaConstant(value);
 	}
 
 	@Override

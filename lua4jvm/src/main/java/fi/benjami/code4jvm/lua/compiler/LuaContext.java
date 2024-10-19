@@ -45,8 +45,13 @@ public class LuaContext {
 			ctx.setFlag(arg, VariableFlag.ASSIGNED); // JVM assigns arguments to these
 		}
 		
+		// Do variable flagging BEFORE type analysis, we need that mutability information
+		type.body().flagVariables(ctx);
+		
 		// Compute types of local variables and the return type
+		CompilerPass.setCurrent(CompilerPass.TYPE_ANALYSIS);
 		type.body().outputType(ctx);
+		CompilerPass.setCurrent(null);
 		return ctx;
 	}
 	

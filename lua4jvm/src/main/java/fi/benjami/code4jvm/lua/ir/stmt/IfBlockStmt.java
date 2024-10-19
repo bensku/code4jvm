@@ -64,5 +64,12 @@ public record IfBlockStmt(
 		// If we don't have fallback, we might not return
 		return fallback != null ? fallback.hasReturn() : false;
 	}
+	
+	@Override
+	public void flagVariables(LuaContext ctx) {
+		for (var branch : branches) {
+			branch.body.flagVariables(ctx);
+		}
+	}
 
 }

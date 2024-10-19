@@ -61,4 +61,10 @@ public record LoopStmt(
 		// If there is condition before first run, it might not return
 		return kind != Kind.REPEAT_UNTIL ? false : body.hasReturn();
 	}
+	
+	@Override
+	public void flagVariables(LuaContext ctx) {
+		condition.flagVariables(ctx);
+		body.flagVariables(ctx);
+	}
 }

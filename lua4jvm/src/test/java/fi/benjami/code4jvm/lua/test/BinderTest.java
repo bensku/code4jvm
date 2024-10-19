@@ -148,7 +148,7 @@ public class BinderTest {
 	private static class LuaVarargs {
 		@LuaExport("checkArgs")
 		public static boolean checkArgs(Object... args) {
-			return Arrays.equals(args, new Object[] {"foo", "bar", 3d, "baz"});
+			return Arrays.equals(args, new Object[] {"foo", "bar", 3, "baz"});
 		}
 		
 		@LuaExport("returnArgs")
@@ -175,11 +175,17 @@ public class BinderTest {
 		assertTrue((boolean) vm.execute("""
 				return checkArgs("foo", "bar", 3, "baz")
 				"""));
-		assertArrayEquals(new Object[] {"foo", "bar", 3d, "baz"}, (Object[]) vm.execute("""
+		assertArrayEquals(new Object[] {"foo", "bar", 3, "baz"}, (Object[]) vm.execute("""
 				return returnArgs("foo", "bar", 3, "baz")
 				"""));
-		assertArrayEquals(new Object[] {"foo", "bar", 3d, "baz"}, (Object[]) vm.execute("""
+		assertArrayEquals(new Object[] {"foo", "bar", 3.1, "baz"}, (Object[]) vm.execute("""
+				return returnArgs("foo", "bar", 3.1, "baz")
+				"""));
+		assertArrayEquals(new Object[] {"foo", "bar", 3, "baz"}, (Object[]) vm.execute("""
 				return returnArgs2(123, "foo", "bar", 3, "baz")
+				"""));
+		assertArrayEquals(new Object[] {"foo", "bar", 3.1, "baz"}, (Object[]) vm.execute("""
+				return returnArgs2(123, "foo", "bar", 3.1, "baz")
 				"""));
 	}
 }

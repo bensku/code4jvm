@@ -130,7 +130,6 @@ public record SetVariablesStmt(
 		for (var i = 0; i < Math.min(normalSources, targets.size()); i++) {
 			var target = targets.get(i);
 			ctx.recordType(target, sources.get(i).outputType(ctx));
-			markMutable(ctx, target);
 		}
 		
 		if (spread) {
@@ -145,17 +144,22 @@ public record SetVariablesStmt(
 				// anything else -> first multiValType, rest NIL
 				var target = targets.get(i);
 				ctx.recordType(target, LuaType.UNKNOWN);
-				markMutable(ctx, target);
 			}
 		} else {
 			// If there are leftover targets, set them to nil
 			for (var i = normalSources; i < targets.size(); i++) {
 				var target = targets.get(i);
 				ctx.recordType(target, LuaType.NIL);
-				markMutable(ctx, target);
 			}
 		}
 		return LuaType.NIL;
+	}
+	
+	@Override
+	public void flagVariables(LuaContext ctx) {
+		for (var target : targets) {
+			markMutable(ctx, target);
+		}
 	}
 	
 	private void markMutable(LuaContext ctx, LuaVariable target) {

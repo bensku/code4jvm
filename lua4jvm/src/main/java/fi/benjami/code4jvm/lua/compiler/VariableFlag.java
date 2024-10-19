@@ -17,7 +17,7 @@ public enum VariableFlag {
 	/**
 	 * Variable is mutable; that is, it is assigned to at least twice.
 	 */
-	MUTABLE(CompilerPass.TYPE_ANALYSIS)
+	MUTABLE(CompilerPass.VARIABLE_TRACING)
 	;
 	
 	/**

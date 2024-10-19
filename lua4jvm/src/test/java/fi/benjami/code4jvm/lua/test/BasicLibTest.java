@@ -51,7 +51,8 @@ public class BasicLibTest {
 		var vm = new LuaVm(VmOptions.builder().stdOut(out).build());
 		
 		vm.execute("print(1, 2, 3)");
-		assertEquals("1.0\t2.0\t3.0\n", new String(bas.toByteArray()));
+		vm.execute("print(1.1, 2.2, 3.3)");
+		assertEquals("1\t2\t3\n1.1\t2.2\t3.3\n", new String(bas.toByteArray()));
 	}
 	
 	@Test
@@ -121,9 +122,9 @@ public class BasicLibTest {
 				end
 				""");
 		var out = (LuaTable) vm.globals().get("out");
-		assertEquals(1d, out.get("foo"));
-		assertEquals(2d, out.get("bar"));
-		assertEquals(3d, out.get("baz"));
+		assertEquals(1, out.get("foo"));
+		assertEquals(2, out.get("bar"));
+		assertEquals(3, out.get("baz"));
 	}
 	
 	@Test
@@ -136,9 +137,24 @@ public class BasicLibTest {
 				end
 				""");
 		var out = (LuaTable) vm.globals().get("out");
-		assertEquals(1d, out.get("foo"));
-		assertEquals(2d, out.get("bar"));
-		assertEquals(3d, out.get("baz"));
+		assertEquals(1, out.get("foo"));
+		assertEquals(2, out.get("bar"));
+		assertEquals(3, out.get("baz"));
+	}
+	
+	@Test
+	public void pairs3() throws Throwable {
+		vm.execute("""
+				tbl = {"foo", "bar", "baz", foo = 1.1, bar = 2.2, baz = 3.3}
+				out = {}
+				for k,v in pairs(tbl) do
+					out[k] = v
+				end
+				""");
+		var out = (LuaTable) vm.globals().get("out");
+		assertEquals(1.1, out.get("foo"));
+		assertEquals(2.2, out.get("bar"));
+		assertEquals(3.3, out.get("baz"));
 	}
 	
 	@Test

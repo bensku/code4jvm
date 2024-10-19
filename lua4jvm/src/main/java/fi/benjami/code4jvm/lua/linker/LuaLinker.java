@@ -116,12 +116,9 @@ public class LuaLinker {
 				specializedTypes = Arrays.copyOf(specializedTypes, function.type().acceptedArgs().size());
 				Arrays.fill(specializedTypes, compiledTypes.length, specializedTypes.length, LuaType.UNKNOWN);
 			}
-			
-			// FIXME upvalue typing is incorrect for mutable upvalues until VARIABLE_TRACING pass is implemented
-			var useUpvalueTypes = false; // checkTarget
 
 			// Truncate multival return if site doesn't want to spread
-			target = FunctionCompiler.callTarget(specializedTypes, function, useUpvalueTypes,
+			target = FunctionCompiler.callTarget(specializedTypes, function, checkTarget,
 					!meta.options.spreadResults());
 			guard = checkTarget ? TARGET_HAS_CHANGED.bindTo(function)
 					: PROTOTYPE_HAS_CHANGED.bindTo(function.type());

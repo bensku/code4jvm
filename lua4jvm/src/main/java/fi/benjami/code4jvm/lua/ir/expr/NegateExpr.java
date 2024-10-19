@@ -18,23 +18,31 @@ import fi.benjami.code4jvm.statement.Arithmetic;
 
 public record NegateExpr(IrNode expr) implements IrNode {
 
-	private static final MethodHandle NEGATE;
+	private static final MethodHandle NEGATE_DOUBLE, NEGATE_INT;
 	private static final DynamicTarget TARGET;
 	
 	static {
 		var lookup = MethodHandles.lookup();
 		try {
-			NEGATE = lookup.findStatic(NegateExpr.class, "negate", MethodType.methodType(double.class, Object.class, double.class));
+			NEGATE_DOUBLE = lookup.findStatic(NegateExpr.class, "negate", MethodType.methodType(double.class, Object.class, double.class));
+			NEGATE_INT = lookup.findStatic(NegateExpr.class, "negate", MethodType.methodType(int.class, Object.class, int.class));
 		} catch (NoSuchMethodException | IllegalAccessException e) {
 			throw new AssertionError(e);
 		}
 		
-		TARGET = UnaryOp.newTarget(new UnaryOp.Path[] {new UnaryOp.Path(Double.class, NEGATE)}, "__unm",
-				(val) -> new LuaException("attempted to negate a non-number value"));
+		TARGET = UnaryOp.newTarget(new UnaryOp.Path[] {
+				new UnaryOp.Path(Double.class, NEGATE_DOUBLE),
+				new UnaryOp.Path(Integer.class, NEGATE_INT)
+		}, "__unm", (val) -> new LuaException("attempted to negate a non-number value"));
 	}
 	
 	@SuppressWarnings("unused") // MethodHandle
 	private static double negate(Object callable, double value) {
+		return -value;
+	}
+	
+	@SuppressWarnings("unused") // MethodHandle
+	private static int negate(Object callable, int value) {
 		return -value;
 	}
 	

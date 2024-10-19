@@ -32,22 +32,29 @@ public record ArithmeticExpr(
 ) implements IrNode {
 
 	private static final CallTarget MATH_POW = CallTarget.staticMethod(Type.of(Math.class), Type.DOUBLE, "pow", Type.DOUBLE, Type.DOUBLE);
-	private static final CallTarget MATH_ABS = CallTarget.staticMethod(Type.of(Math.class), Type.DOUBLE, "abs", Type.DOUBLE);
-	private static final CallTarget FLOOR_DIV = CallTarget.staticMethod(Type.of(ArithmeticExpr.class), Type.DOUBLE, "floorDivide", Type.DOUBLE, Type.DOUBLE);
+	private static final CallTarget MATH_ABS_INT = CallTarget.staticMethod(Type.of(Math.class), Type.INT, "abs", Type.INT);
+	private static final CallTarget MATH_ABS_DOUBLE = CallTarget.staticMethod(Type.of(Math.class), Type.DOUBLE, "abs", Type.DOUBLE);
+	private static final CallTarget FLOOR_DIV_INTS = CallTarget.staticMethod(Type.of(ArithmeticExpr.class), Type.INT, "floorDivide", Type.INT, Type.INT);
+	private static final CallTarget FLOOR_DIV_DOUBLES = CallTarget.staticMethod(Type.of(ArithmeticExpr.class), Type.DOUBLE, "floorDivide", Type.DOUBLE, Type.DOUBLE);
 	private static final MethodHandles.Lookup LOOKUP = MethodHandles.lookup();
 	
 	public enum Kind {
-		POWER(MATH_POW::call, "power", "__pow"),
+		POWER((lhs, rhs) -> {
+			// Math.pow() does not have integer variant
+			return MATH_POW.call(lhs.cast(Type.DOUBLE), rhs.cast(Type.DOUBLE));
+		}, "power", "__pow"),
 		MULTIPLY(Arithmetic::multiply, "multiply", "__mul"),
 		DIVIDE((lhs, rhs) -> {
 			// Lua uses float division unless integer division is explicitly request (see below)
 			return Arithmetic.divide(lhs.cast(Type.DOUBLE), rhs.cast(Type.DOUBLE));
 		}, "divide", "__div"),
-		FLOOR_DIVIDE(FLOOR_DIV::call, "floorDivide", "__idiv"),
+		FLOOR_DIVIDE((lhs, rhs) 
+				-> lhs.type().equals(Type.INT) ? FLOOR_DIV_INTS.call(lhs, rhs) : FLOOR_DIV_DOUBLES.call(lhs, rhs),
+						"floorDivide", "__idiv"),
 		MODULO((lhs, rhs) -> (block -> {
 			// Lua expects modulo to be always positive; Java's remainder can return negative values
 			var remainder = block.add(Arithmetic.remainder(lhs, rhs));
-			return block.add(MATH_ABS.call(remainder));
+			return block.add(remainder.type().equals(Type.INT) ? MATH_ABS_INT.call(remainder) : MATH_ABS_DOUBLE.call(remainder));
 		}), "modulo", "__mod"),
 		ADD(Arithmetic::add, "add", "__add"),
 		SUBTRACT(Arithmetic::subtract, "subtract", "__sub");
@@ -156,6 +163,12 @@ public record ArithmeticExpr(
 		var rhsValue = rhs.emit(ctx, block);
 		if (outputType(ctx).isNumber()) {
 			// Both arguments are known to be numbers; emit arithmetic operation directly
+			// Just make sure that if either side is double, the other side is too
+			if (lhsValue.type().equals(Type.INT) && rhsValue.type().equals(Type.DOUBLE)) {
+				lhsValue = lhsValue.cast(Type.DOUBLE);
+			} else if (rhsValue.type().equals(Type.INT) && lhsValue.type().equals(Type.DOUBLE)) {
+				rhsValue = rhsValue.cast(Type.DOUBLE);
+			}
 			return block.add(kind.directEmitter.apply(lhsValue, rhsValue));
 		} else {
 			// Types are unknown compile-time; use invokedynamic

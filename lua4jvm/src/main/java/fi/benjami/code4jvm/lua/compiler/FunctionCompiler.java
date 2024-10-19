@@ -63,7 +63,6 @@ public class FunctionCompiler {
 		
 		// Compile and load the function code, or use something that is already cached
 		var compiledFunc = function.type().specializations().computeIfAbsent(cacheKey, t -> {
-			CompilerPass.setCurrent(CompilerPass.TYPE_ANALYSIS);
 			var ctx = LuaContext.forFunction(function.owner(), function.type(), truncateReturn, argTypes);
 			
 			CompilerPass.setCurrent(CompilerPass.CODEGEN);

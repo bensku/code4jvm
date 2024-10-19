@@ -101,8 +101,8 @@ public class LuaVm {
 	public LuaFunction load(LuaModule module, LuaTable env) {
 		// Instantiate the module
 		var type = LuaType.function(
-				// TODO _ENV mutability tracking
-				List.of(new UpvalueTemplate(module.env(), LuaType.TABLE)),
+				// TODO _ENV mutability tracking - we need LuaContext, which is a bit tricky here...
+				List.of(new UpvalueTemplate(module.env(), LuaType.UNKNOWN, true)),
 				List.of(),
 				module.root(),
 				module.name(),

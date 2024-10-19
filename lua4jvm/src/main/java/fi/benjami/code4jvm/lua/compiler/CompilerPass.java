@@ -8,13 +8,17 @@ public enum CompilerPass {
 	IR_GEN,
 	
 	/**
-	 * In this phase, variables are traced to determine their mutability and
-	 * other properties. TODO not yet implemented
+	 * Return tracking, to determine if lua4jvm has to insert empty returns.
+	 */
+	RETURN_TRACKING,
+	
+	/**
+	 * Variable flagging, based on e.g. their mutability.
 	 */
 	VARIABLE_TRACING,
 	
 	/**
-	 * In analysis phase, types that can be statically inferred are inferred
+	 * In analysis pass, types that can be statically inferred are inferred
 	 * to generate better code later.
 	 */
 	TYPE_ANALYSIS,

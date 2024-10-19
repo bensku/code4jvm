@@ -13,7 +13,7 @@ public class MultiValTest {
 	@Test
 	public void returnToJava() throws Throwable {
 		var vm = new LuaVm();
-		assertArrayEquals(new Object[] {"foo", 3d, "bar", "baz"}, (Object[]) vm.execute("""
+		assertArrayEquals(new Object[] {"foo", 3, "bar", "baz"}, (Object[]) vm.execute("""
 				return "foo", 3, "bar", "baz"
 				"""));
 	}
@@ -28,7 +28,7 @@ public class MultiValTest {
 				a, b, c, d = stuff() -- assign to globals
 				""");
 		assertEquals("foo", vm.globals().get("a"));
-		assertEquals(3d, vm.globals().get("b"));
+		assertEquals(3, vm.globals().get("b"));
 		assertEquals("bar", vm.globals().get("c"));
 		assertEquals("baz", vm.globals().get("d"));
 	}

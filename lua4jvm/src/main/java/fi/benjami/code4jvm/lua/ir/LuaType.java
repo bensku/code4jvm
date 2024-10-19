@@ -11,6 +11,7 @@ import fi.benjami.code4jvm.Type;
 import fi.benjami.code4jvm.Value;
 import fi.benjami.code4jvm.lua.compiler.CompiledFunction;
 import fi.benjami.code4jvm.lua.compiler.CompiledShape;
+import fi.benjami.code4jvm.lua.compiler.CompilerPass;
 import fi.benjami.code4jvm.lua.compiler.FunctionCompiler;
 import fi.benjami.code4jvm.lua.compiler.ShapeTypes;
 import fi.benjami.code4jvm.lua.ir.stmt.ReturnStmt;
@@ -244,7 +245,10 @@ public interface LuaType {
 	
 	public static Function function(List<UpvalueTemplate> upvalues, List<LuaLocalVar> args, LuaBlock body,
 			String moduleName, String name) {
-		if (!body.hasReturn()) {
+		CompilerPass.setCurrent(CompilerPass.RETURN_TRACKING);
+		var hasReturn = body.hasReturn();
+		CompilerPass.setCurrent(null);
+		if (!hasReturn) {
 			// If the function doesn't always return, insert return nil at end
 			var nodes = new ArrayList<>(body.nodes());
 			nodes.add(new ReturnStmt(List.of()));

@@ -39,4 +39,11 @@ public record LuaBlock(
 		return false;
 	}
 	
+	@Override
+	public void flagVariables(LuaContext ctx) {
+		for (var node : nodes) {
+			node.flagVariables(ctx);
+		}
+	}
+	
 }

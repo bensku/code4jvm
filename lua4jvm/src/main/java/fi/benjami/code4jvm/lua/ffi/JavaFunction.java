@@ -82,7 +82,9 @@ public record JavaFunction(
 			if (target.intrinsicId != null && !target.intrinsicId.equals(intrinsicId)) {
 				continue; // Intrinsic not allowed by caller
 			}
-			if (checkArgs(target, argTypes) == MatchResult.SUCCESS) {
+			var result = checkArgs(target, argTypes);
+			if (result == MatchResult.SUCCESS || result == MatchResult.INT_DOUBLE_CAST_NEEDED) {
+				// Linker calls MethodHandle#cast(...), which casts ints to doubles if needed
 				return target;
 			}
 		}
@@ -99,7 +101,8 @@ public record JavaFunction(
 		SUCCESS,
 		TOO_FEW_ARGS,
 		ARG_TYPE_MISMATCH,
-		VARARGS_TYPE_MISMATCH
+		VARARGS_TYPE_MISMATCH,
+		INT_DOUBLE_CAST_NEEDED
 	}
 	
 	private MatchResult checkArgs(Target target, LuaType[] argTypes) {
@@ -113,12 +116,18 @@ public record JavaFunction(
 		}
 		
 		// Check types of arguments
+		var intDoubleCast = false;
 		for (var i = 0; i < requiredArgs; i++) {
 			var arg = target.arguments.get(i);
 			if (!arg.type.isAssignableFrom(argTypes[i])) {
 				// Allow nil instead of expected type if nullability is allowed
-				if (!arg.nullable ||!argTypes[i].equals(LuaType.NIL)) {
-					return MatchResult.ARG_TYPE_MISMATCH;
+				if (!arg.nullable || !argTypes[i].equals(LuaType.NIL)) {
+					if (argTypes[i].equals(LuaType.INTEGER) && arg.type.equals(LuaType.FLOAT)) {
+						// We'll need to cast ints to doubles using MethodHandle magic
+						intDoubleCast = true;
+					} else {
+						return MatchResult.ARG_TYPE_MISMATCH;
+					}
 				}
 			}
 		}
@@ -131,6 +140,10 @@ public record JavaFunction(
 					return MatchResult.VARARGS_TYPE_MISMATCH;
 				}
 			}
+		}
+		
+		if (intDoubleCast) {
+			return MatchResult.INT_DOUBLE_CAST_NEEDED;
 		}
 		
 		return MatchResult.SUCCESS;

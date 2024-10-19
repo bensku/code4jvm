@@ -11,6 +11,7 @@ import fi.benjami.code4jvm.block.Block;
 import fi.benjami.code4jvm.call.CallTarget;
 import fi.benjami.code4jvm.lua.compiler.LoopRef;
 import fi.benjami.code4jvm.lua.compiler.LuaContext;
+import fi.benjami.code4jvm.lua.compiler.VariableFlag;
 import fi.benjami.code4jvm.lua.ir.IrNode;
 import fi.benjami.code4jvm.lua.ir.LuaBlock;
 import fi.benjami.code4jvm.lua.ir.LuaLocalVar;
@@ -171,5 +172,16 @@ public record IteratorForStmt(
 	@Override
 	public boolean hasReturn() {
 		return false; // The loop might run for zero iterations
+	}
+	
+	@Override
+	public void flagVariables(LuaContext ctx) {
+		for (var loopVar : loopVars) {
+			ctx.setFlag(loopVar, VariableFlag.MUTABLE);
+		}
+		for (var it : iterable) {
+			it.flagVariables(ctx);
+		}
+		body.flagVariables(ctx);
 	}
 }

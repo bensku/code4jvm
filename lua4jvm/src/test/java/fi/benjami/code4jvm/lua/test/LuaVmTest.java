@@ -31,7 +31,8 @@ public class LuaVmTest {
 	public void constantReturns() throws Throwable {
 		assertEquals("abc", vm.execute("return 'abc'"));
 		assertEquals("abc", vm.execute("return \"abc\""));
-		assertEquals(10d, vm.execute("return 10"));
+		assertEquals(10, vm.execute("return 10"));
+		assertEquals(10.5, vm.execute("return 10.5"));
 		assertEquals(true, vm.execute("return true"));
 		assertEquals(false, vm.execute("return false"));
 	}
@@ -64,9 +65,9 @@ public class LuaVmTest {
 				var list = (LuaTable) vm.execute("""
 						return {1, 2, 3}
 						""");
-				assertEquals(1d, list.get(1d));
-				assertEquals(2d, list.get(2d));
-				assertEquals(3d, list.get(3d));
+				assertEquals(1, list.get(1d));
+				assertEquals(2, list.get(2d));
+				assertEquals(3, list.get(3d));
 				
 				var foo = (LuaTable) vm.execute("""
 						return {foo = "bar"}
@@ -193,14 +194,14 @@ public class LuaVmTest {
 	
 	@Test
 	public void conditionalLoops() throws Throwable {
-		assertEquals(10d, vm.execute("""
+		assertEquals(10, vm.execute("""
 				local a = 0
 				while a < 10 do
 					a = a + 1
 				end
 				return a
 				"""));
-		assertEquals(10d, vm.execute("""
+		assertEquals(10, vm.execute("""
 				local a = 0
 				repeat
 					a = a + 1
@@ -298,6 +299,6 @@ public class LuaVmTest {
 				end
 				return count(), count(), count()
 				""");
-		assertArrayEquals(new Object[] {1d, 2d, 3d}, result);
+		assertArrayEquals(new Object[] {1, 2, 3}, result);
 	}
 }
